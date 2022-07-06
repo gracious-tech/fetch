@@ -54,7 +54,7 @@ const config = JSON.parse(readFileSync('publish.config.json', 'utf-8')) as
 
 // Init clients
 const s3 = new S3({region: config.region})
-const cf = new CloudFront({})
+const cf = new CloudFront({region: 'us-east-1'})
 
 
 // Upload all files
@@ -86,11 +86,11 @@ await concurrent(get_files('dist').map(file => async () => {
 
 // Delete old
 const existing = await s3.listObjectsV2({Bucket: config.bucket})
-await s3.deleteObjects({Bucket: config.bucket, Delete: {
-    Objects: existing.Contents!
-        .map(item => ({Key: item.Key!}))
-        .filter(item => !new_keys.includes(item.Key)),
-}})
+const delete_objects = existing.Contents!.map(item => ({Key: item.Key!}))
+    .filter(item => !new_keys.includes(item.Key))
+if (delete_objects.length){
+    await s3.deleteObjects({Bucket: config.bucket, Delete: {Objects: delete_objects}})
+}
 
 
 // Invalidate all paths

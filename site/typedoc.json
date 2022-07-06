@@ -8,7 +8,6 @@
     "commentStyle": "All",
     "hideGenerator": true,
     "githubPages": false,
-    "gitRevision": "master",
     "excludeInternal": true,
     "sort": ["source-order"]
 }

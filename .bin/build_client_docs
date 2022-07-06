@@ -1,0 +1,6 @@
+#!/bin/bash
+# Auto-generate docs for client and place within site
+set -e
+cd "$(dirname "$(dirname "$0")")/site"
+
+./node_modules/.bin/typedoc --out src/access/client --tsconfig ../client/tsconfig.json "$@" ../client/src

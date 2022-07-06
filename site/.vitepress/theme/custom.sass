@@ -1,0 +1,24 @@
+
+
+// Theme
+:root
+    --vp-c-brand: #c12bdb
+    --vp-c-brand-light: #e746ef
+    --vp-c-brand-lighter: #f766ff
+    --vp-c-brand-dark: #ac0ec8
+    --vp-c-brand-darker: #8c00a8
+
+
+// Hide navbar whenever sidebar also hidden (just intended for homepage)
+// Workaround due to https://github.com/vuejs/vitepress/issues/522
+.VPNav.no-sidebar
+    display: none
+
+
+// Show icon on homepage
+.VPHomeHero .container
+    background-image: url(/icon.svg)
+    background-repeat: no-repeat
+    background-position-x: center
+    background-size: 12vw
+    padding-top: 18vw

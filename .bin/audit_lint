@@ -1,0 +1,9 @@
+#!/bin/bash
+# Lint entire project
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+
+# NOTE Uses a lot of memory so need to increase node's default
+# NOTE eslint will complain about its own config not being included
+NODE_OPTIONS="--max-old-space-size=4096" node_modules/.bin/eslint --ignore-pattern=.eslintrc.js "${@:-.}"

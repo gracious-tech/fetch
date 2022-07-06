@@ -1,0 +1,6 @@
+#!/bin/bash
+# Serve test collection
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+.bin/serve 8430 collection/dist

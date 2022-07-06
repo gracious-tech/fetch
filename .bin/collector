@@ -1,0 +1,7 @@
+#!/bin/bash
+# Execute collector within the test collection
+set -e
+cd "$(dirname "$(dirname "$0")")/collection"
+
+
+NODE_OPTIONS="--no-warnings" node ../collector/dist/index.js "$@"

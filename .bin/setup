@@ -1,0 +1,10 @@
+#!/bin/bash
+# Setup dev environment
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+npm install
+cd client
+npm install
+cd ../collector
+npm install

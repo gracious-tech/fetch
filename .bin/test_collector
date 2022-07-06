@@ -1,0 +1,19 @@
+#!/bin/bash
+# Wipe and rebuild test collection
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+# Wipe collection
+rm -rf collection
+mkdir collection
+
+# Rebuild collector
+.bin/build_collector
+
+# Build collection from scratch
+.bin/collector setup
+.bin/collector discover door43
+.bin/collector download eng_udb
+.bin/collector download eng_ulb
+.bin/collector download vie_udb
+.bin/collector process

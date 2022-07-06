@@ -1,0 +1,2 @@
+
+export {BibleClient} from './client'

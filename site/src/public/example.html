@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+
+<!-- Some basic meta and styles (nothing interesting) -->
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        body {
+            margin: 0;
+        }
+        input, select, button {
+            border-style: none;
+            background-color: #fff9;
+            padding: 4px 8px;
+            margin: 4px;
+        }
+        .toolbar {
+            position: sticky;
+            top: 0;
+            background-color: purple;
+            padding: 6px;
+            text-align: center
+        }
+        .content {
+            padding: 20px;
+        }
+    </style>
+</head>
+
+
+<!-- A basic page structure for UI -->
+<body>
+
+    <div class='toolbar'>
+        <select class='language'></select>
+        <select class='translation'></select>
+        <select class='book'></select>
+        <select class='chapter'></select>
+    </div>
+    <div class='content'></div>
+
+
+    <script type='module'>
+
+
+// NOW FOR THE APP...
+// Normally this would be even simpler when using a JS framework
+// but we'll use plain JS for sake of demonstration
+
+
+// Import the fetch(bible) client
+import {BibleClient} from 'https://collection.fetch.bible/client/client.min.esm.js'
+
+
+// Locate UI elements
+const select_language = self.document.querySelector('.language')
+const select_translation = self.document.querySelector('.translation')
+const select_book = self.document.querySelector('.book')
+const select_chapter = self.document.querySelector('.chapter')
+const div_content = self.document.querySelector('.content')
+
+
+// Fetch collection
+const client = new BibleClient()
+const collection = await client.fetch_collection()
+
+
+// Method for updating the content shown
+async function update_content(){
+    const book = await collection.fetch_html(
+        select_translation.value,
+        select_book.value,
+    )
+    div_content.innerHTML = book.get_chapter(select_chapter.value)
+}
+
+
+
+// Method for populating the language <select> element
+function update_select_language(){
+    const languages = collection.get_languages()
+    update_options(select_language, languages.map(language => {
+        return [
+            language.code,
+            `${language.autonym} (${language.english})`,
+        ]
+    }))
+}
+
+
+// Method for populating the translation <select> element
+function update_select_translation(){
+    const translations = collection.get_translations({
+        language: select_language.value,
+    })
+    update_options(select_translation, translations.map(translation => {
+        return [
+            translation.id,
+            `${translation.name_autonym} (${translation.name_abbrev})`,
+        ]
+    }))
+}
+
+
+
+// Method for populating the book <select> element
+function update_select_book(){
+    const books = collection.get_books(select_translation.value)
+    update_options(select_book, books.map(book => {
+        return [book.id, `${book.autonym} (${book.english})`]
+    }))
+}
+
+
+// Method for populating the chapter <select> element
+function update_select_chapter(){
+    const chapters = collection.get_chapters(
+        select_translation.value,
+        select_book.value,
+    )
+    update_options(select_chapter, chapters.map(c => [c, c]))
+}
+
+
+
+// Do initial update of dynamic UI elements
+update_select_language()
+update_select_translation()
+update_select_book()
+update_select_chapter()
+update_content()
+
+
+// Trigger updates for UI actions
+select_language.addEventListener('change', () => {
+    update_select_translation()
+    update_select_book()
+    update_select_chapter()
+    update_content()
+})
+select_translation.addEventListener('change', () => {
+    update_select_book()
+    update_select_chapter()
+    update_content()
+})
+select_book.addEventListener('change', () => {
+    update_select_chapter()
+    update_content()
+})
+select_chapter.addEventListener('change', () => {
+    update_content()
+})
+
+
+// Util for updating the options of a <select> element
+function update_options(element, items){
+    element.innerHTML = ''  // Remove existing options
+    for (const item of items){
+        const option = self.document.createElement('option')
+        option.value = item[0]
+        option.label = item[1]
+        element.appendChild(option)
+    }
+}
+
+
+    </script>
+</body>
+</html>

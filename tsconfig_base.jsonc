@@ -1,0 +1,37 @@
+// A base tsconfig to be inherited (or used directly if component is for both browser and Node)
+// NOTE vscode will warn about trailing commas in this file, but can ignore the warnings
+
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "compilerOptions": {
+
+        // May need overriding
+        "lib": ["ESNext"],  // Allow using latest JS features (add DOM & DOM.Iterable if browser)
+        "types": [],  // Disables auto-including types modules of '@types/*' (add "node" if Node)
+
+        // Language expectations
+        "module": "ESNext",  // Always use ESM for browser and Node
+        "target": "ESNext",  // Don't do any downgrading (leave that to esbuild)
+        "moduleResolution": "Node",  // All should use node-like module resolution, not just node
+
+        // Other compilation settings
+        "declaration": true,  // Emit declaration files
+        "resolveJsonModule": true,  // Import JSON as objects
+        "esModuleInterop": true,  // Make require imports work like es6 ones do
+        "experimentalDecorators": true,  // Allow @decorators
+        "skipLibCheck": true,  // Mostly avoids checking node_modules (but see docs)
+        "jsx": "preserve",  // Volar needs for typechecking pug templates (for some reason)
+
+        // Strict checking
+        "strict": true,
+        "allowUnreachableCode": false,  // Must be a mistake
+        "allowUnusedLabels": false,  // Labels as in `continue *label*` for loops etc
+        "exactOptionalPropertyTypes": true,  // {a:undefined} !== {}
+        "noImplicitOverride": true,  // Must use `override` to make overriding parent class clear
+        "noImplicitReturns": true,  // Must return a value unless void
+        "noPropertyAccessFromIndexSignature": true,  // Must use `['a']` not `.a` if props unknown
+        "noUncheckedIndexedAccess": true,  // If {[k:any]:type} consider `.k` = type|undefined
+        "noUnusedLocals": true,  // Can't define variable and not use it
+        "noUnusedParameters": false,  // It's ok to specify listener(event) and not use event
+    },
+}

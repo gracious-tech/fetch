@@ -1,0 +1,23 @@
+#!/bin/bash
+# Build client
+set -e
+cd "$(dirname "$(dirname "$0")")/client"
+
+
+# Build each format as well as minified versions
+esbuild="../node_modules/.bin/esbuild src/index.ts --sourcemap --bundle --target=es6"
+
+$esbuild --format=esm  --platform=neutral --outfile=dist/client.esm.js
+$esbuild --format=cjs  --platform=node    --outfile=dist/client.cjs.js
+$esbuild --format=iife --platform=browser --outfile=dist/client.iife.js
+
+$esbuild --format=esm  --platform=neutral --outfile=dist/client.min.esm.js  --minify
+$esbuild --format=cjs  --platform=node    --outfile=dist/client.min.cjs.js  --minify
+$esbuild --format=iife --platform=browser --outfile=dist/client.min.iife.js --minify
+
+../node_modules/.bin/tsc --emitDeclarationOnly --outFile dist/client.js
+
+
+# Copy to site
+cp dist/client.min.esm.js ../site/src/public/client.min.esm.js
+cp dist/client.min.iife.js ../site/src/public/client.min.iife.js

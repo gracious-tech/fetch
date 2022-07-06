@@ -1,0 +1,14 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "plugin": ["typedoc-plugin-markdown"],
+    "entryDocument": "index.md",
+    "hideInPageTOC": true,
+    "entryPointStrategy": "Expand",
+    "excludeExternals": true,
+    "commentStyle": "All",
+    "hideGenerator": true,
+    "githubPages": false,
+    "gitRevision": "master",
+    "excludeInternal": true,
+    "sort": ["source-order"]
+}

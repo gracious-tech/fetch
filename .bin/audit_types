@@ -1,0 +1,12 @@
+#!/bin/bash
+# Type check everything
+# WARN vue-tsc requires @vue/runtime-dom (provided by Vue3 but needed in top level node_modules)
+# WARN Keep this list in sync with .eslintrc.js
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+
+node_modules/.bin/tsc --noEmit --project collector
+node_modules/.bin/tsc --noEmit --project client
+node_modules/.bin/vue-tsc --noEmit --project app
+node_modules/.bin/vue-tsc --noEmit --project site

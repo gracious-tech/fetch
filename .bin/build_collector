@@ -5,4 +5,4 @@ cd "$(dirname "$(dirname "$0")")/collector"
 
 
 ../node_modules/.bin/esbuild src/*.ts src/**/*.ts --sourcemap --target=node18 --format=esm \
-    --platform=node --outdir=dist
+    --platform=node --outdir=dist "$@"

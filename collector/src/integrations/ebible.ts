@@ -85,7 +85,7 @@ export async function discover():Promise<void>{
                 console.error(`Failed to detect CC license: ${license}`)
                 license = null
             }
-        } else if (/(?! not ).*public domain/i.test(page_resp)){
+        } else if (/public domain/i.test(page_resp) && !/not public domain/i.test(page_resp)){
             license = 'public'
         }
 

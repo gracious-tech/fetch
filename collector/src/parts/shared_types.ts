@@ -23,6 +23,10 @@ export interface MetaTranslationName {
 }
 
 export interface MetaRestrictions {
+    /* NOTE If there are complex interactions between conditions
+        e.g. Verse limitations apply to commercial use but not other uses
+        Then create multiple custom licenses to account for the various possibilities
+    */
     limit_verses:number|null  // Inclusive (1000 means 1000 is ok but 1001 is a violation)
     limit_book_ratio:number|null  // Inclusive (50 means 50% of book is ok but 51% is not)
     limit_content_ratio:number|null  // Exclusive (50 means 50% is a violation but 49% isn't)

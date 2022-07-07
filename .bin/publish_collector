@@ -1,0 +1,10 @@
+#!/bin/bash
+# Build collector
+set -e
+cd "$(dirname "$(dirname "$0")")/collector"
+
+
+../.bin/build_collector
+
+# Also include types (slow so not part of build command)
+../node_modules/.bin/tsc --emitDeclarationOnly --outDir dist

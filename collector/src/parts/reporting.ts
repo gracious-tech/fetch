@@ -25,6 +25,8 @@ export function report_items(mode?:'unlicensed'|'unreviewed'){
             license = 'custom'
         }
 
-        console.info(`${id} ${meta['year'] ?? ''} ${meta['source']['format']} ${license}`)
+        // Output fields in columns
+        const fields = [id, meta.source.id, meta.year, meta.source.format, license]
+        console.info(fields.map(field => `${field ?? 'null'}`.padEnd(16)).join(' '))
     }
 }

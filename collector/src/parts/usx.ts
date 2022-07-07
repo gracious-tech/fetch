@@ -18,7 +18,7 @@ export function extract_meta(path:string):BookExtracts{
     // Parse the file
     const doc = new DOMParser().parseFromString(readFileSync(path, 'utf-8'))
 
-    // Extract autonym for book
+    // Extract local for book
     meta.name = (xpath.select('(//para[@style="h"]/text())[1]', doc)[0] as Element).nodeValue
 
     // Extract last verse number for every chapter

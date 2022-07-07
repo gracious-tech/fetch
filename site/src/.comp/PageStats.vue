@@ -79,7 +79,7 @@ table
     tr(v-for='lang of missing_languages')
         td {{ lang.id }}
         td {{ lang.english }}
-        td {{ lang.autonym }}
+        td {{ lang.local }}
         td {{ lang.pop }}
 
 

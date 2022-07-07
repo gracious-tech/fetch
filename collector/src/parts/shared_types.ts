@@ -11,14 +11,14 @@ declare global {
 
 
 export interface MetaLanguage {
-    autonym:string
+    local:string
     english:string
     living:boolean
 }
 
 export interface MetaTranslationName {
-    // NOTE Guaranteed to have either autonym or english (but might not be both) when published
-    autonym:string
+    // NOTE Guaranteed to have either local or english (but might not be both) when published
+    local:string
     abbrev:string  // Should be form most recognisable by native speakers (usually not English)
     english:string
 }

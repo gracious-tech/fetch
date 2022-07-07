@@ -105,7 +105,7 @@ export async function discover():Promise<void>{
         // Prepare the meta data
         const meta:TranslationSourceMeta = {
             name: {
-                autonym: title_is_english ? '' : row['title'],
+                local: title_is_english ? '' : row['title'],
                 abbrev: trans_abbr.toUpperCase(),  // WARN Often in English (should be native)
                 english: title_is_english ? row['title'] : '',
             },

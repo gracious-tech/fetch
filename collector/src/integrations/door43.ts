@@ -136,7 +136,7 @@ export async function discover():Promise<void>{
             // Prepare meta data
             const translation:TranslationSourceMeta = {
                 name: {
-                    autonym: '',
+                    local: '',
                     // WARN Shouldn't be in English but is
                     abbrev: `${language['language']}-${resource['identifier']}`.toUpperCase(),
                     english: resource['title'],

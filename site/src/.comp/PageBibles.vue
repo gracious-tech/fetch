@@ -75,7 +75,7 @@ const unfiltered_total = Object.keys(collection._manifest.translations).length
 const languages = collection.get_languages().map(lang => {
     return {
         value: lang.code,
-        label: `${lang.autonym} (${lang.english})`,
+        label: `${lang.local} (${lang.english})`,
     }
 })
 

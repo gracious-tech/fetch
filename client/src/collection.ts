@@ -25,7 +25,7 @@ export interface GetLanguagesOptions {
 
 export interface GetLanguagesItem {
     code:string
-    autonym:string
+    local:string
     english:string
     living:boolean
 }
@@ -43,7 +43,7 @@ export interface GetTranslationsItem {
     id:string
     language:string
     year:number
-    name_autonym:string
+    name_local:string
     name_english:string
     name_abbrev:string
     attribution:string
@@ -59,7 +59,7 @@ export interface GetBooksOptions {
 
 export interface GetBooksItem {
     id:string
-    autonym:string
+    local:string
     english:string
 }
 
@@ -206,7 +206,7 @@ export class BibleCollection {
 
         // Sort list and return it
         list.sort((a, b) => {
-            const name_key = sort_by_english ? 'english' : 'autonym'
+            const name_key = sort_by_english ? 'english' : 'local'
             return a[name_key].localeCompare(b[name_key])
         })
         return list
@@ -255,7 +255,7 @@ export class BibleCollection {
                 id,
                 language: trans.language,
                 year: trans.year,
-                name_autonym: trans.name.autonym,
+                name_local: trans.name.local,
                 name_english: trans.name.english,
                 name_abbrev: trans.name.abbrev,
                 attribution: trans.copyright.attribution,
@@ -286,7 +286,7 @@ export class BibleCollection {
 
         // Sort list and return it
         list.sort((a, b) => {
-            return sort_by_year ? b.year - a.year : a.name_autonym.localeCompare(b.name_autonym)
+            return sort_by_year ? b.year - a.year : a.name_local.localeCompare(b.name_local)
         })
         return list
     }
@@ -324,7 +324,7 @@ export class BibleCollection {
             .map(id => {
                 return {
                     id,
-                    autonym: available[id]!,
+                    local: available[id]!,
                     english: this._manifest.book_names_english[id]!,
                 }
             })
@@ -334,9 +334,9 @@ export class BibleCollection {
             return Object.fromEntries(list.map(item => [item.id, item]))
         }
 
-        // Optionally sort by autonym instead of traditional order
+        // Optionally sort by local instead of traditional order
         if (sort_by_name){
-            list.sort((a, b) => a.autonym.localeCompare(b.autonym))
+            list.sort((a, b) => a.local.localeCompare(b.local))
         }
 
         return list

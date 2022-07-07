@@ -46,7 +46,7 @@ const pop = data.slice(0, 1000).map(item => {
         id: item.id,
         pop: recent_data[item.id] ?? item.po,
         english: item.tt,
-        autonym: item.tv,
+        local: item.tv,
     }
 })
 

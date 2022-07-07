@@ -18,7 +18,7 @@ table
         th Bibles
     tr(v-for='lang of languages')
         td {{ lang.code }}
-        td {{ lang.autonym }}
+        td {{ lang.local }}
         td {{ lang.english }}
         td {{ lang.living ? "Yes" : "No" }}
         td {{ lang.pop }}

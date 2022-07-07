@@ -41,7 +41,7 @@ export async function update_manifest(){
 
         // Skip if meta data missing or not reviewed yet
         if (!meta.year || !meta.copyright.licenses.length || !meta.reviewed ||
-                !(meta.name.autonym || meta.name.english)){
+                !(meta.name.local || meta.name.english)){
             console.error(`IGNORING ${trans} (missing year, license, name, or review)`)
             continue
         }

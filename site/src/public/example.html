@@ -83,7 +83,7 @@ function update_select_language(){
     update_options(select_language, languages.map(language => {
         return [
             language.code,
-            `${language.autonym} (${language.english})`,
+            `${language.local} (${language.english})`,
         ]
     }))
 }
@@ -97,7 +97,7 @@ function update_select_translation(){
     update_options(select_translation, translations.map(translation => {
         return [
             translation.id,
-            `${translation.name_autonym} (${translation.name_abbrev})`,
+            `${translation.name_local} (${translation.name_abbrev})`,
         ]
     }))
 }
@@ -108,7 +108,7 @@ function update_select_translation(){
 function update_select_book(){
     const books = collection.get_books(select_translation.value)
     update_options(select_book, books.map(book => {
-        return [book.id, `${book.autonym} (${book.english})`]
+        return [book.id, `${book.local} (${book.english})`]
     }))
 }
 

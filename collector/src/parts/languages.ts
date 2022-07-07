@@ -47,7 +47,7 @@ export async function gen_language_data(){
 
         // Insert into data object
         data.languages[three] = {
-            autonym: name,
+            local: name,
             english: english[three] || english[two] || name,
             living,
         }
@@ -55,7 +55,7 @@ export async function gen_language_data(){
             data.language2to3[two] = three
         }
 
-        // Get autonym if available
+        // Get local if available
         let cldr_code = three
         let lang_path = join(cldr_path, cldr_code, 'languages.json')
         if (!existsSync(lang_path) && two){
@@ -63,7 +63,7 @@ export async function gen_language_data(){
             lang_path = join(cldr_path, cldr_code, 'languages.json')
         }
         if (existsSync(lang_path)){
-            data.languages[three]!.autonym = read_json<CLDRLanguages>(lang_path)
+            data.languages[three]!.local = read_json<CLDRLanguages>(lang_path)
                 .main[cldr_code]!.localeDisplayNames.languages[cldr_code]!
         }
     }

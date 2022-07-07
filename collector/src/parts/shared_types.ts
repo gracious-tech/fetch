@@ -23,17 +23,49 @@ export interface MetaTranslationName {
 }
 
 export interface MetaRestrictions {
-    /* NOTE If there are complex interactions between conditions
+    /* Restrictions that (1) commonly apply to translations and (2) commonly affect users
+
+    These are designed to aid automated selection/elimination of translations for most use cases
+        but are not exhaustive and users will still need to take responsibility themselves for
+        appropriately using/not using translations.
+
+    If there are complex interactions between conditions
         e.g. Verse limitations apply to commercial use but not other uses
         Then create multiple custom licenses to account for the various possibilities
+
+    Not all conditions are included
+        For example some translations forbid unchristian use
+            e.g. https://ebible.org/Scriptures/details.php?id=ukr1996
+        But such conditions are too vague and varied to usefully categorise and this service is
+        already expected to be almost exclusively used by mainline Christians.
+        If a condition _is_ "likely" to affect users then the `forbid_other` should be true.
+
     */
-    limit_verses:number|null  // Inclusive (1000 means 1000 is ok but 1001 is a violation)
-    limit_book_ratio:number|null  // Inclusive (50 means 50% of book is ok but 51% is not)
-    limit_content_ratio:number|null  // Exclusive (50 means 50% is a violation but 49% isn't)
+
+    // Limit on how many verses can be quoted in a single "work"
+    // NOTE Inclusive (1000 means 1000 is ok but 1001 is a violation)
+    limit_verses:number|null
+
+    // Limit on how much of a single Bible "book" can be quoted
+    // NOTE Inclusive (50 means 50% of book is ok but 51% is not)
+    limit_book_ratio:number|null
+
+    // Limit on how much of the total "work" can be made up of quotations
+    // NOTE Exclusive (50 means 50% is a violation but 49% isn't)
+    limit_content_ratio:number|null
+
+    // Commercial use is forbidden
     forbid_commercial:boolean
+
+    // Modifying the text is forbidden either entirely or if publishing under a different license
     forbid_derivatives:boolean|'same-license'
+
+    // The owner of the translation must be attributed whenever the text is used
     forbid_attributionless:boolean
-    forbid_other:boolean  // Geo-restrictions etc
+
+    // Other conditions that are significant enough to potentially be an issue for some users
+    // NOTE Licenses will always have slight variations so this should only be used if "significant"
+    forbid_other:boolean
 }
 
 export interface MetaStandardLicense {

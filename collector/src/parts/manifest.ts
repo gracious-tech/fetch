@@ -39,9 +39,9 @@ export async function update_manifest(){
         // Load the meta data for the translation
         const meta = read_json<TranslationSourceMeta>(join('sources', trans, 'meta.json'))
 
-        // Skip if meta data missing
-        if (!meta.year || !meta.copyright.licenses.length){
-            console.error(`Ignoring ${trans} (missing year and/or license)`)
+        // Skip if meta data missing or not reviewed yet
+        if (!meta.year || !meta.copyright.licenses.length || !meta.reviewed){
+            console.error(`IGNORING ${trans} (missing year, license, or review)`)
             continue
         }
 
@@ -49,7 +49,7 @@ export async function update_manifest(){
         const html_books =
             readdirSync(join('dist', 'bibles', trans, 'html')).map(name => name.slice(0, 3))
         if (html_books.length === 0){
-            console.error(`Ignoring ${trans} (no books)`)
+            console.error(`IGNORING ${trans} (no books)`)
             continue
         }
 

@@ -2,8 +2,9 @@
 import {join} from 'path'
 import {readdirSync, readFileSync} from 'fs'
 
-import {concurrent} from './utils.js'
+import {concurrent, read_json} from './utils.js'
 import {PublisherAWS} from '../integrations/aws.js'
+import type {DistManifest} from './shared_types'
 
 
 function _type_from_path(path:string){
@@ -39,14 +40,16 @@ export class Publisher extends PublisherAWS {
 export async function publish(translation?:string):Promise<void>{
     // Publish collection (or part of it)
 
+
+    // Detect translations from manifest so know they passed review
+    const manifest_path = join('dist', 'bibles', 'manifest.json')
+    const manifest = read_json<DistManifest>(manifest_path)
+
     // Always update manifest since quick (and manifest almost always needs update)
-    const files = [join('dist', 'bibles', 'manifest.json')]
+    const files = [manifest_path]
 
     // Add translations
-    for (const id of readdirSync(join('dist', 'bibles'))){
-        if (id === 'manifest.json'){
-            continue
-        }
+    for (const id in manifest.translations){
         if (translation && id !== translation){
             continue  // Only publishing a single translation
         }

@@ -42,7 +42,7 @@ export async function update_source(trans_id?:string){
 }
 
 
-function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'|'sword'){
+function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
     // Convert translation's source files to USX3 using Bible Multi Converter
 
     // Determine parts of cmd
@@ -51,7 +51,7 @@ function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'|'sword'){
     const bmc_format = {
         'usx1-2': 'USX',
         'usfm': 'USFM',
-        'sword': 'SWORD',
+        'sword': 'SWORD',  // TODO Not properly implemented yet (not needed yet either)
     }[format]
     const tool = ['usfm', 'usx1-2'].includes(format) ? 'ParatextConverter' : ''
     const bmc = join(PKG_PATH, 'bmc', 'BibleMultiConverter.jar')

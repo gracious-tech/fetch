@@ -24,7 +24,7 @@ export interface CollectionConfig {
 export interface TranslationSource {
     service:'ebible'|'dbl'|'door43'
     id:string
-    format:'usfm'|'sword'|'usx1-2'|'usx3+'
+    format:'usfm'|'usx1-2'|'usx3+'
     url:string
     updated:string  // yyyy-mm-dd
 }

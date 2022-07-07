@@ -44,9 +44,16 @@ const client = new BibleClient({endpoints: [endpoint]})
 const collection = await client.fetch_collection()
 
 
-// Replace the existing hero `text` with number included
-self.document.body.querySelector('.VPHomeHero .text').innerText =
-    `Digital access to ${collection.get_translations().length}+ Bible translations`
+// Progressively count up to total translations available
+const total = collection.get_translations().length
+let counter = 0
+while (counter < total){
+    await new Promise(resolve => setTimeout(resolve, 1))
+    counter = Math.min(total, counter+2)
+    // Replace the existing hero `text` with number included
+    self.document.body.querySelector('.VPHomeHero .text').innerText =
+        `Digital access to ${counter}+ Bible translations`
+}
 
 
 </script>

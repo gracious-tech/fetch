@@ -82,6 +82,10 @@ export async function discover():Promise<void>{
     // Load language data for code conversion
     const languages = get_language_data()
 
+    // Track changes
+    const added = []
+    const exists = []
+
     // Loop through language items in the catalog
     // WARN May be multiple entries for same language (data not collated fully for some reason)
     for (const language of catalog){
@@ -112,10 +116,9 @@ export async function discover():Promise<void>{
                 console.warn(`IGNORED ${log_ids} (restricted license)`)
                 continue
             } else if (existsSync(meta_file)){
-                console.info(`EXISTS ${log_ids}`)
+                exists.push(door43_id)
                 continue
             }
-            console.info(`ADDING ${log_ids}`)
 
             // Detect the license
             const {license, license_url} = detect_license(resource['rights'], door43_id)
@@ -162,8 +165,13 @@ export async function discover():Promise<void>{
             // Save meta file
             mkdirSync(trans_dir, {recursive: true})
             writeFileSync(meta_file, JSON.stringify(translation))
+            added.push(door43_id)
         }
     }
+
+    // Report stats
+    console.info(`New: ${added.length}`)
+    console.info(`Existing: ${exists.length}`)
 }
 
 

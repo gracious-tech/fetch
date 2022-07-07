@@ -40,28 +40,32 @@ export async function discover():Promise<void>{
     // Load language data
     const language_data = get_language_data()
 
+    // Track changes
+    const added = []
+    const exists = []
+
     // Add each translation in the CSV file
     // Do concurrently since each involves a network request
     await concurrent(rows.map(row => async () => {
 
-        // Determine ids etc
+        // Warn if invalid language
         const ebible_id = row['translationId']
         const lang_code = language_data.normalise(row['languageCode'])
-        const trans_abbr = row['FCBHID'].slice(3).toLowerCase()
-        const trans_id = `${lang_code!}_${trans_abbr}`
-        const log_ids = `${trans_id}/${ebible_id}`
-
-        // Warn if invalid language
         if (!lang_code){
-            console.error(`IGNORED ${log_ids} (unknown language)`)
+            console.error(`IGNORED ${ebible_id} (unknown language)`)
             return
         }
+
+        // Determine ids
+        const trans_abbr = row['FCBHID'].slice(3).toLowerCase()
+        const trans_id = `${lang_code}_${trans_abbr}`
+        const log_ids = `${trans_id}/${ebible_id}`
 
         // Skip if already discovered
         const trans_dir = join('sources', trans_id)
         const meta_file = join(trans_dir, 'meta.json')
         if (existsSync(meta_file)){
-            console.info(`EXISTS ${log_ids}`)
+            exists.push(ebible_id)
             return
         }
 
@@ -127,7 +131,12 @@ export async function discover():Promise<void>{
         // Save meta file
         mkdirSync(trans_dir, {recursive: true})
         writeFileSync(meta_file, JSON.stringify(meta))
+        added.push(ebible_id)
     }))
+
+    // Report stats
+    console.info(`New: ${added.length}`)
+    console.info(`Existing: ${exists.length}`)
 }
 
 

@@ -4,7 +4,7 @@
     "description": "CLI for managing a fetch(bible) collection",
     "main": "dist/index.js",
     "type": "module",
-    "files": ["dist"],
+    "files": ["dist", "assets"],
     "bin": {
         "fetch-collector": "dist/index.js"
     },

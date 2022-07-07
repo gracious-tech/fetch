@@ -46,9 +46,9 @@ export async function discover():Promise<void>{
 
         // Determine ids etc
         const ebible_id = row['translationId']
-        const lang_code = language_data.normalise(row['FCBHID'].slice(0, 3))!
+        const lang_code = language_data.normalise(row['languageCode'])
         const trans_abbr = row['FCBHID'].slice(3).toLowerCase()
-        const trans_id = `${lang_code}_${trans_abbr}`
+        const trans_id = `${lang_code!}_${trans_abbr}`
         const log_ids = `${trans_id}/${ebible_id}`
 
         // Warn if invalid language

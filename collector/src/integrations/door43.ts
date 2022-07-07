@@ -107,16 +107,16 @@ export async function discover():Promise<void>{
             const trans_dir = join('sources', trans_id)
             const meta_file = join(trans_dir, 'meta.json')
 
-            // Ignore if an issue or already exists
-            if (IGNORE.includes(door43_id)){
+            // Ignore if already exists or an issue
+            if (existsSync(meta_file)){
+                exists.push(door43_id)
+                continue
+            } else if (IGNORE.includes(door43_id)){
                 console.warn(`IGNORED ${log_ids} (in ignore list)`)
                 continue
             } else if (resource['rights'].toLowerCase().includes('free translate')){
                 // Some licenses only allow further translating (not actual use)
                 console.warn(`IGNORED ${log_ids} (restricted license)`)
-                continue
-            } else if (existsSync(meta_file)){
-                exists.push(door43_id)
                 continue
             }
 

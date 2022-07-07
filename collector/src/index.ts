@@ -41,6 +41,10 @@ await yargs(process.argv.slice(2))
 
     .command('report', "Report the status of included translations", {},
         argv => report_items())
+    .command('report-unreviewed', "Report translations needing review", {},
+        argv => report_items('unreviewed'))
+    .command('report-unlicensed', "Report translations without a license", {},
+        argv => report_items('unlicensed'))
 
     // Show help when no command
     .demandCommand()

@@ -5,6 +5,7 @@
 
 
 # What is fetch(bible)?
+It is several things...
 
  * __An initiative__ for making digital access to the Bible easier and more efficient
  * __A collection__ of all the Bible translations in the world that we can get our hands on

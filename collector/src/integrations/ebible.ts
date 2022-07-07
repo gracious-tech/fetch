@@ -99,12 +99,15 @@ export async function discover():Promise<void>{
             return
         }
 
+        // Guess if title is in English or native language (printable ASCII)
+        const title_is_english = /^[\x20-\x7F]*$/.test(row['title'])
+
         // Prepare the meta data
         const meta:TranslationSourceMeta = {
             name: {
-                autonym: row['title'],  // TODO Often in English (should be native)
-                abbrev: trans_abbr.toUpperCase(),  // TODO Often in English (should be native)
-                english: row['title'],  // TODO Sometimes not in English (should be English)
+                autonym: title_is_english ? '' : row['title'],
+                abbrev: trans_abbr.toUpperCase(),  // WARN Often in English (should be native)
+                english: title_is_english ? row['title'] : '',
             },
             language: lang_code,
             year: detect_year(row['title'], row['shortTitle'], row['translationId'],

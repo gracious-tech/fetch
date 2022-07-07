@@ -40,8 +40,9 @@ export async function update_manifest(){
         const meta = read_json<TranslationSourceMeta>(join('sources', trans, 'meta.json'))
 
         // Skip if meta data missing or not reviewed yet
-        if (!meta.year || !meta.copyright.licenses.length || !meta.reviewed){
-            console.error(`IGNORING ${trans} (missing year, license, or review)`)
+        if (!meta.year || !meta.copyright.licenses.length || !meta.reviewed ||
+                !(meta.name.autonym || meta.name.english)){
+            console.error(`IGNORING ${trans} (missing year, license, name, or review)`)
             continue
         }
 

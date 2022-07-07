@@ -69,23 +69,6 @@ export async function discover():Promise<void>{
         const ebible_url = `https://ebible.org/Scriptures/details.php?id=${ebible_id}`
         const page_resp = await request(ebible_url, 'text')
 
-        // Detect source format and url
-        let source_format:'usfm'|'sword' = 'usfm'
-        let source_url = `https://ebible.org/Scriptures/${ebible_id}_usfm.zip`
-        if (page_resp.includes('usfm.zip')){
-            // USFM
-        } else {
-            const sword_url = /['"]https:\/\/ebible\.org\/sword\/.+\.zip['"]/i.exec(page_resp)?.[0]
-            if (sword_url){
-                source_format = 'sword'
-                source_url = sword_url
-            } else {
-                console.warn(`IGNORED ${log_ids} (no suitable format)`)
-                return
-            }
-        }
-        console.info(`ADDING ${log_ids}`)
-
         // Detect the license
         let license:string|null = null
         let license_url = ebible_url
@@ -100,6 +83,16 @@ export async function discover():Promise<void>{
             }
         } else if (/(?! not ).*public domain/i.test(page_resp)){
             license = 'public'
+        }
+
+        // Ignore if no USFM source (almost always because license is restrictive)
+        if (!page_resp.includes('usfm.zip')){
+            if (license){
+                console.error(`IGNORED ${log_ids} (no USFM even though unrestricted license?)`)
+            } else {
+                console.warn(`IGNORED ${log_ids} (probably restricted)`)
+            }
+            return
         }
 
         // Prepare the meta data
@@ -123,8 +116,8 @@ export async function discover():Promise<void>{
             source: {
                 service: 'ebible',
                 id: ebible_id,
-                format: source_format,
-                url: source_url,
+                format: 'usfm',
+                url: `https://ebible.org/Scriptures/${ebible_id}_usfm.zip`,
                 updated: row['UpdateDate'],
             },
             obsoleted_by: null,

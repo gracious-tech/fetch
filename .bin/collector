@@ -4,4 +4,5 @@ set -e
 cd "$(dirname "$(dirname "$0")")/collection"
 
 
+../.bin/build_collector
 NODE_OPTIONS="--no-warnings" node ../collector/dist/index.js "$@"

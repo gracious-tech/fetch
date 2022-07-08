@@ -48,6 +48,7 @@ await yargs(process.argv.slice(2))
 
     // Show help when no command
     .demandCommand()
+    .strict()
     .help()
 
     // Trigger processing

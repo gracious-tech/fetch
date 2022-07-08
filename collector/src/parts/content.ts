@@ -76,7 +76,7 @@ export async function update_dist(trans_id?:string){
 
     // Locate xslt3 executable and XSL template path
     const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
-    const xsl_template = join(PKG_PATH, 'assets/usx3_to_html.xsl')
+    const xsl_template = join(PKG_PATH, 'assets/usx3_to_html/main.xsl')
 
     // Loop through translations in sources dir
     for (const id of readdirSync('sources')){

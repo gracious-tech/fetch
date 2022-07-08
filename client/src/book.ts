@@ -37,7 +37,7 @@ export class BibleBookHtml {
         let start = 0
         if (start_verse === 1){
             // If starting from the first verse of a chapter include the chapter heading element
-            const data_ch = this._html.indexOf(`data-ch="${start_chapter}"`)
+            const data_ch = this._html.indexOf(`data-chapter="${start_chapter}"`)
             if (data_ch === -1){
                 return null  // Chapter number must be higher than available chapters
             }
@@ -45,7 +45,7 @@ export class BibleBookHtml {
         } else {
             // Will start from a certain verse within a paragraph so must reconstruct <p> start
             prefix = '<p>'  // TODO Confirm will always be a <p>
-            const data_v = this._html.indexOf(`data-v="${start_chapter}:${start_verse}"`)
+            const data_v = this._html.indexOf(`data-verse="${start_chapter}:${start_verse}"`)
             if (data_v === -1){
                 return null  // Verse doesn't exist
             }
@@ -57,7 +57,7 @@ export class BibleBookHtml {
 
         if (end_verse === 0){
             // Want to end before end_chapter begins
-            const data_ch = this._html.indexOf(`data-ch="${end_chapter}"`)
+            const data_ch = this._html.indexOf(`data-chapter="${end_chapter}"`)
             if (data_ch !== -1){
                 // end_chapter exists
                 end = this._html.lastIndexOf('<h2 ', data_ch)
@@ -65,13 +65,14 @@ export class BibleBookHtml {
                 // end_chapter does not exist (last chapter probably end_chapter-1)
             }
         } else {
-            const end_verse_plus1 = this._html.indexOf(`data-v="${end_chapter}:${end_verse + 1}"`)
+            const end_verse_plus1 =
+                this._html.indexOf(`data-verse="${end_chapter}:${end_verse + 1}"`)
             if (end_verse_plus1 !== -1){
                 // end_verse is not the last verse of the chapter
                 suffix = '</p>'  // TODO Chance of having an empty <p></p> at end due to this
                 end = this._html.lastIndexOf('<sup ', end_verse_plus1)
             } else {
-                const end_chapter_plus1 = this._html.indexOf(`data-ch="${end_chapter + 1}"`)
+                const end_chapter_plus1 = this._html.indexOf(`data-chapter="${end_chapter + 1}"`)
                 if (end_chapter_plus1 !== -1){
                     // end_verse is last verse of chapter but not of book
                     end = this._html.lastIndexOf('<h2 ', end_chapter_plus1)

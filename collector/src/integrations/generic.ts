@@ -53,7 +53,7 @@ async function _update_source(id:string, meta:TranslationSourceMeta):Promise<voi
         const contents_str = contents.toString('utf-8', 0, 300)
         let book:string|undefined = undefined
         if (ext === 'usfm'){
-            book = /^\\id (\w\w\w)/.exec(contents_str)?.[1]?.toLowerCase()
+            book = /^\\id (\w\w\w)/m.exec(contents_str)?.[1]?.toLowerCase()
         } else if (ext === 'usx'){
             book = /<book[^>]+code="(\w\w\w)"/.exec(contents_str)?.[1]?.toLowerCase()
         }

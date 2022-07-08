@@ -29,10 +29,30 @@ export async function generic_update_sources(sources:Record<string, TranslationS
         const extractor = new StreamZip.async({file: zip_path})
         for (const entry of Object.values(await extractor.entries())){
 
-            // Only extract if part of protestant canon
-            const [, book, ext] = /(\w\w\w)\.(\w+)$/.exec(entry.name.toLowerCase()) ?? []
-            if (ext === meta.source.format && books_ordered.includes(book ?? '')){
-                await extractor.extract(entry, join(format_dir, `${book!}.${ext}`))
+            // Ignore if not in a compatible format
+            const ext = entry.name.toLowerCase().split('.').at(-1)!
+            if (!['usx', 'usfm'].includes(ext)){
+                continue
+            }
+
+            // Extract the contents to buffer
+            const contents = await extractor.entryData(entry)
+
+            // Identify what book the file is for
+            // NOTE book code always at start so only search first 300 chars (normally before 100)
+            const contents_str = contents.toString('utf-8', 0, 300)
+            let book:string|undefined = undefined
+            if (ext === 'usfm'){
+                book = /^\\id (\w\w\w)/.exec(contents_str)?.[1]?.toLowerCase()
+            } else if (ext === 'usx'){
+                book = /<book[^>]+code="(\w\w\w)"/.exec(contents_str)?.[1]?.toLowerCase()
+            }
+
+            // Save to format dir if in protestant canon
+            if (!book){
+                console.error(`Valid format but couldn't identify book: ${entry.name}`)
+            } else if (books_ordered.includes(book)){
+                writeFileSync(join(format_dir, `${book}.${ext}`), contents)
             }
         }
     }))

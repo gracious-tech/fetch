@@ -33,7 +33,7 @@
     -->
     <xsl:template match="para">
         <p class="fb-{@style}">
-            <xsl:apply-templates select="node()"/>
+            <xsl:apply-templates />
         </p>
     </xsl:template>
 
@@ -53,7 +53,7 @@
                 <xsl:attribute name="data-strong"><xsl:value-of select="@strong" /></xsl:attribute>
             </xsl:if>
 
-            <xsl:apply-templates select="node()" />
+            <xsl:apply-templates />
         </span>
     </xsl:template>
 
@@ -69,15 +69,20 @@
     <!-- References to other parts of scripture -->
     <xsl:template match="ref">
         <span data-ref="{@loc}">
-            <xsl:apply-templates select="node()"/>
+            <xsl:apply-templates />
         </span>
     </xsl:template>
 
-    <!-- Default to including anything else in a <p> (but should handle when detected) -->
+    <!-- Default to including anything else in a <span> (but should handle when detected) -->
     <xsl:template match="node()">
-        <p class="fb-unknown">
-            <xsl:apply-templates select="node()"/>
-        </p>
+        <span class="fb-unknown">
+            <xsl:apply-templates />
+        </span>
+    </xsl:template>
+
+    <!-- Copy plain text as is -->
+    <xsl:template match="text()">
+        <xsl:copy />
     </xsl:template>
 
 </xsl:stylesheet>

@@ -74,10 +74,6 @@ function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
 export async function update_dist(trans_id?:string){
     // Update distributed HTML/USX files from sources
 
-    // Locate xslt3 executable and XSL template path
-    const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
-    const xsl_template = join(PKG_PATH, 'assets/usx3_to_html/main.xslt')
-
     // Loop through translations in sources dir
     for (const id of readdirSync('sources')){
 
@@ -85,53 +81,68 @@ export async function update_dist(trans_id?:string){
             continue  // Only updating a single translation
         }
 
-        // Determine paths
-        const src_dir = join('sources', id)
-        const dist_dir = join('dist', 'bibles', id)
-        const usx_dir = join(dist_dir, 'usx')
-
-        // Get translation's meta data
-        const meta = read_json<TranslationSourceMeta>(join(src_dir, 'meta.json'))
-
-        // Confirm have downloaded source already
-        const format_dir = join(src_dir, meta.source.format)
-        if (!existsSync(format_dir)){
-            console.warn(`IGNORED ${id} (no source)`)
-            continue
+        // Update assets for the translation
+        try {
+            await _update_dist_single(id)
+        } catch {
+            console.error(`FAILED update dist assets for: ${id}`)
         }
-
-        // Remove previous conversions
-        clean_dir(dist_dir)
-
-        // If already USX3+ just copy, otherwise convert
-        if (meta.source.format === 'usx3+'){
-            for (const file of readdirSync(format_dir)){
-                copyFileSync(join('sources', id, 'usx3+', file), join(usx_dir, file))
-            }
-        } else {
-            _convert_to_usx(id, meta.source.format)
-        }
-
-        // Convert USX to HTML and extract data
-        const extracts:Record<string, BookExtracts> = {}
-        for (const file of readdirSync(usx_dir)){
-
-            // Determine paths
-            const book = file.split('.')[0]!.toLowerCase()
-            const src = join(usx_dir, `${book}.usx`)
-            const dst = join(dist_dir, 'html', `${book}.html`)
-
-            // Extract meta data
-            extracts[book] = extract_meta(src)
-
-            // Convert to html
-            execSync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`, {stdio: 'ignore'})
-        }
-
-        // Save extracted data to file
-        writeFileSync(join('sources', id, 'extracts.json'), JSON.stringify(extracts))
     }
 
     // Update manifest whenever dist files change
     await update_manifest()
+}
+
+
+async function _update_dist_single(id:string){
+
+    // Determine paths
+    const src_dir = join('sources', id)
+    const dist_dir = join('dist', 'bibles', id)
+    const usx_dir = join(dist_dir, 'usx')
+
+    // Get translation's meta data
+    const meta = read_json<TranslationSourceMeta>(join(src_dir, 'meta.json'))
+
+    // Confirm have downloaded source already
+    const format_dir = join(src_dir, meta.source.format)
+    if (!existsSync(format_dir)){
+        console.warn(`IGNORED ${id} (no source)`)
+        return
+    }
+
+    // Remove previous conversions
+    clean_dir(dist_dir)
+
+    // If already USX3+ just copy, otherwise convert
+    if (meta.source.format === 'usx3+'){
+        for (const file of readdirSync(format_dir)){
+            copyFileSync(join('sources', id, 'usx3+', file), join(usx_dir, file))
+        }
+    } else {
+        _convert_to_usx(id, meta.source.format)
+    }
+
+    // Locate xslt3 executable and XSL template path
+    const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
+    const xsl_template = join(PKG_PATH, 'assets/usx3_to_html/main.xslt')
+
+    // Convert USX to HTML and extract data
+    const extracts:Record<string, BookExtracts> = {}
+    for (const file of readdirSync(usx_dir)){
+
+        // Determine paths
+        const book = file.split('.')[0]!.toLowerCase()
+        const src = join(usx_dir, `${book}.usx`)
+        const dst = join(dist_dir, 'html', `${book}.html`)
+
+        // Extract meta data
+        extracts[book] = extract_meta(src)
+
+        // Convert to html
+        execSync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`, {stdio: 'ignore'})
+    }
+
+    // Save extracted data to file
+    writeFileSync(join('sources', id, 'extracts.json'), JSON.stringify(extracts))
 }

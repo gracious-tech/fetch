@@ -1,11 +1,15 @@
 
 node_modules/
 
+/app/dist/
+
+/client/dist/
+
 /collection/
-/collector/client/
+
 /collector/bmc/
 /collector/dist/
-/client/dist/
+
 /site/dist/
 /site/src/access/client/
 /site/src/public/client.min.*

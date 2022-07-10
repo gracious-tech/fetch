@@ -1,6 +1,6 @@
 
 import {join} from 'path'
-import {readdirSync, writeFileSync} from 'fs'
+import {existsSync, readdirSync, writeFileSync} from 'fs'
 
 import {isEqual} from 'lodash-es'
 
@@ -47,16 +47,21 @@ export async function update_manifest(){
         }
 
         // Detect what books are available
-        const html_books =
-            readdirSync(join('dist', 'bibles', trans, 'html')).map(name => name.slice(0, 3))
+        const html_dir = join('dist', 'bibles', trans, 'html')
+        const html_books = existsSync(html_dir) ?
+            readdirSync(html_dir).map(name => name.slice(0, 3)) : []
         if (html_books.length === 0){
             console.error(`IGNORING ${trans} (no books)`)
             continue
         }
 
         // Load data extracted from books
-        const extracts =
-            read_json<Record<string, BookExtracts>>(join('sources', trans, 'extracts.json'))
+        const extracts_path = join('sources', trans, 'extracts.json')
+        if (!existsSync(extracts_path)){
+            console.error(`IGNORING ${trans} (no extracts)`)
+            continue
+        }
+        const extracts = read_json<Record<string, BookExtracts>>(extracts_path)
 
         // Get last_verse data as map of book id -> last_verse
         const own_last_verse:Record<string, number[]> = Object.fromEntries(

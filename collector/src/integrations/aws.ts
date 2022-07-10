@@ -37,6 +37,13 @@ export class PublisherAWS {
 
     async invalidate(paths:string[]){
         // Request invalidation of given paths in CloudFront
+
+        // If invalidating too many paths, better to just use single wildcard
+        // NOTE AWS only gives 1000 free paths (wilcard = 1 path) per month
+        if (paths.length > 100){
+            paths = ['/*']
+        }
+
         await this._cf.createInvalidation({DistributionId: this._cf_id, InvalidationBatch: {
             CallerReference: new Date().getTime().toString(),
             Paths: {

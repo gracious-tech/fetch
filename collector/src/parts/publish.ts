@@ -45,10 +45,9 @@ export async function publish(translation?:string):Promise<void>{
     const manifest_path = join('dist', 'bibles', 'manifest.json')
     const manifest = read_json<DistManifest>(manifest_path)
 
-    // Always update manifest since quick (and manifest almost always needs update)
-    const files = [manifest_path]
-
     // Add translations
+    const files = []
+    const invalidations = []
     for (const id in manifest.translations){
         if (translation && id !== translation){
             continue  // Only publishing a single translation
@@ -59,9 +58,15 @@ export async function publish(translation?:string):Promise<void>{
             ...readdirSync(usx_dir).map(file => join(usx_dir, file)),
             ...readdirSync(html_dir).map(file => join(html_dir, file)),
         )
+        invalidations.push(`/bibles/${id}/*`)
     }
+
+    // Add manifest last so assets are ready before it is used
+    files.push(manifest_path)
+    invalidations.push('/bibles/manifest.json')
 
     // Publish
     const publisher = new Publisher()
     await publisher.upload_files(files)
+    await publisher.invalidate(invalidations)
 }

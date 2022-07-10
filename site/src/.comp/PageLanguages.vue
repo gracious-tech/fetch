@@ -3,23 +3,45 @@
 
 h1 Languages available ({{ languages.length }})
 
+p The following languages have at least one translation available.
+
+
+h3 Top 20 most widely used languages
+table
+    tr
+        th Local
+        th English
+        th Code
+        th Living
+        th Population
+        th Bibles
+    tr(v-for='lang of languages_top20')
+        td {{ lang.local }}
+        td {{ lang.english }}
+        td {{ lang.code }}
+        td {{ lang.living ? "Yes" : "No" }}
+        td {{ lang.pop }}
+        td
+            a(:href='`../bibles/#${lang.code}`') {{ lang.count }}
 p
-    | The following languages have at least one translation available.
     | Also see the <a href='/content/stats/'>statistics page</a> for the top 20 languages
     | still without a modern open translation.
 
+
+h3 All languages available
+
 table
     tr
-        th Code
-        th Autonym
+        th Local
         th English
+        th Code
         th Living
         th Population
         th Bibles
     tr(v-for='lang of languages')
-        td {{ lang.code }}
         td {{ lang.local }}
         td {{ lang.english }}
+        td {{ lang.code }}
         td {{ lang.living ? "Yes" : "No" }}
         td {{ lang.pop }}
         td
@@ -54,8 +76,12 @@ const languages = collection.get_languages().map(lang => {
         ...lang,
         count: collection.get_translations({language: lang.code}).length,
         pop: mil ? `${mil.toLocaleString()} million` : '?',
+        mil,
     }
 })
+
+// Get top 20
+const languages_top20 = languages.slice().sort((a, b) => b.mil - a.mil).slice(0, 20)
 
 </script>
 

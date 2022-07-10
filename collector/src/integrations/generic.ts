@@ -14,8 +14,9 @@ export async function generic_update_sources(sources:Record<string, TranslationS
     await concurrent(Object.entries(sources).map(([id, meta]) => async () => {
         try {
             await _update_source(id, meta)
-        } catch {
+        } catch (error){
             console.error(`FAILED to update source for: ${id}`)
+            console.error(`${error as string}`)
         }
     }))
 }

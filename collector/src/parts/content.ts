@@ -84,8 +84,9 @@ export async function update_dist(trans_id?:string){
         // Update assets for the translation
         try {
             await _update_dist_single(id)
-        } catch {
+        } catch (error){
             console.error(`FAILED update dist assets for: ${id}`)
+            console.error(`${error as string}`)
         }
     }
 

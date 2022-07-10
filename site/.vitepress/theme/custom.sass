@@ -22,3 +22,25 @@
     background-position-x: center
     background-size: 12vw
     padding-top: 18vw
+
+
+// Loading circle used for <suspense> pages
+@keyframes loading
+    from
+        transform: rotate(0deg)
+    to
+        transform: rotate(360deg)
+
+svg.loading
+    height: 50px
+    width: 50px
+    margin: 0 auto
+    animation-name: loading
+    animation-duration: 2.5s  // NOTE need to adjust steps if this changes
+    // NOTE 60's quality close to linear, and ~1/2 CPU usage
+    animation-timing-function: steps(60)
+    animation-iteration-count: infinite
+
+svg.loading circle
+    fill: transparent
+    stroke: var(--vp-c-brand)

@@ -21,7 +21,7 @@ export class PublisherAWS {
             (parse_yaml(readFileSync('config.yaml', 'utf-8')) as CollectionConfig).integrations.aws
         this._s3 = new S3({region: config.region})
         this._bucket = config.bucket
-        this._cf = new CloudFront({})
+        this._cf = new CloudFront({region: config.region})
         this._cf_id = config.cloudfront
     }
 

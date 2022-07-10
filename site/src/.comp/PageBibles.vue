@@ -39,7 +39,8 @@ table
     tr(v-for='bible of bibles')
         td
             //- TODO Point to web app
-            a(href='/access/client-example/' target='_blank') {{ bible.name_english }}
+            a(href='/access/client-example/' target='_blank')
+                | {{ bible.name_english || bible.name_local }}
         td
             a(@click='language = bible.language') {{ bible.language }}
         td {{ bible.year }}

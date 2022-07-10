@@ -48,16 +48,6 @@ table
         td {{ usage.count }}
 
 
-h2 Owner
-table
-    tr
-        th Owner
-        th Translations
-    tr(v-for='owner of owners')
-        td {{ owner.name }}
-        td {{ owner.count }}
-
-
 h2 Year of publication
 table
     tr
@@ -72,15 +62,27 @@ h2 No free modern translation
 p The top 20 most commonly used languages that do not have a Bible translation that is modern (published after {{ modern_year }}) and free (no quotation limits).
 table
     tr
-        th Code
+        th Local
         th English
-        th Autonym
+        th Code
         th Population
     tr(v-for='lang of missing_languages')
-        td {{ lang.id }}
-        td {{ lang.english }}
         td {{ lang.local }}
+        td {{ lang.english }}
+        td {{ lang.id }}
         td {{ lang.pop }}
+
+
+h2 Owner
+table
+    tr
+        th Owner
+        th Translations
+    tr(v-for='owner of owners')
+        td {{ owner.name }}
+        td {{ owner.count }}
+p
+    small * This is a rough estimate only
 
 
 </template>
@@ -156,18 +158,26 @@ const missing_languages = population.filter(item => !has_free_modern.includes(it
 
 
 // Generate list of owners
-// NOTE Determines owner by attribution url (may need to improve in future)
-let owners = {}
+let all_owners = {}
 for (const trans of translations){
-    const domain = new URL(trans.attribution_url).hostname
-    console.log(domain)
-    if (! (domain in owners)){
-        owners[domain] = {name: trans.attribution, count: 0}
+    // Normalise name as much as possible (as will use for key)
+    const name = trans.attribution.replaceAll(/copyright/gi, '').replaceAll(/\(c\)/gi, '')
+        .replaceAll(/\d\d\d\d/g, '').replaceAll(/[^\w ]/g, '').replaceAll(/ inc/gi, '')
+        .replaceAll(/the /gi, '').trim()
+    // Produce key from name
+    const key = name.toLowerCase()
+    if (! (key in all_owners)){
+        all_owners[key] = {name, count: 0}
     }
-    owners[domain].count += 1
+    all_owners[key].count += 1
 }
-owners = Object.values(owners)
+all_owners = Object.values(all_owners)
+
+// Group owners with only one translation and say couldn't detect properly
+// As too many to list, not statistically interesting, and may not have been detected properly...
+const owners = all_owners.filter(item => item.count > 1 && item.name)
 owners.sort((a, b) => b.count - a.count)
+owners.push({name: "* Unable to auto-detect * ", count: all_owners.length - owners.length})
 
 
 // Generate list of usage situations

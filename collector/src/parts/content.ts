@@ -153,8 +153,8 @@ async function _update_dist_single(id:string){
         await _convert_to_usx(id, meta.source.format)
     }
 
-    // Start extracting meta data from the USX files
-    const extracts_promise = _create_extracts(src_dir, usx_dir)
+    // Extract meta data from the USX files
+    await _create_extracts(src_dir, usx_dir)
 
     // Locate xslt3 executable and XSL template path
     const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
@@ -184,7 +184,4 @@ async function _update_dist_single(id:string){
             decodeEntities: true,  // Don't use &..; if can just use UTF-8 char
         }))
     }
-
-    // Wait till extracts task completes
-    await extracts_promise
 }

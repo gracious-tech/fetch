@@ -23,11 +23,12 @@
     </xsl:template>
 
     <!-- Chapter markers (turn into heading with data prop) -->
-    <xsl:template match="chapter">
+    <xsl:template match="chapter[@sid]">
         <h3 data-chapter="{@number}">
             <xsl:value-of select="@number" />
         </h3>
     </xsl:template>
+    <xsl:template match="chapter[@eid]" /><!-- Don't need end marker -->
 
     <!-- Verse markers -->
     <xsl:template match="verse[@sid]">

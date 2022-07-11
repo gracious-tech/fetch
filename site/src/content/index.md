@@ -34,3 +34,7 @@ We also don't include translations known to be poor quality or unfaithful to the
 You must request permission to use restricted translations yourself directly with the owner of the translation. This is usually done by talking to them directly, making an agreement, and then gaining access via [The Digital Bible Library](https://thedigitalbiblelibrary.org/).
 
 If you are granted access then you can easily integrate such translations with fetch(bible) by [creating your own collection](/access/collections/).
+
+
+## Contributing
+We greatly welcome the addition of Bible translations we don't have yet, and while we have a preference for openly licensed translations, our service also supports including ones with more limited licenses. Please [contact us](https://gracious.tech/support/) for more information.

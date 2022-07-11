@@ -10,8 +10,8 @@
 -->
 
     <!-- Import additional templates -->
-    <xsl:import href="control_chars.xslt" />
-    <xsl:import href="ignore.xslt" />
+    <xsl:include href="control_chars.xslt" />
+    <xsl:include href="ignore.xslt" />
 
     <!-- General output settings -->
     <xsl:output method="html" indent="no" use-character-maps="control_chars" />

@@ -70,7 +70,7 @@ export async function update_manifest(){
 
         // Get book names
         const book_names = Object.fromEntries(html_books.map(book => {
-            return [book, extracts[book]!.name || book_names_english[book]!]
+            return [book, extracts[book]?.name || book_names_english[book]!]
         }))
 
         // Put it all together

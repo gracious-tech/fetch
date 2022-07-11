@@ -23,11 +23,11 @@ We are very thankful for those who have been making Bible translations publicly 
 ### Restricted translations
 We are legally only able to include public domain and openly licensed translations without specific permission from Bible translation owners. However, we are actively seeking permission for such translations and you can also do so yourself (see below).
 
-### Apocryphal books
-We only include the 66 books of the Protestant canon, so we do not include apocryphal books. We have no interest in providing access to them ourselves, but users desiring those books are welcome to fork our service which is open source.
 ### Bad translations
 We also don't include translations known to be poor quality or unfaithful to the original writings. We do include old translations (that were considered ok in their period) but provide ways of easily filtering them out.
 
+### Apocryphal books
+We only include the 66 books of the Protestant canon, so we do not include apocryphal books. We have no interest in providing access to them ourselves, but users desiring those books are welcome to fork our service which is open source.
 
 
 ## Accessing restricted translations

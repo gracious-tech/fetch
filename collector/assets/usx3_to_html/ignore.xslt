@@ -7,6 +7,7 @@ WARN Some tags allow an uspecified number range (usually assumed to not go large
 
 
 <!-- Elements excluded entirely -->
+<xsl:template match="comment()" /><!-- XML comments... -->
 <xsl:template match="book" /><!-- Book marker meaningless since books served separately -->
 <xsl:template match="table|row|cell" /><!-- Tables are certain to be non-biblical content -->
 <xsl:template match="sidebar" /><!-- Non-biblical info not tied to specific verse -->

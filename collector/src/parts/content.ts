@@ -1,7 +1,9 @@
 
 import {join} from 'path'
 import {execSync} from 'node:child_process'
-import {copyFileSync, existsSync, readdirSync, renameSync, writeFileSync} from 'fs'
+import {copyFileSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync} from 'fs'
+
+import {minify} from 'html-minifier-terser'
 
 import * as door43 from '../integrations/door43.js'
 import * as ebible from '../integrations/ebible.js'
@@ -142,6 +144,14 @@ async function _update_dist_single(id:string){
 
         // Convert to html
         execSync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`, {stdio: 'ignore'})
+
+        // Minify the HTML (since HTML isn't as strict as XML/JSON can remove quotes etc)
+        writeFileSync(dst, await minify(readFileSync(dst, 'utf-8'), {
+            // Just enable relevent options since we create HTML ourself and many aren't an issue
+            collapseWhitespace: true,  // Get rid of useless whitespace
+            removeAttributeQuotes: true,  // Browsers can still parse without quotes
+            decodeEntities: true,  // Don't use &..; if can just use UTF-8 char
+        }))
     }
 
     // Save extracted data to file

@@ -21,16 +21,8 @@ You can integrate scripture into any website or app, whether it's quoting a sing
 
 <table>
     <tr style='background-color: transparent'>
-        <td><strong>It's unrestricted</strong></td>
-        <td>No signup, no request limits, no cache limits, etc *</td>
-    </tr>
-    <tr style='background-color: transparent'>
         <td><strong>It's easy to use</strong></td>
-        <td>Get a passage in thousands of Bibles with a few lines of code</td>
-    </tr>
-    <tr style='background-color: transparent'>
-        <td><strong>It's private</strong></td>
-        <td>No tracking of you or your users</td>
+        <td>Get a passage in 1000+ Bibles with a few lines of code</td>
     </tr>
     <tr style='background-color: transparent'>
         <td><strong>It's efficient</strong></td>
@@ -38,11 +30,22 @@ You can integrate scripture into any website or app, whether it's quoting a sing
     </tr>
     <tr style='background-color: transparent'>
         <td><strong>It's open source</strong></td>
-        <td>The entire service can be reviewed and improved</td>
+        <td>Examine how it works and suggest improvements</td>
+    </tr>
+    <tr style='background-color: transparent'>
+        <td><strong>It's private</strong></td>
+        <td>No tracking of you or your users</td>
+    </tr>
+    <tr style='background-color: transparent'>
+        <td><strong>It's unrestricted</strong></td>
+        <td>
+            No signup, no request limits, no cache limits, etc
+            <br>
+            <small>(no limits from us, but each translation's terms still apply)</small>
+        </td>
     </tr>
 </table>
 
-<small>* Most Bible translations have licenses that you must still abide by, but fetch(bible) gets out of the way and doesn't add any restrictions of its own</small>
 
  <!-- * [The fetch(bible) app](https://app.fetch.bible/)
  * [Track Bible](https://track.bible) -->

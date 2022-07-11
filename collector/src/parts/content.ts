@@ -180,8 +180,9 @@ async function _update_dist_single(id:string){
         writeFileSync(dst, await minify(readFileSync(dst, 'utf-8'), {
             // Just enable relevent options since we create HTML ourself and many aren't an issue
             collapseWhitespace: true,  // Get rid of useless whitespace
-            removeAttributeQuotes: true,  // Browsers can still parse without quotes
-            decodeEntities: true,  // Don't use &..; if can just use UTF-8 char
+            conservativeCollapse: true,  // Always leave gap between spans etc or words will join
+            removeAttributeQuotes: true,  // Allowed by spec and browsers can still parse
+            decodeEntities: true,  // Don't use &..; if can just use UTF-8 char (e.g. hun_kar)
         }))
     }
 }

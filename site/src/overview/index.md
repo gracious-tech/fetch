@@ -15,10 +15,10 @@ It is several things...
 
 ## What can you do with fetch(bible)?
 
-You can integrate scripture into any website or app, with some examples being:
+You can integrate scripture into any website or app, whether it's quoting a single verse or creating an entire Bible app.
 
- * [The fetch(bible) app](https://app.fetch.bible/)
- * [Track Bible](https://track.bible)
+ <!-- * [The fetch(bible) app](https://app.fetch.bible/)
+ * [Track Bible](https://track.bible) -->
 
 
 ## Who made fetch(bible)?

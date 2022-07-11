@@ -80,6 +80,23 @@ async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
 }
 
 
+async function _create_extracts(src_dir:string, usx_dir:string):Promise<void>{
+    // Extract meta data from USX files and save to sources dir
+    const extracts_path = join(src_dir, 'extracts.json')
+
+    if (existsSync(extracts_path)){
+        return  // Already exists
+    }
+
+    const extracts:Record<string, BookExtracts> = {}
+    for (const file of readdirSync(usx_dir)){
+        const book = file.split('.')[0]!
+        extracts[book] = extract_meta(join(usx_dir, `${book}.usx`))
+    }
+    writeFileSync(extracts_path, JSON.stringify(extracts))
+}
+
+
 export async function update_dist(trans_id?:string){
     // Update distributed HTML/USX files from sources
 
@@ -106,6 +123,8 @@ export async function update_dist(trans_id?:string){
 
 
 async function _update_dist_single(id:string){
+    // Update distributable files for given translation
+    // NOTE This should only have one external process running (concurrency done at higher level)
 
     // Determine paths
     const src_dir = join('sources', id)
@@ -134,12 +153,14 @@ async function _update_dist_single(id:string){
         await _convert_to_usx(id, meta.source.format)
     }
 
+    // Start extracting meta data from the USX files
+    const extracts_promise = _create_extracts(src_dir, usx_dir)
+
     // Locate xslt3 executable and XSL template path
     const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
-    const xsl_template = join(PKG_PATH, 'assets/usx3_to_html/main.xslt')
+    const xsl_template = join(PKG_PATH, 'assets', 'usx3_to_html', 'main.xslt')
 
-    // Convert USX to HTML and extract data
-    const extracts:Record<string, BookExtracts> = {}
+    // Convert USX to HTML
     for (const file of readdirSync(usx_dir)){
 
         // Determine paths
@@ -147,14 +168,15 @@ async function _update_dist_single(id:string){
         const src = join(usx_dir, `${book}.usx`)
         const dst = join(dist_dir, 'html', `${book}.html`)
 
-        // Start conversion to html
-        const convert_html_process = execAsync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`)
+        // Skip if already exists
+        if (existsSync(dst)){
+            continue
+        }
 
-        // Extract meta data (while HTML conversion is happening)
-        extracts[book] = extract_meta(src)
+        // Do conversion to html
+        await execAsync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`)
 
         // Minify the HTML (since HTML isn't as strict as XML/JSON can remove quotes etc)
-        await convert_html_process
         writeFileSync(dst, await minify(readFileSync(dst, 'utf-8'), {
             // Just enable relevent options since we create HTML ourself and many aren't an issue
             collapseWhitespace: true,  // Get rid of useless whitespace
@@ -163,6 +185,6 @@ async function _update_dist_single(id:string){
         }))
     }
 
-    // Save extracted data to file
-    writeFileSync(join('sources', id, 'extracts.json'), JSON.stringify(extracts))
+    // Wait till extracts task completes
+    await extracts_promise
 }

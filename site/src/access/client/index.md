@@ -1,4 +1,9 @@
 
+<script setup>
+import VPButton from 'vitepress/client/theme-default/components/VPButton.vue'
+</script>
+
+
 # Client (API)
 
 `npm install @gracious.tech/fetch-client`
@@ -32,7 +37,7 @@ If your code editor supports Typescript you'll get helpful auto-suggestions that
 
 ## Example
 
-Here is a basic example that displays a single chapter of a random translation and book.
+Here is a basic example that outputs a single chapter of a random translation and book.
 
 ```typescript
 
@@ -62,7 +67,8 @@ console.log(book.get_chapter(1))
 
 ```
 
-Also see a [full example of a basic Bible app](example/) or examine the [official fetch(bible) app](https://github.com/gracious-tech/fetch/tree/master/app) which also uses this client for all its functionality.
+<VPButton href='/access/client/example/' text="See more detailed example" theme='alt'></VPButton>
+
 
 ## Design
 This client has zero dependencies, no differences between the browser and Node versions (no unused code), and is overall very small and fast. It only connects to the endpoints you specify so can be used completely independently of the official fetch(bible) service.

@@ -1,7 +1,9 @@
 
 import {join} from 'path'
-import {execSync} from 'node:child_process'
-import {copyFileSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync} from 'fs'
+import {promisify} from 'node:util'
+import {exec} from 'node:child_process'
+import {copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync}
+    from 'fs'
 
 import {minify} from 'html-minifier-terser'
 
@@ -9,8 +11,11 @@ import * as door43 from '../integrations/door43.js'
 import * as ebible from '../integrations/ebible.js'
 import {extract_meta} from './usx.js'
 import {update_manifest} from './manifest.js'
-import {clean_dir, PKG_PATH, read_json} from './utils.js'
+import {concurrent, PKG_PATH, read_json} from './utils.js'
 import type {TranslationSourceMeta, BookExtracts} from './types'
+
+
+const execAsync = promisify(exec)
 
 
 export async function update_source(trans_id?:string){
@@ -44,7 +49,7 @@ export async function update_source(trans_id?:string){
 }
 
 
-function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
+async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
     // Convert translation's source files to USX3 using Bible Multi Converter
 
     // Determine parts of cmd
@@ -58,13 +63,15 @@ function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
     const tool = ['usfm', 'usx1-2'].includes(format) ? 'ParatextConverter' : ''
     const bmc = join(PKG_PATH, 'bmc', 'BibleMultiConverter.jar')
 
-    // Clear existing files
-    clean_dir(dist_dir)
+    // Skip if already converted
+    if (existsSync(dist_dir) && readdirSync(src_dir).length === readdirSync(dist_dir).length){
+        return
+    }
 
     // Execute command
     // NOTE '*' is specific to BMC and is replaced by the book's uppercase code
     const cmd = `java -jar ${bmc} ${tool} ${bmc_format} "${src_dir}" USX3 "${dist_dir}" "*.usx"`
-    execSync(cmd, {stdio: 'ignore'})
+    await execAsync(cmd)
 
     // Rename output files to lowercase
     for (const file of readdirSync(dist_dir)){
@@ -76,11 +83,12 @@ function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
 export async function update_dist(trans_id?:string){
     // Update distributed HTML/USX files from sources
 
-    // Loop through translations in sources dir
-    for (const id of readdirSync('sources')){
+    // Process translations concurrently (only 4 since waiting on processor, not network)
+    // NOTE While not multi-threaded itself, conversions done externally... so effectively so
+    await concurrent(readdirSync('sources').map(id => async () => {
 
         if (trans_id && id !== trans_id){
-            continue  // Only updating a single translation
+            return  // Only updating a single translation
         }
 
         // Update assets for the translation
@@ -90,7 +98,7 @@ export async function update_dist(trans_id?:string){
             console.error(`FAILED update dist assets for: ${id}`)
             console.error(`${error as string}`)
         }
-    }
+    }), 4)
 
     // Update manifest whenever dist files change
     await update_manifest()
@@ -114,8 +122,8 @@ async function _update_dist_single(id:string){
         return
     }
 
-    // Remove previous conversions
-    clean_dir(dist_dir)
+    // Ensure dist dir exists
+    mkdirSync(dist_dir, {recursive: true})
 
     // If already USX3+ just copy, otherwise convert
     if (meta.source.format === 'usx3+'){
@@ -123,7 +131,7 @@ async function _update_dist_single(id:string){
             copyFileSync(join('sources', id, 'usx3+', file), join(usx_dir, file))
         }
     } else {
-        _convert_to_usx(id, meta.source.format)
+        await _convert_to_usx(id, meta.source.format)
     }
 
     // Locate xslt3 executable and XSL template path
@@ -139,13 +147,14 @@ async function _update_dist_single(id:string){
         const src = join(usx_dir, `${book}.usx`)
         const dst = join(dist_dir, 'html', `${book}.html`)
 
-        // Extract meta data
+        // Start conversion to html
+        const convert_html_process = execAsync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`)
+
+        // Extract meta data (while HTML conversion is happening)
         extracts[book] = extract_meta(src)
 
-        // Convert to html
-        execSync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`, {stdio: 'ignore'})
-
         // Minify the HTML (since HTML isn't as strict as XML/JSON can remove quotes etc)
+        await convert_html_process
         writeFileSync(dst, await minify(readFileSync(dst, 'utf-8'), {
             // Just enable relevent options since we create HTML ourself and many aren't an issue
             collapseWhitespace: true,  // Get rid of useless whitespace

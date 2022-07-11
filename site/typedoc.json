@@ -9,5 +9,6 @@
     "hideGenerator": true,
     "githubPages": false,
     "excludeInternal": true,
-    "sort": ["source-order"]
+    "sort": ["source-order"],
+    "readme": "none"
 }

@@ -18,8 +18,12 @@ $esbuild --format=iife --platform=browser --outfile=dist/client.min.iife.js --mi
 ../node_modules/.bin/tsc --emitDeclarationOnly --outFile dist/client.js
 
 
-# Copy to site
+# Copy to site so example and users can use if they want
 cp dist/client.min.esm.js ../site/src/public/client.min.esm.js
 cp dist/client.min.esm.js ../site/src/public/client.min.esm.js.map
 cp dist/client.min.iife.js ../site/src/public/client.min.iife.js
 cp dist/client.min.iife.js ../site/src/public/client.min.iife.js.map
+
+
+# Put in comp dir as well as Vitepress doesn't like importing from public
+cp dist/client.min.esm.js ../site/src/.comp/client.min.esm.js

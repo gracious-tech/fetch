@@ -11,7 +11,7 @@ node_modules/
 /collector/dist/
 
 /site/dist/
-/site/src/access/client/
+/site/src/access/client/api/
 /site/src/public/client.min.*
 /site/src/.comp/client.min.esm.js
 /site/publish.config.json

@@ -24,6 +24,12 @@
     padding-top: 18vw
 
 
+// Stop hero text wrapping too much on wide screens (so counter doesn't jump)
+@media (min-width: 640px)
+    .VPHomeHero .text
+        max-width: 650px !important
+
+
 // Loading circle used for <suspense> pages
 @keyframes loading
     from

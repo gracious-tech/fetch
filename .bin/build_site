@@ -1,0 +1,6 @@
+#!/bin/bash
+# Build site
+set -e
+cd "$(dirname "$(dirname "$0")")/site"
+
+node_modules/.bin/vitepress build

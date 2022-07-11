@@ -3,5 +3,5 @@
 set -e
 cd "$(dirname "$(dirname "$0")")/site"
 
-node_modules/.bin/vitepress build
+../.bin/build_site
 node_modules/.bin/esbuild --platform=node publish.ts | node --input-type=module

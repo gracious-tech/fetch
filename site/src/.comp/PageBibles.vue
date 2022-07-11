@@ -13,8 +13,9 @@ p
     select(v-model='language')
         option(value='' label="All languages")
         option(v-for='lang of languages' :value='lang.value' :label='lang.label')
+p
     input(v-model='exclude_obsolete' id='exclude_obsolete' type='checkbox')
-    label(for='exclude_obsolete') Hide old translations
+    label(for='exclude_obsolete') Hide obsolete (very old + better available)
 
 details
     summary Filter by allowed usage
@@ -57,13 +58,14 @@ table
 
 import {ref, computed} from 'vue'
 
+import {BibleClient} from './client.min.esm.js'
+
 
 // Use localhost endpoint during dev
 const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 
 
-// Import client and get translations
-const {BibleClient} = await import(location.origin + '/client.min.esm.js')
+// Get collection
 const client = new BibleClient({endpoints: [endpoint]})
 const collection = await client.fetch_collection()
 

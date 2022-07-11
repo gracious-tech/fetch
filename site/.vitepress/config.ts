@@ -28,45 +28,40 @@ export default defineConfig({
             {text: "Contact", link: 'https://gracious.tech/support/'},
             {text: "Donate", link: 'https://give.gracious.tech'},
         ],
-        sidebar: {
-            '/': [
-                // Though sidebar is flexible, current system is:
-                // First level = Categories, Second level = Pages
-                {
-                    text: '',
-                    items: [
-                        {text: "Overview", link: '/overview/'},
-                    ],
-                },
-                {
-                    text: "Bible translations",
-                    items: [
-                        {text: "What's included", link: '/content/'},
-                        {text: "Languages", link: '/content/languages/'},
-                        {text: "Bibles", link: '/content/bibles/'},
-                        {text: "Statistics", link: '/content/stats/'},
-                    ],
-                },
-                {
-                    text: "Accessing content",
-                    items: [
-                        {text: "How to access", link: '/access/'},
-                        {text: "Web app (UI)", link: '/access/app/'},
-                        {text: "Client (API)", link: '/access/client/'},
-                        {text: "Client example", link: '/access/client-example/'},
-                        {text: "Manual access", link: '/access/manual/'},
-                        {text: "Collections", link: '/access/collections/'},
-                    ],
-                },
-                {
-                    text: "Fine print",
-                    items: [
-                        {text: "Terms of service", link: '/legal/terms/'},
-                        {text: "Privacy policy", link: '/legal/privacy/'},
-                        {text: "Credits", link: '/legal/credits/'},
-                    ],
-                },
-            ],
-        },
+        sidebar: [
+            {
+                text: '',
+                items: [
+                    {text: "Overview", link: '/overview/'},
+                ],
+            },
+            {
+                text: "Bible translations",
+                items: [
+                    {text: "What's included", link: '/content/'},
+                    {text: "Languages", link: '/content/languages/'},
+                    {text: "Bibles", link: '/content/bibles/'},
+                    {text: "Statistics", link: '/content/stats/'},
+                ],
+            },
+            {
+                text: "Accessing content",
+                items: [
+                    {text: "How to access", link: '/access/'},
+                    {text: "Web app (UI)", link: '/access/app/'},
+                    {text: "Client (API)", link: '/access/client/'},
+                    {text: "Manual access", link: '/access/manual/'},
+                    {text: "Collections", link: '/access/collections/'},
+                ],
+            },
+            {
+                text: "Fine print",
+                items: [
+                    {text: "Terms of service", link: '/legal/terms/'},
+                    {text: "Privacy policy", link: '/legal/privacy/'},
+                    {text: "Credits", link: '/legal/credits/'},
+                ],
+            },
+        ],
     },
 })

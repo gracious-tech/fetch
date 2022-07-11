@@ -82,7 +82,7 @@ table
         td {{ owner.name }}
         td {{ owner.count }}
 p
-    small * This is a rough estimate only
+    small (This is a rough estimate only)
 
 
 </template>
@@ -90,13 +90,14 @@ p
 
 <script setup>
 
+import {BibleClient} from './client.min.esm.js'
+
 
 // Use localhost endpoint during dev
 const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 
 
-// Import client and get translations
-const {BibleClient} = await import(location.origin + '/client.min.esm.js')
+// Get translations
 const client = new BibleClient({endpoints: [endpoint]})
 const collection = await client.fetch_collection()
 const translations = collection.get_translations()

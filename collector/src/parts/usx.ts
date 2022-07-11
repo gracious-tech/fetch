@@ -19,7 +19,12 @@ export function extract_meta(path:string):BookExtracts{
     const doc = new DOMParser().parseFromString(readFileSync(path, 'utf-8'))
 
     // Extract local for book
-    meta.name = (xpath.select('(//para[@style="h"]/text())[1]', doc)[0] as Element).nodeValue
+    type Xout = Element|undefined
+    meta.name =
+        (xpath.select('(//para[@style="toc2"]/text())[1]', doc)[0] as Xout)?.nodeValue
+        || (xpath.select('(//para[@style="h"]/text())[1]', doc)[0] as Xout)?.nodeValue
+        || (xpath.select('(//para[@style="toc1"]/text())[1]', doc)[0] as Xout)?.nodeValue
+        || null
 
     // Extract last verse number for every chapter
     for (const match of xpath.select('//verse/@sid', doc)){

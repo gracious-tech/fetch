@@ -1,5 +1,13 @@
-<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-<!--
+<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<!-- Transform USX3 to fetch(bible) HTML
+
+    Methodology:
+        Stay close to USX3, so keep class names matching USX styles
+        Prefix all classes with 'fb-' so an app's CSS less likely to affect fetch(bible) content
+        Try to be semantic but not excessively, e.g. use <h4 class='fb-s'> not <p class='fb-s'>
+        Try keep small (especially common elements), so data-v='' rather than data-verse=''
+            Inline with that, if can match by sup[data-v] then don't worry about adding class too
+
     Headings:
         h1  Reserved for apps
         h2  Multi-ch section    p.ms
@@ -24,7 +32,7 @@
 
     <!-- Chapter markers (turn into heading with data prop) -->
     <xsl:template match="chapter[@sid]">
-        <h3 data-chapter="{@number}">
+        <h3 data-c="{@number}">
             <xsl:value-of select="@number" />
         </h3>
     </xsl:template>
@@ -32,7 +40,7 @@
 
     <!-- Verse markers -->
     <xsl:template match="verse[@sid]">
-        <sup data-verse="{preceding::chapter[1]/@number}:{@number}">
+        <sup data-v="{preceding::chapter[1]/@number}:{@number}">
             <xsl:value-of select="@number" />
         </sup>
     </xsl:template>
@@ -75,7 +83,7 @@
 
             <!-- Add data attribute if @strong property exists for char[@style='w'] elements -->
             <xsl:if test="@strong">
-                <xsl:attribute name="data-strong"><xsl:value-of select="@strong" /></xsl:attribute>
+                <xsl:attribute name="data-s"><xsl:value-of select="@strong" /></xsl:attribute>
             </xsl:if>
 
             <xsl:apply-templates />
@@ -93,7 +101,7 @@
 
     <!-- References to other parts of scripture -->
     <xsl:template match="ref">
-        <span data-ref="{@loc}">
+        <span data-r="{@loc}">
             <xsl:apply-templates />
         </span>
     </xsl:template>

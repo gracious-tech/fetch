@@ -32,6 +32,8 @@ details
 
 table
     tr
+        th(colspan='5') Showing {{ bibles.length }} translation{{ bibles.length === 1 ? '' : 's'}}
+    tr
         th Name
         th Lang
         th Year

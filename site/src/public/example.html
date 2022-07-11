@@ -95,10 +95,8 @@ function update_select_translation(){
         language: select_language.value,
     })
     update_options(select_translation, translations.map(translation => {
-        return [
-            translation.id,
-            `${translation.name_local} (${translation.name_abbrev})`,
-        ]
+        const name = translation.name_local || translation.name_english
+        return [translation.id, `${name} (${translation.name_abbrev})`]
     }))
 }
 

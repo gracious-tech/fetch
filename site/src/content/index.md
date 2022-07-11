@@ -37,4 +37,8 @@ If you are granted access then you can easily integrate such translations with f
 
 
 ## Contributing
-We greatly welcome the addition of Bible translations we don't have yet, and while we have a preference for openly licensed translations, our service also supports including ones with more limited licenses. Please [contact us](https://gracious.tech/support/) for more information.
+We greatly welcome the addition of Bible translations we don't have yet, and while we have a preference for openly licensed translations, our service also supports including ones with more limited licenses.
+
+This is a mostly automated service that handles over a thousand Bible translations, and while we do review as much as we can, there may be some corrections needed. So please let us know if you notice anything.
+
+<VPButton href='https://gracious.tech/support/' text="Contact us" theme='alt'></VPButton>

@@ -56,4 +56,8 @@ Which might be helpful in a printed book, but intro material in apps is usually 
 <xsl:template match="para[@style='cd']" /><!-- Non-biblical chapter summary, more than heading -->
 
 
+<!-- <char> excludes -->
+<xsl:template match="char[@style='rq']" /><!-- In-text cross-reference (use own system instead) -->
+
+
 </xsl:stylesheet>

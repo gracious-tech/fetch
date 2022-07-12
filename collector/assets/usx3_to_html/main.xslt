@@ -69,22 +69,39 @@
         </p>
     </xsl:template>
 
-    <!-- Char content (styles a span of chars/words)
-
-    Some of these may not be applicable (e.g. excluded with certain <para> types)
-    Simply adding class with matching USX style and handing over for CSS to handle or ignore
-
-    TODO These styles may need data attributes added: rb@gloss, w@lemma/srcloc, jmp
-
-    -->
+    <!-- Char content (styles a span of chars/words) -->
+    <xsl:template match="char[@style='w']">
+        <!-- Handle chars for adding meta data to a span of text -->
+        <xsl:choose>
+            <!-- If there's a strong code, preserve it in a data attribute -->
+            <xsl:when test="@strong">
+                <span data-s="{@strong}">
+                    <xsl:apply-templates />
+                </span>
+            </xsl:when>
+            <!-- Ignore @lemma as can generate own search index without it -->
+            <!-- TODO Ignoring @srcloc unless useful in future -->
+            <xsl:otherwise>
+                <!-- Exclude the span to save space as meaningless if no data to preserve -->
+                <xsl:apply-templates />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+    <xsl:template match="char[@style='rb']">
+        <!-- Ruby text (used by Japanese etc) -->
+        <ruby>
+            <rb><xsl:apply-templates /></rb>
+            <!-- Gloss chars may be separated by colons for reasons we can ignore, but must strip them -->
+            <rt><xsl:value-of select="translate(@gloss, ':', '')" /></rt>
+        </ruby>
+    </xsl:template>
+    <xsl:template match="char[@style='ord']|char[@style='sup']">
+        <!-- The 'st' in 1st OR superscript in general -->
+        <sup><xsl:apply-templates /></sup>
+    </xsl:template>
     <xsl:template match="char">
+        <!-- Various other types that just need a class to style them -->
         <span class="fb-{@style}">
-
-            <!-- Add data attribute if @strong property exists for char[@style='w'] elements -->
-            <xsl:if test="@strong">
-                <xsl:attribute name="data-s"><xsl:value-of select="@strong" /></xsl:attribute>
-            </xsl:if>
-
             <xsl:apply-templates />
         </span>
     </xsl:template>

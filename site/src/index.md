@@ -21,7 +21,7 @@ hero:
 features:
     -   icon: ∞
         title: Limitless use
-        details: Full access to the whole collection of Bibles with no signup, no usage restrictions, and no tracking
+        details: Full access to the whole collection of Bibles with no signup, no request limits, and no tracking
     -   icon: ⚡️
         title: Integrate at any level
         details: Choose between an official UI, API, or manual access

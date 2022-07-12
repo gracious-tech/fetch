@@ -1,7 +1,6 @@
 
 import {join} from 'path'
-import {promisify} from 'node:util'
-import {exec} from 'node:child_process'
+import {execSync} from 'node:child_process'
 import {copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync}
     from 'fs'
 
@@ -13,9 +12,6 @@ import {extract_meta} from './usx.js'
 import {update_manifest} from './manifest.js'
 import {concurrent, PKG_PATH, read_json} from './utils.js'
 import type {TranslationSourceMeta, BookExtracts} from './types'
-
-
-const execAsync = promisify(exec)
 
 
 export async function update_source(trans_id?:string){
@@ -73,7 +69,10 @@ async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
     // NOTE keeps space between verses (https://github.com/schierlm/BibleMultiConverter/issues/63)
     const cmd = `java "-Dbiblemulticonverter.paratext.usx.verseseparatortext= " -jar ${bmc}`
         + ` ${tool} ${bmc_format} "${src_dir}" USX3 "${dist_dir}" "*.usx"`
-    await execAsync(cmd)
+    // NOTE ignoring stdio as converter can output too many warnings and overflow Node's maxBuffer
+    //      Should instead manually replay commands that fail to observe output
+    //      Problem that prompted this was not inserting verse end markers for some (e.g. vie_ulb)
+    execSync(cmd, {stdio: 'ignore'})
 
     // Rename output files to lowercase
     for (const file of readdirSync(dist_dir)){
@@ -176,7 +175,7 @@ async function _update_dist_single(id:string){
         }
 
         // Do conversion to html
-        await execAsync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`)
+        execSync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`)
 
         // Minify the HTML (since HTML isn't as strict as XML/JSON can remove quotes etc)
         writeFileSync(dst, await minify(readFileSync(dst, 'utf-8'), {

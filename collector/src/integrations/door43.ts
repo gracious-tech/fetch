@@ -146,7 +146,8 @@ export async function discover():Promise<void>{
                 direction: language['direction'] === 'rtl' ? 'rtl' : 'ltr',
                 copyright: {
                     attribution: `© ${year} ${resource['creator']}`,
-                    attribution_url: `https://door43.org/u/Door43-Catalog/${door43_id}/master/`,
+                    // Using git URL since site doesn't have full collection (including non-door43)
+                    attribution_url: `https://git.door43.org/Door43-Catalog/${door43_id}`,
                     licenses: license ? [{license, url: license_url}] : [],
                 },
                 audio: [],

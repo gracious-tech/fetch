@@ -1,0 +1,132 @@
+
+@use '../utils'
+
+
+.fetch-bible
+
+    // SPECIAL TEXT
+
+    .fb-add  // Translator’s addition to smooth out text
+        @include utils.italic
+
+    .fb-bk  // Referring to a book title
+        @include utils.italic
+
+    .fb-dc  // Deuterocanonical/LXX reference in notes
+        @include utils.italic
+
+    .fb-ior  // Introduction outline reference range
+        // Introductions stripped from HTML
+
+    .fb-iqt  // Introduction quoted text
+        // Introductions stripped from HTML
+
+    .fb-k  // Keyword (in notes?)
+        @include utils.bold-italic
+
+    .fb-litl  // Total number in a list
+        // Doesn't need to stand out
+
+    .fb-nd  // Name of God
+        font-variant: small-caps  // TODO confirm doesn't affect scripts not suitable for it
+
+    .fb-ord  // The 'st' in 1st etc
+        // Converted to <sup>
+
+    .fb-pn  // Proper name (for languages that need to distinguish between people and places)
+        text-decoration: underline
+
+    .fb-png  // Geographic proper name (see above)
+        text-decoration: underline double
+
+    .fb-qac  // Used to indicate the acrostic letter within a poetic line
+        @include utils.bold-italic
+
+    .fb-qs  // Selah
+        @include utils.italic
+        display: block
+        text-align: right
+
+    .fb-qt  // Quoted text
+        @include utils.italic
+
+    .fb-rq  // A cross-reference displayed in the actual text
+        // Excluded from HTML
+
+    .fb-sig  // Author quoting themself, kind of...
+        @include utils.italic
+
+    .fb-sls  // Different language (e.g. parts of Daniel)
+        // Not styling as more a study thing, and might confuse reader to why styled differently
+
+    .fb-tl  // Transliterated or foreign word(s) (e.g. "Eli, Eli, lema sabachthani?")
+        @include utils.italic
+
+    .fb-wj  // Words of Jesus
+        color: #f00c  // Support both light/dark bgs
+
+    &.fb-no-wj .fb-wj  // Ability to disable wj styling
+        color: inherit
+
+
+    // STYLING
+
+    .fb-em  // Emphasis text
+        @include utils.italic
+
+    .fb-bd  // Bold text
+        @include utils.bold
+
+    .fb-bdit  // Bold-italic text
+        @include utils.bold-italic
+
+    .fb-it  // Italic text
+        @include utils.italic
+
+    .fb-no  // Normal text (when parent is styled)
+        font-weight: normal
+        font-style: normal
+        color: inherit
+        filter: none  // Since filter used for alternate italic/bold
+
+    .fb-sc  // Small-cap text
+        font-variant: small-caps
+
+    .fb-sup  // Superscript
+        // Converted in HTML
+
+
+    // SPECIAL FEATURES
+
+    .fb-rb  // Ruby text (relevant to Japanese etc)
+        // Converted in HTML
+
+    .fb-pro  // Pronunciation info
+        // Deprecated
+
+    .fb-w  // Wordlist / glossary / dictionary entry
+        // Handled in HTML
+
+    .fb-wg  // Greek word
+        // No style as obviously different language and harder to read if italic etc
+
+    .fb-wh  // Hebrew word
+        // No style as obviously different language and harder to read if italic etc
+
+    .fb-wa  // Aramaic word
+        // No style as obviously different language and harder to read if italic etc
+
+
+    // LISTS
+
+    .fb-lik  // Key item in a list
+        @include utils.italic
+
+    .fb-liv, .fb-liv1, .fb-liv2, .fb-liv3, .fb-liv4  // Values in a keyed list
+        // TODO Don't know width of lik so can't meaningfully style like in USX example
+
+
+    // LINKING
+
+    .fb-jmp  // Links to urls or other places
+        // TODO Not supported yet

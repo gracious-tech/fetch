@@ -23,7 +23,6 @@
 
     <!-- General output settings -->
     <xsl:output method="html" indent="no" use-character-maps="control_chars" />
-    <xsl:strip-space elements="*"/>
 
     <!-- Doc root -->
     <xsl:template match="usx">

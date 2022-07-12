@@ -70,7 +70,9 @@ async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
 
     // Execute command
     // NOTE '*' is specific to BMC and is replaced by the book's uppercase code
-    const cmd = `java -jar ${bmc} ${tool} ${bmc_format} "${src_dir}" USX3 "${dist_dir}" "*.usx"`
+    // NOTE keeps space between verses (https://github.com/schierlm/BibleMultiConverter/issues/63)
+    const cmd = `java "-Dbiblemulticonverter.paratext.usx.verseseparatortext= " -jar ${bmc}`
+        + ` ${tool} ${bmc_format} "${src_dir}" USX3 "${dist_dir}" "*.usx"`
     await execAsync(cmd)
 
     // Rename output files to lowercase

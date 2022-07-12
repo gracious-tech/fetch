@@ -4,6 +4,7 @@ node_modules/
 /app/dist/
 
 /client/dist/
+/client/src/css/dist.css
 
 /collection/
 

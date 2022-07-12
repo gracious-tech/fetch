@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "description": "Fetch bible content from a bible CDN in an API-like way",
   "main": "dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gracious-tech/fetch.git"
@@ -18,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/gracious-tech/fetch/issues"
   },
-  "homepage": "https://fetch.bible/"
+  "homepage": "https://fetch.bible/",
+  "devDependencies": {
+    "sass": "^1.53.0"
+  }
 }

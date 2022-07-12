@@ -4,8 +4,12 @@ set -e
 cd "$(dirname "$(dirname "$0")")/client"
 
 
+# Build css first which will get embedded in the client
+node_modules/.bin/sass --style=compressed --no-source-map src/css/index.sass src/css/dist.css
+
+
 # Build each format as well as minified versions
-esbuild="../node_modules/.bin/esbuild src/index.ts --sourcemap --bundle --target=es6"
+esbuild="../node_modules/.bin/esbuild src/index.ts --sourcemap --bundle --target=es6 --loader:.css=text"
 
 $esbuild --format=esm  --platform=neutral --outfile=dist/client.esm.js
 $esbuild --format=cjs  --platform=node    --outfile=dist/client.cjs.js

@@ -43,7 +43,11 @@
             <xsl:value-of select="@number" />
         </sup>
     </xsl:template>
-    <xsl:template match="verse[@eid]" /><!-- Don't need end marker -->
+    <!-- WARN BibleMultiConverter doesn't always output end markers!
+        Don't currently need them anyway, but see:
+            https://github.com/schierlm/BibleMultiConverter/issues/65
+    -->
+    <xsl:template match="verse[@eid]" />
 
     <!-- Paragraph (blocks of content)
         Really these are more like <div> with the style attr determining if a heading/paragraph/etc

@@ -19,32 +19,13 @@ You can integrate scripture into any website or app, whether it's quoting a sing
 
 #### fetch(bible) stands out in the following ways:
 
-<table>
-    <tr style='background-color: transparent'>
-        <td><strong>It's easy to use</strong></td>
-        <td>Get a passage in 1000+ Bibles with a few lines of code</td>
-    </tr>
-    <tr style='background-color: transparent'>
-        <td><strong>It's efficient</strong></td>
-        <td>All content is distributed via a CDN making it very fast</td>
-    </tr>
-    <tr style='background-color: transparent'>
-        <td><strong>It's open source</strong></td>
-        <td>Examine how it works and suggest improvements</td>
-    </tr>
-    <tr style='background-color: transparent'>
-        <td><strong>It's private</strong></td>
-        <td>No tracking of you or your users</td>
-    </tr>
-    <tr style='background-color: transparent'>
-        <td><strong>It's unrestricted</strong></td>
-        <td>
-            No signup, no request limits, no cache limits, etc
-            <br>
-            <small>(no limits from us, but each translation's terms still apply)</small>
-        </td>
-    </tr>
-</table>
+ * __It's easy to use__ &mdash; Get a passage in 1000+ Bibles with a few lines of code
+ * __It's efficient__ &mdash; All content is distributed via a CDN making it very fast
+ * __It's open source__ &mdash; Anyone can examine how it works and contribute
+ * __It's private__ &mdash; No tracking of users and no registration required
+ * __It's unrestricted__ &mdash; No request limits, no cache limits, can self-host
+
+<small>* No limits from fetch(bible), but most Bible translations have terms you must still comply with</small>
 
 
  <!-- * [The fetch(bible) app](https://app.fetch.bible/)

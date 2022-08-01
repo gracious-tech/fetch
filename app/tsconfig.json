@@ -1,1 +1,8 @@
-{}
+{
+    "extends": "../tsconfig_base.jsonc",
+    "include": ["**/*.ts", "**/*.vue"],
+    "exclude": ["**/node_modules"],
+    "compilerOptions": {
+        "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    },
+}

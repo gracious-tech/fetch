@@ -151,7 +151,8 @@ const has_free_modern = collection.get_languages().map(item => item.code).filter
     return collection.get_translations({language: lang, usage: {limitless: true}})
         .some(t => t.year >= modern_year)
 })
-const missing_languages = population.filter(item => !has_free_modern.includes(item.id)).slice(0, 20)
+// TODO Revert slice to 20 once research done
+const missing_languages = population.filter(item => !has_free_modern.includes(item.id)).slice(0, 100)
     .map(item => {
         const mil = Math.round(item.pop / 1000000).toLocaleString()
         return {...item, pop: `${mil} million`}

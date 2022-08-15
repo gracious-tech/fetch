@@ -55,12 +55,14 @@ export interface GetBooksOptions {
     object?:boolean
     sort_by_name?:boolean
     testament?:'ot'|'nt'
+    whole?:boolean  // Include even those unavailable
 }
 
 export interface GetBooksItem {
     id:string
-    local:string
+    local:string  // WARN May be empty string
     english:string
+    available:boolean
 }
 
 export interface GetCompletionReturn {
@@ -312,7 +314,7 @@ export class BibleCollection {
     // Get which books are available for a translation
     get_books(translation:string, options:ObjT<GetBooksOptions>):Record<string, GetBooksItem>
     get_books(translation:string, options?:ObjF<GetBooksOptions>):GetBooksItem[]
-    get_books(translation:string, {object, sort_by_name, testament}:GetBooksOptions={}):
+    get_books(translation:string, {object, sort_by_name, testament, whole}:GetBooksOptions={}):
             GetBooksItem[]|Record<string, GetBooksItem>{
 
         this._ensure_trans_exists(translation)
@@ -320,12 +322,14 @@ export class BibleCollection {
         // Create a list of the available books in traditional order
         const available = this._manifest.translations[translation]!.books
         const slice = testament ? (testament === 'ot' ? [0, 39] : [39]) : []
-        const list = this._manifest.books_ordered.slice(...slice).filter(id => id in available)
+        const list = this._manifest.books_ordered.slice(...slice)
+            .filter(id => whole || id in available)
             .map(id => {
                 return {
                     id,
-                    local: available[id]!,
+                    local: available[id] ?? '',
                     english: this._manifest.book_names_english[id]!,
+                    available: id in available,
                 }
             })
 

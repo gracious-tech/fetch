@@ -19,6 +19,7 @@ WARN Some tags allow an uspecified number range (usually assumed to not go large
 
 <!-- <para> Identification [exclude all] - Running headings & table of contents -->
 <xsl:template match="para[@style='ide']" /><!-- See https://github.com/schierlm/BibleMultiConverter/issues/67 -->
+<xsl:template match="para[@style='rem']" /><!-- Remarks (valid in schema though missed in docs) -->
 <xsl:template match="para[@style='h']|para[@style='h1']|para[@style='h2']|para[@style='h3']|para[@style='h4']" />
 <xsl:template match="para[@style='toc1']|para[@style='toc2']|para[@style='toc3']" />
 <xsl:template match="para[@style='toca1']|para[@style='toca2']|para[@style='toca3']" />

@@ -299,11 +299,12 @@ export class BibleCollection {
         // First get preferred language
         const language = this.get_preferred_language(languages)
 
-        // Return most modern translation that isn't obsolete
+        // Return most modern full translation that isn't obsolete
         let candidate:string|null = null
         let candidate_year = -9999
         for (const [id, data] of Object.entries(this._manifest.translations)){
-            if (data.language === language && data.year > candidate_year && !data.obsoleted_by){
+            if (data.language === language && data.year > candidate_year && !data.obsoleted_by
+                    && Object.keys(data.books).length === this._manifest.books_ordered.length){
                 candidate = id
                 candidate_year = data.year
             }

@@ -7,7 +7,7 @@ It's recommended to use the official client if able to save you a lot of time, b
 There is a single JSON document that contains all the metadata for all Bible translations. You can [inspect the structure](https://collection.fetch.bible/bibles/manifest.json) and parse it as needed.
 
 ## Sources
-If you need the original source files for Bible translations they are available at `https://collection.fetch.bible/bibles/{id}/source.zip`. They come in a variety of formats so are just provided as a zip archive.
+If you need the original source files for Bible translations they are available in the [official collection](https://github.com/gracious-tech/fetch_collection) repository.
 
 ## USX & HTML
 All bibles are provided in both USX 3+ and HTML and can be accessed via:

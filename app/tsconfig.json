@@ -4,5 +4,8 @@
     "exclude": ["**/node_modules"],
     "compilerOptions": {
         "lib": ["DOM", "DOM.Iterable", "ESNext"],
+        "baseUrl": ".",
+        "paths": {"@/*": ["src/*"]},
+        "types": ["vite/client", "vite-svg-loader"],
     },
 }

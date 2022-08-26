@@ -35,3 +35,70 @@ export function rm_diacritics(string:string):string{
 }
 
 
+// @internal
+function _fuzzy_match(input:string, candidate:string):number{
+    // Simple fuzzy match algorithm for matching input to a single word candidate
+    // Returns 0 for perfect match, negative number for possible match, or -Infinity for no match
+    // WARN Both input & candidate should be normalized before being passed to this fn
+
+    // First letter must match as very rare to get that wrong
+    if (!input || input[0] !== candidate[0]){
+        return -Infinity
+    }
+
+    // Keep track of how many chars skipped
+    let skipped = 0
+
+    let input_i = 1  // Already checked first char
+    for (let cand_i = 1; cand_i < candidate.length; cand_i++){
+
+        // See if chars match
+        if (candidate[cand_i] === input[input_i]){
+            input_i++
+            if (input_i >= input.length){
+                // End of input so report success and subtract points for skips
+                return skipped * -1
+            }
+        } else {
+            // Input not matching so consider next candidate char
+            skipped++
+            if (skipped > 4){
+                // Just fail if skip too many chars
+                return -Infinity
+            }
+        }
+    }
+
+    // Reached end of candidate but still have more input chars, so fail
+    return -Infinity
+}
+
+
+// @internal
+export function fuzzy_search<T>(input:string, candidates:T[], cand_to_str:(c:T)=>string):T[]{
+    // Return sorted candidates that fuzzy match input
+
+    // Normalize and break input into words
+    const input_words = rm_diacritics(input).toLowerCase().trim().split(' ')
+
+    // Generate scores for each candidate and filter out those that don't match enough
+    const items = candidates.map(candidate => {
+
+        // Normalize and break candidate str into words
+        // WARN Must normalize the same way input is so can match properly
+        const cand_words = rm_diacritics(cand_to_str(candidate)).toLowerCase().trim().split(' ')
+
+        // Calculate the score by summing for each input word
+        const score = input_words.reduce((prev, item) => {
+            // Select the best possible score for the best matching candidate word
+            return prev + Math.max(...cand_words.map(cand => _fuzzy_match(item, cand)))
+        }, 0)
+        return {candidate, score}
+    }).filter(item => item.score > -4)
+
+    // Order the candidates by relevance
+    items.sort((a, b) => b.score - a.score)
+
+    // Only return the candidates (without score)
+    return items.map(item => item.candidate)
+}

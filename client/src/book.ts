@@ -117,6 +117,11 @@ export class BibleBookHtml {
         return this.get_chapters(chapter, chapter)
     }
 
+    // Get HTML for a single verse
+    get_verse(chapter:number, verse:number){
+        return this.get_passage(chapter, verse, chapter, verse)
+    }
+
 }
 
 

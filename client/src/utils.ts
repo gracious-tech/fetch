@@ -25,3 +25,13 @@ export function deep_copy<T extends object>(source:T):T{
     }
     return copy
 }
+
+
+// @internal
+export function rm_diacritics(string:string):string{
+    // Remove diacritics from a string
+    // See https://stackoverflow.com/a/37511463/10262211
+    return string.normalize('NFKD').replace(/\p{Diacritic}/gu, '')
+}
+
+

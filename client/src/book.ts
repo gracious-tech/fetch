@@ -213,7 +213,11 @@ function separate_verses(html:string){
             // Repair the verse's html by ensuring it has opening and closing paragraph tags
             // NOTE Verse markers are always located within a paragraph
             let verse_html = last_p + html.slice(sup_close_end, vend).trim()
-            if (!verse_html.endsWith('</p>')){
+            if (verse_html.endsWith(last_p)){
+                // Verse ending straight after starting a new <p> so remove it
+                verse_html = verse_html.slice(0, last_p.length * -1)
+            } else if (!verse_html.endsWith('</p>')){
+                // Need to close the previous <p>
                 verse_html += '</p>'
             }
 

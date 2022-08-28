@@ -41,16 +41,16 @@ function _fuzzy_match(input:string, candidate:string):number{
     // Returns 0 for perfect match, negative number for possible match, or -Infinity for no match
     // WARN Both input & candidate should be normalized before being passed to this fn
 
-    // First letter must match as very rare to get that wrong
-    if (!input || input[0] !== candidate[0]){
+    // Can't match if empty strings
+    if (!input || !candidate){
         return -Infinity
     }
 
     // Keep track of how many chars skipped
     let skipped = 0
 
-    let input_i = 1  // Already checked first char
-    for (let cand_i = 1; cand_i < candidate.length; cand_i++){
+    let input_i = 0
+    for (let cand_i = 0; cand_i < candidate.length; cand_i++){
 
         // See if chars match
         if (candidate[cand_i] === input[input_i]){
@@ -59,6 +59,9 @@ function _fuzzy_match(input:string, candidate:string):number{
                 // End of input so report success and subtract points for skips
                 return skipped * -1
             }
+        } else if (input_i === 0){
+            // First letter must match as very rare to get that wrong
+            return -Infinity
         } else {
             // Input not matching so consider next candidate char
             skipped++

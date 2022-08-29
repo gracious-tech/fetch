@@ -208,7 +208,7 @@ function separate_verses(html:string){
                     last_p = html.slice(vend, p_open_end)
                     vend = p_open_end
                 } else if (html.slice(vend, vend + sup_open.length) === sup_open ||
-                        headings.includes(html.slice(vend+1, vend+2))){
+                        headings.includes(html.slice(vend+1, vend+3))){
                     break
                 } else {
                     vend = advance(vend+1, '<', html)  // WARN Must +1 to not get stuck at same pos
@@ -238,22 +238,24 @@ function separate_verses(html:string){
             i = vend
             last_id = id
 
-        } else if (headings.includes(html.slice(i+1, i+2))){
+        } else if (headings.includes(html.slice(i+1, i+3))){
             // This is a heading
 
             // Locate end of heading
             const h_close = `</h${html[i+2]!}>`
             const after_h = advance(i, h_close, html) + h_close.length
 
-            // Update trackers (before adding to list so can use last_id)
-            i = after_h
-            last_id += 1  // Add one for each consecutive heading (assumed no more than 9!)
+            // Add one for each consecutive heading (assumed no more than 9!)
+            last_id += 1
 
             // Add to the list
             items.push({
                 id: last_id,
                 heading: html.slice(i, after_h),
             })
+
+            // Move i to end of the heading
+            i = after_h
 
         } else {
             // Move on to next tag open

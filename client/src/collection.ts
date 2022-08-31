@@ -169,23 +169,38 @@ export class BibleCollection {
     }
 
     // @internal
-    _ensure_trans_exists(id:string){
+    _ensure_trans_exists(translation:string){
         // Util that throws if translation doesn't exist
-        if (! (id in this._manifest.translations)){
-            throw new Error(`Translation with id "${id}" does not exist in collection(s)`)
+        if (! this.has_translation(translation)){
+            throw new Error(`Translation with id "${translation}" does not exist in collection(s)`)
         }
     }
 
     // @internal
-    _ensure_book_exists(trans:string, book:string){
+    _ensure_book_exists(translation:string, book:string){
         // Util that throws if book doesn't exist
-        this._ensure_trans_exists(trans)
+        this._ensure_trans_exists(translation)
         if (!this._manifest.books_ordered.includes(book)){
             throw new Error(`Book id "${book}" is not valid (should be 3 letters lowercase)`)
         }
-        if (!(book in this._manifest.translations[trans]!.books)){
-            throw new Error(`Translation "${trans}" does not have book "${book}"`)
+        if (! this.has_book(translation, book)){
+            throw new Error(`Translation "${translation}" does not have book "${book}"`)
         }
+    }
+
+    // Check if a language exists (must be 3 character id)
+    has_language(language:string):boolean{
+        return language in this._manifest.languages
+    }
+
+    // Check if a translation exists
+    has_translation(translation:string):boolean{
+        return translation in this._manifest.translations
+    }
+
+    // Check if a book exists within a translation
+    has_book(translation:string, book:string):boolean{
+        return this._manifest.translations[translation]?.books[book] !== undefined
     }
 
     // Get available languages as either a list or an object

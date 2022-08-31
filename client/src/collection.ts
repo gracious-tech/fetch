@@ -3,7 +3,7 @@ import {BibleBookHtml, BibleBookUsx} from './book'
 import {filter_licenses} from './licenses'
 import {DistManifest} from './shared_types'
 import {UsageOptions, UsageConfig, RuntimeManifest, RuntimeLicense} from './types'
-import {deep_copy, request} from './utils'
+import {deep_copy, fuzzy_search, request} from './utils'
 
 
 // No browser types since may be running in Node, so define as possibly existing
@@ -21,6 +21,7 @@ export interface GetLanguagesOptions {
     object?:boolean
     exclude_old?:boolean
     sort_by_english?:boolean
+    search?:string
 }
 
 export interface GetLanguagesItem {
@@ -190,7 +191,7 @@ export class BibleCollection {
     // Get available languages as either a list or an object
     get_languages(options:ObjT<GetLanguagesOptions>):Record<string, GetLanguagesItem>
     get_languages(options?:ObjF<GetLanguagesOptions>):GetLanguagesItem[]
-    get_languages({object, exclude_old, sort_by_english}:GetLanguagesOptions={}):
+    get_languages({object, exclude_old, sort_by_english, search}:GetLanguagesOptions={}):
             GetLanguagesItem[]|Record<string, GetLanguagesItem>{
 
         // Start with list and dereference internal objects so manifest can't be modified
@@ -201,16 +202,23 @@ export class BibleCollection {
             list = list.filter(item => item.living)
         }
 
+        // Optionally apply search
+        if (search !== undefined){
+            list = fuzzy_search(search, list, c => c.local + ' ' + c.english)
+        }
+
         // Return object if desired
         if (object){
             return Object.fromEntries(list.map(item => [item.code, item]))
         }
 
         // Sort list and return it
-        list.sort((a, b) => {
-            const name_key = sort_by_english ? 'english' : 'local'
-            return a[name_key].localeCompare(b[name_key])
-        })
+        if (!search){
+            list.sort((a, b) => {
+                const name_key = sort_by_english ? 'english' : 'local'
+                return a[name_key].localeCompare(b[name_key])
+            })
+        }
         return list
     }
 

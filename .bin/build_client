@@ -4,22 +4,30 @@ set -e
 cd "$(dirname "$(dirname "$0")")/client"
 
 
+# Clear existing
+rm -rf dist
+
+
 # Build css first which will get embedded in the client
 node_modules/.bin/sass --style=compressed --no-source-map src/css/index.sass src/css/dist.css
 
 
-# Build each format as well as minified versions
-esbuild="../node_modules/.bin/esbuild src/index.ts --sourcemap --bundle --target=es6 --loader:.css=text"
+# Common args
+esbuild="../node_modules/.bin/esbuild --sourcemap --target=es6 --loader:.css=text"
 
-$esbuild --format=esm  --platform=neutral --outfile=dist/client.esm.js
-$esbuild --format=cjs  --platform=node    --outfile=dist/client.cjs.js
-$esbuild --format=iife --platform=browser --outfile=dist/client.iife.js
 
-$esbuild --format=esm  --platform=neutral --outfile=dist/client.min.esm.js  --minify
-$esbuild --format=cjs  --platform=node    --outfile=dist/client.min.cjs.js  --minify
-$esbuild --format=iife --platform=browser --outfile=dist/client.min.iife.js --minify
+# Build ESM and CJS versions
+$esbuild --format=esm  --platform=neutral --outdir=dist/esm ./src/*.ts
+$esbuild --format=cjs  --platform=node    --outdir=dist/cjs ./src/*.ts
 
-../node_modules/.bin/tsc --emitDeclarationOnly --outFile dist/client.js
+
+# Add typings for the ESM version
+../node_modules/.bin/tsc --emitDeclarationOnly --outDir dist/esm
+
+
+# Build bundled minified versions as ESM and IIFE
+$esbuild --format=esm  --platform=neutral --outfile=dist/client.min.esm.js  --bundle --minify src/index.ts
+$esbuild --format=iife --platform=browser --outfile=dist/client.min.iife.js --bundle --minify src/index.ts
 
 
 # Copy to site so example and users can use if they want

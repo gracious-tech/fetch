@@ -46,10 +46,8 @@ data = Object.fromEntries(data.map(item => {
 }))
 
 
-// Save languages with a significant population to file
-// NOTE Lower threshold if stats of missing languages doesn't show enough
-writeFileSync('population.json', JSON.stringify(Object.fromEntries(
-    Object.entries(data).filter(([id, data]) => data.pop >= 1000000))))
+// Save data to file
+writeFileSync('population.json', JSON.stringify(data))
 
 
 // Also report how much of world's population is included by selecting first x languages

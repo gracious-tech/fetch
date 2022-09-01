@@ -47,7 +47,7 @@ table
         td
             a(@click='language = bible.language') {{ bible.language }}
         td {{ bible.year }}
-        td(v-html='bible.completion')
+        td.completion(v-html='bible.completion')
         td
             template(v-for='license of bible.licenses')
                 a(:href='license.url' target='_blank') {{ license.id ?? 'Custom' }}
@@ -141,5 +141,8 @@ select
 label, select
     margin: 8px 18px 8px 4px
     user-select: none
+
+.completion
+    white-space: nowrap
 
 </style>

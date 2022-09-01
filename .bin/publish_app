@@ -1,0 +1,7 @@
+#!/bin/bash
+# Publish app
+set -e
+cd "$(dirname "$(dirname "$0")")/app"
+
+../.bin/build_app
+node_modules/.bin/esbuild --platform=node ../.bin/publish.ts | node --input-type=module

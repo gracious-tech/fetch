@@ -1,6 +1,6 @@
 
 <script setup>
-import VPButton from 'vitepress/client/theme-default/components/VPButton.vue'
+import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
 </script>
 
 
@@ -19,20 +19,21 @@ _Beta coming Q3 2022_
 You can use fetch(bible) however you like and we make it easy with a variety of methods of integration for whatever your situation may require.
 
 ### Choose your level of integration
-&nbsp;
-<VPButton href='/access/app/' text="UI" theme='alt'></VPButton>
-&nbsp;
-<VPButton href='/access/client/' text="API" theme='alt'></VPButton>
-&nbsp;
-<VPButton href='/access/manual/' text="Manual" theme='alt'></VPButton>
+<p>
+    <VPButton href='/access/app/' text="UI" theme='alt'></VPButton>
+    &nbsp;
+    <VPButton href='/access/client/' text="API" theme='alt'></VPButton>
+    &nbsp;
+    <VPButton href='/access/manual/' text="Manual" theme='alt'></VPButton>
+</p>
 
 
 ### Choose your source of content
-&nbsp;
-<VPButton href='/access/collections/' text="Official" theme='alt'></VPButton>
-&nbsp;
-<VPButton href='/access/collections/' text="Custom" theme='alt'></VPButton>
-
+<p>
+    <VPButton href='/access/collections/' text="Official" theme='alt'></VPButton>
+    &nbsp;
+    <VPButton href='/access/collections/' text="Custom" theme='alt'></VPButton>
+</p>
 
 
 ## No limits from us

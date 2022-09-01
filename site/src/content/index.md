@@ -1,15 +1,17 @@
 
 <script setup>
-import VPButton from 'vitepress/client/theme-default/components/VPButton.vue'
+import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
 </script>
 
 
 # What's included
 We include every Bible translation possible and regularly check for new translations and updates to existing translations. We don't manage many translations ourselves, rather we source them from existing collections.
 
-<VPButton href='/content/languages/' text="Languages" theme='alt'></VPButton>
-&nbsp;
-<VPButton href='/content/bibles/' text="Bibles" theme='alt'></VPButton>
+<p>
+    <VPButton href='/content/languages/' text="Languages" theme='alt'></VPButton>
+    &nbsp;
+    <VPButton href='/content/bibles/' text="Bibles" theme='alt'></VPButton>
+</p>
 
 ## Our sources
 We are very thankful for those who have been making Bible translations publicly available, both those translating and those compiling existing translations:
@@ -41,4 +43,4 @@ We greatly welcome the addition of Bible translations we don't have yet, and whi
 
 This is a mostly automated service that handles over a thousand Bible translations, and while we do review as much as we can, there may be some corrections needed. So please let us know if you notice anything.
 
-<VPButton href='https://gracious.tech/support/' text="Contact us" theme='alt'></VPButton>
+<p><VPButton href='https://gracious.tech/support/' text="Contact us" theme='alt'></VPButton></p>

@@ -1,5 +1,6 @@
 ---
 title: Statistics
+aside: false
 ---
 
 

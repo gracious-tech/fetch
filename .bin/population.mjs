@@ -1,13 +1,19 @@
 
-// A script for extracting language population data from DBS data dump at:
-// https://github.com/digitalbiblesociety/data/blob/main/languages.json
+// A script for extracting language population data from DBS data dump
+
+import {dirname, join} from 'path'
+import {fileURLToPath} from 'node:url'
+import {writeFileSync} from 'fs'
 
 
-import {readFileSync, writeFileSync} from 'fs'
+// Get project path
+const project = dirname(dirname(fileURLToPath(import.meta.url)))
 
 
-// Load data from the file
-let data = JSON.parse(readFileSync('languages.json'))
+// Download data
+const url = 'https://raw.githubusercontent.com/digitalbiblesociety/data/main/languages.json'
+const resp = await fetch(url)
+let data = await resp.json()
 
 
 // More recent data (2022) for the major languages from Wikipedia
@@ -46,8 +52,8 @@ data = Object.fromEntries(data.map(item => {
 }))
 
 
-// Save data to file
-writeFileSync('population.json', JSON.stringify(data))
+// Save data to file in site
+writeFileSync(join(project, 'site', 'src', '.comp', 'population.json'), JSON.stringify(data))
 
 
 // Also report how much of world's population is included by selecting first x languages

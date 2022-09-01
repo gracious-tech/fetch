@@ -1,9 +1,4 @@
 
-<script setup>
-import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
-</script>
-
-
 # What's included
 We include every Bible translation possible and regularly check for new translations and updates to existing translations. We don't manage many translations ourselves, rather we source them from existing collections.
 

@@ -1,14 +1,9 @@
 
-<script setup>
-import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
-</script>
-
-
 ::: warning fetch(bible) is in alpha!
 
 While it is functional, there'll be numerous improvements coming and the API may change.
 
-_Beta coming Q3 2022_
+_Beta coming Q4 2022_
 :::
 
 &nbsp;

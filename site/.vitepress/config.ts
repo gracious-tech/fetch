@@ -42,6 +42,7 @@ export default defineConfig({
                     {text: "Languages", link: '/content/languages/'},
                     {text: "Bibles", link: '/content/bibles/'},
                     {text: "Statistics", link: '/content/stats/'},
+                    {text: "Need", link: '/content/need/'},
                 ],
             },
             {

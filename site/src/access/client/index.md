@@ -1,9 +1,4 @@
 
-<script setup>
-import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
-</script>
-
-
 # Client (API)
 
 `npm install @gracious.tech/fetch-client`

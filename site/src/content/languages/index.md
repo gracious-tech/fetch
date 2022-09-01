@@ -1,5 +1,6 @@
 ---
 title: Languages available
+aside: false
 ---
 
 <script setup>

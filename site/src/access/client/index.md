@@ -1,6 +1,6 @@
 
 <script setup>
-import VPButton from 'vitepress/client/theme-default/components/VPButton.vue'
+import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
 </script>
 
 
@@ -67,7 +67,7 @@ console.log(book.get_chapter(1))
 
 ```
 
-<VPButton href='/access/client/example/' text="See more detailed example" theme='alt'></VPButton>
+<p><VPButton href='/access/client/example/' text="See more detailed example" theme='alt'></VPButton></p>
 
 
 ## Design

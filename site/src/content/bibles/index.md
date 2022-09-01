@@ -1,5 +1,6 @@
 ---
 title: Bible translations available
+aside: false
 ---
 
 

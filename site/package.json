@@ -1,10 +1,6 @@
 {
     "private": true,
     "devDependencies": {
-        "@aws-sdk/client-cloudfront": "^3.121.0",
-        "@aws-sdk/client-s3": "^3.121.0",
-        "@types/mime-types": "^2.1.1",
-        "mime-types": "^2.1.35",
         "pug": "^3.0.2",
         "sass": "^1.52.3",
         "typedoc": "^0.23.2",

@@ -54,6 +54,7 @@ data = Object.fromEntries(data.map(item => {
 
 // Save data to file in site
 writeFileSync(join(project, 'site', 'src', '.comp', 'population.json'), JSON.stringify(data))
+writeFileSync(join(project, 'collector', 'src', 'data', 'population.json'), JSON.stringify(data))
 
 
 // Also report how much of world's population is included by selecting first x languages

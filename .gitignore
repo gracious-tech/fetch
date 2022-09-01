@@ -2,6 +2,7 @@
 node_modules/
 
 /app/dist/
+/app/.deployments/
 
 /client/dist/
 /client/src/css/dist.css
@@ -15,4 +16,4 @@ node_modules/
 /site/src/access/client/api/
 /site/src/public/client.min.*
 /site/src/.comp/client.min.esm.js
-/site/publish.config.json
+/site/.deployments/

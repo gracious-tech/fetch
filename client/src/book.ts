@@ -47,6 +47,7 @@ export class BibleBookHtml {
         // NOTE Simple plain text matching is used as much faster than parsing the HTML
         // NOTE Assumes chapter headings are top-level but verse markers are always within <p>
         // NOTE end_verse can be 0 to signify non-inclusion of the first verse/heading of chapter
+        // TODO This code loses classes on <p> when reconstructing etc
 
         // Confusing non-breaking bugs can occur if strings passed (like '1' + 1 = '11')
         start_chapter = typeof start_chapter === 'number' ? start_chapter : parseInt(start_chapter)

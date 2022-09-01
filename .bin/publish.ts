@@ -82,12 +82,12 @@ await concurrent(get_files('dist').map(file => async () => {
 
     // Detect mime type
     const mime = MimeTypes.lookup(file)
-    if (!mime){
+    if (!mime || typeof mime !== 'string'){
         throw new Error()
     }
 
     // Upload
-    await s3.putObject({
+    s3.putObject({
         Bucket: config.bucket,
         Key: key,
         Body: readFileSync(file),

@@ -37,6 +37,7 @@ export interface GetTranslationsOptions {
     sort_by_year?:boolean
     usage?:UsageOptions
     exclude_obsolete?:boolean
+    exclude_incomplete?:boolean
 }
 
 export interface GetTranslationsItem {
@@ -269,7 +270,7 @@ export class BibleCollection {
     // Get available translations as either a list or an object
     get_translations(options:ObjT<GetTranslationsOptions>):Record<string, GetTranslationsItem>
     get_translations(options?:ObjF<GetTranslationsOptions>):GetTranslationsItem[]
-    get_translations({language, object, sort_by_year, usage, exclude_obsolete}:
+    get_translations({language, object, sort_by_year, usage, exclude_obsolete, exclude_incomplete}:
             GetTranslationsOptions={}):GetTranslationsItem[]|Record<string, GetTranslationsItem>{
 
         // Start with list of translations, extracting properties that don't need extra processing
@@ -301,6 +302,14 @@ export class BibleCollection {
             list = list.filter(item => {
                 const obsoleted_by = this._manifest.translations[item.id]!.obsoleted_by
                 return !obsoleted_by || !list_ids.includes(obsoleted_by)
+            })
+        }
+
+        // Optionally exclude incomplete translations
+        if (exclude_incomplete){
+            list = list.filter(item => {
+                const count = Object.keys(this._manifest.translations[item.id]!.books).length
+                return count === this._manifest.books_ordered.length
             })
         }
 

@@ -2,8 +2,11 @@
 
 // Publish site (needs AWS credentials in env vars)
 
+import {join} from 'path'
+import {argv} from 'process'
 import {readFileSync, readdirSync, statSync} from 'fs'
 
+import yaml from 'yaml'
 import MimeTypes from 'mime-types'
 import {S3} from '@aws-sdk/client-s3'
 import {CloudFront} from '@aws-sdk/client-cloudfront'
@@ -34,7 +37,7 @@ async function concurrent(tasks:(()=>Promise<unknown>)[], limit=10):Promise<void
 
 function get_files(dir:string):string[]{
     // Get paths for all files in dir (deep)
-    const files = []
+    const files:string[] = []
     for (const name of readdirSync(dir)){
         const path = `${dir}/${name}`
         if (statSync(path).isDirectory()){
@@ -48,9 +51,18 @@ function get_files(dir:string):string[]{
 
 
 // Load config
-const config = JSON.parse(readFileSync('publish.config.json', 'utf-8')) as
-    {key_id:string, key_secret:string, bucket:string, cf:string, region:string}
-
+let domain = argv[1]
+if (!domain){
+    const domains = readdirSync('.deployments')
+    if (domains.length === 1){
+        domain = domains[0].slice(0, -5)
+    } else {
+        throw new Error("Pass domain name as first arg")
+    }
+}
+const config = yaml.parse(readFileSync(join('.deployments', `${domain}.yaml`), 'utf-8')) as
+    {bucket:string, dist:string, region?:string}
+config.region = config.region || 'us-west-2'
 
 // Init clients
 const s3 = new S3({region: config.region})
@@ -94,7 +106,7 @@ if (delete_objects.length){
 
 
 // Invalidate all paths
-await cf.createInvalidation({DistributionId: config.cf, InvalidationBatch: {
+await cf.createInvalidation({DistributionId: config.dist, InvalidationBatch: {
     CallerReference: new Date().getTime().toString(),
     Paths: {
         Quantity: 1,

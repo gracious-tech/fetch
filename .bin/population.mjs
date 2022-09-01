@@ -6,10 +6,8 @@
 import {readFileSync, writeFileSync} from 'fs'
 
 
+// Load data from the file
 const data = JSON.parse(readFileSync('languages.json'))
-
-data.sort((a, b) => b.po - a.po)
-
 
 
 // More recent data (2022) for the major languages from Wikipedia
@@ -37,18 +35,16 @@ const recent_data = {
 }
 
 
-
-
-
-
-const pop = data.slice(0, 1000).map(item => {
-    return {
-        id: item.id,
-        pop: recent_data[item.id] ?? item.po,
-        english: item.tt,
-        local: item.tv,
+// Extract only the population data
+const population = {}
+for (const item of data){
+    const pop = recent_data[item.id] ?? item.po
+    // Don't include if no pop data or less than 1000 (to reduce size)
+    if (pop && pop >= 1000){
+        population[item.id] = pop
     }
-})
+}
 
 
-writeFileSync('population.json', JSON.stringify(pop))
+// Save to new file
+writeFileSync('population.json', JSON.stringify(population))

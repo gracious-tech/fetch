@@ -59,7 +59,8 @@ table
 
 
 h2 No free modern translation
-p The top 20 most commonly used languages that do not have a Bible translation that is modern (published after {{ modern_year }}) and free (no quotation limits).
+p Only {{ world_percent }}% of the world has free access to a Bible translation
+p The top 20 most commonly used languages that do not have a Bible translation that is complete, modern (published after {{ modern_year }}), and free to share (no quotation limits).
 table
     tr
         th Local
@@ -109,9 +110,10 @@ const per = count => Math.floor(count / translations.length * 100) + '%'
 
 
 // Generate list of periods
+const epoch = 1950
 const this_year = new Date().getFullYear()
-let periods = [...Array(Math.ceil((this_year - 1900) / 10)).keys()].map(n => {
-    const start = n*10 + 1900
+let periods = [...Array(Math.ceil((this_year - epoch) / 10)).keys()].map(n => {
+    const start = n*10 + epoch
     return {
         start,
         end: start + 9,
@@ -119,7 +121,7 @@ let periods = [...Array(Math.ceil((this_year - 1900) / 10)).keys()].map(n => {
     }
 })
 periods.reverse()
-periods.push({start: 0, end: 1899, display: "Pre-1900"})
+periods.push({start: 0, end: epoch-1, display: `Pre-${epoch}`})
 periods = periods.map(period => {
     return {
         ...period,
@@ -145,8 +147,11 @@ licenses.push({
 // Generate list of languages lacking free modern translation
 const modern_year = 1950
 const has_free_modern = collection.get_languages().map(item => item.code).filter(lang => {
-    return collection.get_translations({language: lang, usage: {limitless: true}})
-        .some(t => t.year >= modern_year)
+    return collection.get_translations({
+        language: lang,
+        exclude_incomplete: true,
+        usage: {limitless: true},
+    }).some(t => t.year >= modern_year)
 })
 const missing_languages = Object.entries(population)
     .filter(([id]) => !has_free_modern.includes(id))
@@ -156,6 +161,18 @@ const missing_languages = Object.entries(population)
         const mil = Math.round(data.pop / 1000000).toLocaleString()
         return {id, ...data, pop: `${mil} million`}
     })
+
+
+// Work out how much of world is without a free modern translation
+let world_pop = 0
+let world_has = 0
+for (const [id, data] of Object.entries(population)){
+    world_pop += data.pop
+    if (has_free_modern.includes(id)){
+        world_has += data.pop
+    }
+}
+const world_percent = Math.round(world_has / world_pop * 100)
 
 
 // Generate list of owners

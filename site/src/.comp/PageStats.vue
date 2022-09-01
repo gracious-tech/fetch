@@ -58,22 +58,6 @@ table
         td {{ per(period.count) }}
 
 
-h2 No free modern translation
-p Only {{ world_percent }}% of the world has free access to a Bible translation
-p The top 20 most commonly used languages that do not have a Bible translation that is complete, modern (published after {{ modern_year }}), and free to share (no quotation limits).
-table
-    tr
-        th Local
-        th English
-        th Code
-        th Population
-    tr(v-for='lang of missing_languages')
-        td {{ lang.local }}
-        td {{ lang.english }}
-        td {{ lang.id }}
-        td {{ lang.pop }}
-
-
 h2 Owner
 table
     tr
@@ -142,37 +126,6 @@ licenses.push({
     display: "Custom license only",
     count: translations.filter(t => !t.licenses.some(l => l.id)).length,
 })
-
-
-// Generate list of languages lacking free modern translation
-const modern_year = 1950
-const has_free_modern = collection.get_languages().map(item => item.code).filter(lang => {
-    return collection.get_translations({
-        language: lang,
-        exclude_incomplete: true,
-        usage: {limitless: true},
-    }).some(t => t.year >= modern_year)
-})
-const missing_languages = Object.entries(population)
-    .filter(([id]) => !has_free_modern.includes(id))
-    .sort((a, b) => b[1].pop - a[1].pop)
-    .slice(0, 100)  // TODO Reduce to 20 once research done
-    .map(([id, data]) => {
-        const mil = Math.round(data.pop / 1000000).toLocaleString()
-        return {id, ...data, pop: `${mil} million`}
-    })
-
-
-// Work out how much of world is without a free modern translation
-let world_pop = 0
-let world_has = 0
-for (const [id, data] of Object.entries(population)){
-    world_pop += data.pop
-    if (has_free_modern.includes(id)){
-        world_has += data.pop
-    }
-}
-const world_percent = Math.round(world_has / world_pop * 100)
 
 
 // Generate list of owners

@@ -56,6 +56,7 @@ p
 <script setup lang="ts">
 
 import {BibleClient} from './client.min.esm.js'
+import population from './population.json'
 
 
 // Use localhost endpoint during dev
@@ -67,17 +68,13 @@ const client = new BibleClient({endpoints: [endpoint]})
 const collection = await client.fetch_collection()
 
 
-// Import population data
-const population = await (await fetch('/population.json')).json()
-
-
 // Generate list of languages
 const languages = collection.get_languages().map(lang => {
-    const mil = Math.round((population.find(item => item.id === lang.code)?.pop ?? 0) / 1000000)
+    const mil = Math.round((population[lang.code]?.pop ?? 0) / 1000000)
     return {
         ...lang,
         count: collection.get_translations({language: lang.code}).length,
-        pop: mil ? `${mil.toLocaleString()} million` : '?',
+        pop: mil ? `${mil.toLocaleString()} million` : '< 1 million',
         mil,
     }
 })

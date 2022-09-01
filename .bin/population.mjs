@@ -39,9 +39,16 @@ const recent_data = {
 const population = {}
 for (const item of data){
     const pop = recent_data[item.id] ?? item.po
-    // Don't include if no pop data or less than 1000 (to reduce size)
-    if (pop && pop >= 1000){
-        population[item.id] = pop
+    // Don't include if no pop data or less than 1 million (to reduce size)
+    // NOTE Lower threshold if stats of missing languages doesn't show enough
+    if (pop && pop >= 1000000){
+        population[item.id] = {
+            pop,
+            // Names used when identifying languages missing from collection
+            english: item.tt,
+            local: item.tv,
+        }
+
     }
 }
 

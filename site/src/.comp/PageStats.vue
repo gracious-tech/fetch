@@ -91,6 +91,7 @@ p
 <script setup>
 
 import {BibleClient} from './client.min.esm.js'
+import population from './population.json'
 
 
 // Use localhost endpoint during dev
@@ -105,10 +106,6 @@ const translations = collection.get_translations()
 
 // Util for getting count as a percentage string of total translations
 const per = count => Math.floor(count / translations.length * 100) + '%'
-
-
-// Import population data
-const population = await (await fetch('/population.json')).json()
 
 
 // Generate list of periods
@@ -151,11 +148,13 @@ const has_free_modern = collection.get_languages().map(item => item.code).filter
     return collection.get_translations({language: lang, usage: {limitless: true}})
         .some(t => t.year >= modern_year)
 })
-// TODO Revert slice to 20 once research done
-const missing_languages = population.filter(item => !has_free_modern.includes(item.id)).slice(0, 100)
-    .map(item => {
-        const mil = Math.round(item.pop / 1000000).toLocaleString()
-        return {...item, pop: `${mil} million`}
+const missing_languages = Object.entries(population)
+    .filter(([id]) => !has_free_modern.includes(id))
+    .sort((a, b) => b[1].pop - a[1].pop)
+    .slice(0, 100)  // TODO Reduce to 20 once research done
+    .map(([id, data]) => {
+        const mil = Math.round(data.pop / 1000000).toLocaleString()
+        return {id, ...data, pop: `${mil} million`}
     })
 
 

@@ -329,10 +329,10 @@ export function sync_verses(verses:(SeparatedVerse|SeparatedHeading)[][]):Synced
             const html = indexes.map((index, trans) => {
 
                 // Get the translation's next verse
-                const item = verses[trans]![index] as SeparatedVerse
+                const item = verses[trans]![index] as SeparatedVerse|undefined
 
                 // See if the verse matches the current one being considered
-                if (item.id === lowest){
+                if (item && item.id === lowest){
 
                     // Ensure chapter/verse set (at least once)
                     chapter = item.chapter

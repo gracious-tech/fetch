@@ -7,7 +7,7 @@ import {readFileSync, writeFileSync} from 'fs'
 
 
 // Load data from the file
-const data = JSON.parse(readFileSync('languages.json'))
+let data = JSON.parse(readFileSync('languages.json'))
 
 
 // More recent data (2022) for the major languages from Wikipedia
@@ -35,23 +35,31 @@ const recent_data = {
 }
 
 
-// Extract only the population data
-const population = {}
-for (const item of data){
-    const pop = recent_data[item.id] ?? item.po
-    // Don't include if no pop data or less than 1 million (to reduce size)
-    // NOTE Lower threshold if stats of missing languages doesn't show enough
-    if (pop && pop >= 1000000){
-        population[item.id] = {
-            pop,
-            // Names used when identifying languages missing from collection
-            english: item.tt,
-            local: item.tv,
-        }
+// Convert to object with desired props
+data = Object.fromEntries(data.map(item => {
+    return [item.id, {
+        pop: recent_data[item.id] ?? item.po ?? 0,
+        // Names used when identifying languages missing from collection
+        english: item.tt || item.tv,
+        local: item.tv || item.tt,
+    }]
+}))
 
-    }
+
+// Save languages with a significant population to file
+// NOTE Lower threshold if stats of missing languages doesn't show enough
+writeFileSync('population.json', JSON.stringify(Object.fromEntries(
+    Object.entries(data).filter(([id, data]) => data.pop >= 1000000))))
+
+
+// Also report how much of world's population is included by selecting first x languages
+const world_pop = Object.values(data).reduce((prev, item) => prev + item.pop, 0)
+console.log(`World population: ${world_pop}`)
+const sorted = Object.values(data)
+    .sort((a, b) => b.pop - a.pop)
+    .map(item => item.pop)
+
+for (let range = 10; range < 1000; range += 10){
+    console.log(range,
+        sorted.slice(0, range).reduce((prev, item) => prev + item, 0) / world_pop * 100)
 }
-
-
-// Save to new file
-writeFileSync('population.json', JSON.stringify(population))

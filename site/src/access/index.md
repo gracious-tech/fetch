@@ -1,7 +1,7 @@
 
 ::: warning fetch(bible) is in alpha!
 
-While it is functional, there'll be numerous improvements coming and the API may change.
+It is currently only suitable for developers and packages haven't been published yet.
 
 _Beta coming Q4 2022_
 :::

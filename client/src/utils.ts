@@ -81,6 +81,11 @@ function _fuzzy_match(input:string, candidate:string):number{
 export function fuzzy_search<T>(input:string, candidates:T[], cand_to_str:(c:T)=>string):T[]{
     // Return sorted candidates that fuzzy match input
 
+    // If no input, return all candidates as is (without changing sort order)
+    if (!input.trim()){
+        return candidates.slice()
+    }
+
     // Normalize and break input into words
     const input_words = rm_diacritics(input).toLowerCase().trim().split(' ')
 

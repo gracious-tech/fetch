@@ -33,8 +33,10 @@ export class BibleBookHtml {
         this._html = html
     }
 
-    // Get the HTML for the entire book
-    get_whole(list=false){
+    // Get the HTML for the entire book (as a string or a list of verses)
+    get_whole(options?:{list?:false}):string
+    get_whole(options:{list:true}):(SeparatedVerse|SeparatedHeading)[]
+    get_whole({list}:{list?:boolean}={}):string|(SeparatedVerse|SeparatedHeading)[]{
         if (list){
             return separate_verses(this._html)
         }

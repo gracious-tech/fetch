@@ -27,7 +27,7 @@ module.exports = {
         'plugin:import/recommended',
         'plugin:import/typescript',
         'plugin:vue/vue3-recommended',
-        'plugin:vue-pug-sfc/recommended',
+        'plugin:vue-pug/vue3-recommended',
     ],
     rules: {
 
@@ -58,6 +58,10 @@ module.exports = {
         '@typescript-eslint/require-await': 'off',  // Some fns async to match spec or await later
         '@typescript-eslint/no-empty-function': 'off',  // Empty fns may be used to match a spec
         '@typescript-eslint/explicit-module-boundary-types': 'off',  // TS auto detect saves time
+        'vue/max-attributes-per-line': 'off',  // Allow attributes split across e.g. 2 lines
+        'vue/first-attribute-linebreak': 'off',  // Do whatever looks nicest instead
+        'vue/html-quotes': 'off',  // Single quotes for vars and double for strings
+        'vue/no-v-html': 'off',  // Legit uses for injecting HTML, especially own HTML
 
         // Disable as already covered by other audits (such as tsc)
         'import/no-unresolved': 'off',  // Vite imports complex and already handled by tsc

@@ -1,0 +1,10 @@
+
+html
+    // Place on html so iOS overscroll etc won't show white bg
+    background-image: url(@/assets/background.svg)
+    background-color: #4f2c3e
+    height: 100%  // Else bg image doesn't show
+    overflow: hidden
+
+    // TODO missing from Vuetify for some reason (rm when fixed)
+    --v-theme-overlay-multiplier: 1

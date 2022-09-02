@@ -4,4 +4,4 @@ set -e
 cd "$(dirname "$(dirname "$0")")/site"
 
 ../.bin/build_site
-node_modules/.bin/esbuild --platform=node publish.ts | node --input-type=module
+node_modules/.bin/esbuild --platform=node ../.bin/publish.ts | node --input-type=module

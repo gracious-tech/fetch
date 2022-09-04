@@ -4,8 +4,10 @@
 div.content(ref='content_div' @touchstart.passive='on_touch_start' @touchend.passive='on_touch_end'
         @touchmove.passive='on_touch_move' @touchcancel.passive='on_touch_cancel')
 
-    div.prev_ch(v-show='state.chapter > 1' ref='swipe_prev') {{ state.chapter - 1 }}
-    div.next_ch(v-show='state.chapter < chapters.length' ref='swipe_next') {{ state.chapter + 1 }}
+    div.prev_ch(ref='swipe_prev' :class='{disabled: state.chapter <= 1}')
+        | {{ state.chapter - 1 }}
+    div.next_ch(ref='swipe_next' :class='{disabled: state.chapter >= chapters.length}')
+        | {{ state.chapter + 1 }}
 
     div.single(v-if='state.content' v-html='state.content')
     template(v-else)
@@ -178,6 +180,11 @@ onMounted(() => {
     align-items: center
     background-color: rgb(var(--v-theme-primary))
     font-weight: bold
+    opacity: 0
+
+    &.disabled
+        color: transparent  // Hide text
+        background-color: hsla(0, 0%, 50%, 0.8)
 
 .prev_ch
     left: -48px

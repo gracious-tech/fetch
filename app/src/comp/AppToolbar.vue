@@ -6,8 +6,8 @@ v-toolbar(color='primary' :density='state.wide ? "default" : "compact"')
         | {{ chapter_display }}
     v-btn(@click='state.show_trans_dialog = true') {{ trans_display }}
     template(#append)
-        v-btn(icon @click='state.search = state.search === null ? "" : null')
-            app-icon(name='search')
+        //- v-btn(icon @click='state.search = state.search === null ? "" : null')
+        //-     app-icon(name='search')
         v-btn(icon)
             app-icon(name='more_vert')
 

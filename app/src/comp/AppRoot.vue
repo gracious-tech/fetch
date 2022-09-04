@@ -47,12 +47,7 @@ import {chapter_display} from '@/services/computes'
 <style lang='sass' scoped>
 
 .v-application
-    // TODO Makes laggy when resizing window?
-    position: absolute
-    top: 0
-    bottom: 0
-    left: 0
-    right: 0
+    height: 100%
 
     // Max-out width eventually so not TOO wide and add margin
     &.wide

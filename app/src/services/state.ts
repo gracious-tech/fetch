@@ -25,9 +25,15 @@ export const state = reactive({
 
 
 // Update wide property whenever screen width changes
-wide_query.addEventListener('change', event => {
+const wide_query_handler = (event:MediaQueryListEvent) => {
     state.wide = event.matches
-})
+}
+if ('addEventListener' in wide_query){
+    wide_query.addEventListener('change', wide_query_handler)
+} else {
+    // For Safari less than 14
+    wide_query.addListener(wide_query_handler)
+}
 
 
 // COMPUTES

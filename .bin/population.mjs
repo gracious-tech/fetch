@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 
 // A script for extracting language population data from DBS data dump
 

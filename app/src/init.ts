@@ -6,11 +6,12 @@ import AppRoot from './comp/AppRoot.vue'
 import AppIcon from '@/comp/AppIcon.vue'
 import {state} from '@/services/state'
 import {content} from '@/services/content'
-import {sync_verses} from '@/client/book'
+import {sync_verses} from '@/client/esm/book'
 
 
 // Embed global styles
 import './styles.sass'
+import '@/client/client.css'
 
 
 // Create app

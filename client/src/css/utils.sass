@@ -1,0 +1,24 @@
+
+@mixin italic
+    font-style: italic
+
+    @at-root .fb-alt-italic#{&}
+        font-style: normal
+        filter: var(--fb-alt-italic-filter)
+
+
+@mixin bold
+    font-weight: bold
+
+    @at-root .fb-alt-bold#{&}
+        font-weight: normal
+        filter: var(--fb-alt-bold-filter)
+
+
+@mixin bold-italic
+    font-weight: bold
+    font-style: italic
+
+    @at-root .fb-alt-bold-italic#{&}
+        font-weight: normal
+        filter: var(--fb-alt-bold-italic-filter)

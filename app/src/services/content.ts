@@ -1,6 +1,6 @@
 
-import {BibleClient} from '@/client'
-import type {BibleCollection, GetTranslationsItem, GetLanguagesItem} from '@/client/collection'
+import {BibleClient} from '@/client/esm'
+import type {BibleCollection, GetTranslationsItem, GetLanguagesItem} from '@/client/esm/collection'
 
 const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 

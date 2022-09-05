@@ -37,6 +37,11 @@ export async function update_source(trans_id?:string){
         }
     }
 
+    // Fail if nothing matched
+    if (Object.keys(door43_sourced).length + Object.keys(ebible_sourced).length === 0){
+        console.error("No translations identified")
+    }
+
     // Wait for all to be updated
     await Promise.all([
         door43.update_sources(door43_sourced),

@@ -10,6 +10,7 @@ import {LICENSES} from './license.js'
 import {read_json} from './utils.js'
 import type {DistManifest} from './shared_types'
 import type {BookExtracts, TranslationSourceMeta} from './types'
+import {_missing_meta} from './reporting.js'
 
 
 export async function update_manifest(){
@@ -41,8 +42,7 @@ export async function update_manifest(){
 
         // Skip if meta data missing or not reviewed yet
         // TODO Also skip if not reviewed (must be applied before beta released)
-        if (!meta.year || !meta.copyright.licenses.length ||
-                !(meta.name.local || meta.name.english)){
+        if (_missing_meta(meta)){
             console.error(`IGNORING ${trans} (missing year, license, name, or review)`)
             continue
         }

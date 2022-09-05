@@ -6,6 +6,8 @@ import {PKG_PATH, read_json, request} from './utils.js'
 import {MetaLanguage} from './shared_types.js'
 
 
+type Population = Record<string, {pop:number, english:string, local:string}>
+
 interface CLDRLanguages {
     main:{
         [code:string]:{
@@ -15,7 +17,6 @@ interface CLDRLanguages {
         }
     }
 }
-
 
 interface LanguageData {
     languages:Record<string, MetaLanguage>
@@ -33,7 +34,12 @@ export async function gen_language_data(){
     const en_path = join(cldr_path, 'en', 'languages.json')
     const english = read_json<CLDRLanguages>(en_path).main['en']!.localeDisplayNames.languages
 
+    // Access to population data
+    // NOTE Also has pretty good data on English & local language names that can fallback on
+    const population = read_json<Population>(join(PKG_PATH, 'dist', 'data', 'population.json'))
+
     // Iterate through all possible ISO 639-3 codes
+    // NOTE ISO source is good for codes but bad for names (only has English, some with comments)
     const iso_url = 'https://iso639-3.sil.org/sites/iso639-3/files/downloads/iso-639-3.tab'
     const codes = await request(iso_url, 'text')
     for (const language of codes.trim().split('\n').slice(1)){
@@ -42,20 +48,21 @@ export async function gen_language_data(){
         const parts = language.trim().split('\t')
         const three = parts[0]!
         const two = parts[3]!
-        const living = parts[5] === 'L'
-        const name = parts[6]!
+        const pop = parts[5] !== 'L' ? null : (population[three]?.pop ?? 0)
+        const label = parts[6]!
 
         // Insert into data object
+        const english_name = english[three] || english[two] || population[three]?.english || label
         data.languages[three] = {
-            local: name,
-            english: english[three] || english[two] || name,
-            living,
+            local: population[three]?.local || english_name,
+            english: english_name,
+            pop,
         }
         if (two.length === 2){
             data.language2to3[two] = three
         }
 
-        // Get local if available
+        // Get more-likely-to-be-accurate local name if available from CLDR data
         let cldr_code = three
         let lang_path = join(cldr_path, cldr_code, 'languages.json')
         if (!existsSync(lang_path) && two){

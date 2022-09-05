@@ -17,6 +17,7 @@ import close from '@material-symbols/svg-400/outlined/close.svg?component'
 import search from '@material-symbols/svg-400/outlined/search.svg?component'
 import more_vert from '@material-symbols/svg-400/outlined/more_vert.svg?component'
 import arrow_back from '@material-symbols/svg-400/outlined/arrow_back.svg?component'
+import expand_more from '@material-symbols/svg-400/outlined/expand_more.svg?component'
 
 
 defineProps({
@@ -25,7 +26,7 @@ defineProps({
 
 
 const icons = {
-    close, search, more_vert, add, delete: delete_, arrow_back, add_circle,
+    close, search, more_vert, add, delete: delete_, arrow_back, add_circle, expand_more,
 } as Record<string, FunctionalComponent>
 
 

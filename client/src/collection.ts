@@ -20,7 +20,7 @@ type ObjF<T> = Omit<T, 'object'> & {object?:false}
 export interface GetLanguagesOptions {
     object?:boolean
     exclude_old?:boolean
-    sort_by_english?:boolean
+    sort_by?:'local'|'english'|'population'
     search?:string
 }
 
@@ -28,7 +28,7 @@ export interface GetLanguagesItem {
     code:string
     local:string
     english:string
-    living:boolean
+    pop:number|null
 }
 
 export interface GetTranslationsOptions {
@@ -207,7 +207,7 @@ export class BibleCollection {
     // Get available languages as either a list or an object
     get_languages(options:ObjT<GetLanguagesOptions>):Record<string, GetLanguagesItem>
     get_languages(options?:ObjF<GetLanguagesOptions>):GetLanguagesItem[]
-    get_languages({object, exclude_old, sort_by_english, search}:GetLanguagesOptions={}):
+    get_languages({object, exclude_old, sort_by, search}:GetLanguagesOptions={}):
             GetLanguagesItem[]|Record<string, GetLanguagesItem>{
 
         // Start with list and dereference internal objects so manifest can't be modified
@@ -215,7 +215,7 @@ export class BibleCollection {
 
         // Optionally exclude non-living languages
         if (exclude_old){
-            list = list.filter(item => item.living)
+            list = list.filter(item => item.pop !== null)
         }
 
         // Optionally apply search
@@ -230,10 +230,16 @@ export class BibleCollection {
 
         // Sort list and return it
         if (!search){
-            list.sort((a, b) => {
-                const name_key = sort_by_english ? 'english' : 'local'
-                return a[name_key].localeCompare(b[name_key])
-            })
+            if (sort_by === 'population'){
+                list.sort((a, b) => {
+                    return (b.pop ?? -1) - (a.pop ?? -1)
+                })
+            } else {
+                list.sort((a, b) => {
+                    const name_key = sort_by === 'english' ? 'english' : 'local'  // Local default
+                    return a[name_key].localeCompare(b[name_key])
+                })
+            }
         }
         return list
     }

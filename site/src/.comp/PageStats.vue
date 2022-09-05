@@ -76,7 +76,6 @@ p
 <script setup>
 
 import {BibleClient} from './client.min.esm.js'
-import population from './population.json'
 
 
 // Use localhost endpoint during dev

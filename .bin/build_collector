@@ -4,5 +4,11 @@ set -e
 cd "$(dirname "$(dirname "$0")")/collector"
 
 
+rm -rf dist
+
 ../node_modules/.bin/esbuild src/*.ts src/**/*.ts --sourcemap --target=node18 --format=esm \
     --platform=node --outdir=dist "$@"
+
+# Copy static data as esbuild won't include (unless whole thing bundled)
+mkdir dist/data
+cp src/data/population.json dist/data/population.json

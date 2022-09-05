@@ -12,15 +12,13 @@ table
         th Local
         th English
         th Code
-        th Living
         th Population
         th Bibles
     tr(v-for='lang of languages_top20')
         td {{ lang.local }}
         td {{ lang.english }}
         td {{ lang.code }}
-        td {{ lang.living ? "Yes" : "No" }}
-        td {{ lang.pop }}
+        td {{ lang.pop || "None" }}
         td
             a(:href='`../bibles/#${lang.code}`') {{ lang.count }}
 p
@@ -35,15 +33,13 @@ table
         th Local
         th English
         th Code
-        th Living
         th Population
         th Bibles
     tr(v-for='lang of languages')
         td {{ lang.local }}
         td {{ lang.english }}
         td {{ lang.code }}
-        td {{ lang.living ? "Yes" : "No" }}
-        td {{ lang.pop }}
+        td {{ lang.pop || "None" }}
         td
             a(:href='`../bibles/#${lang.code}`') {{ lang.count }}
 
@@ -56,7 +52,6 @@ p
 <script setup lang="ts">
 
 import {BibleClient} from './client.min.esm.js'
-import population from './population.json'
 
 
 // Use localhost endpoint during dev
@@ -70,11 +65,11 @@ const collection = await client.fetch_collection()
 
 // Generate list of languages
 const languages = collection.get_languages().map(lang => {
-    const mil = Math.round((population[lang.code]?.pop ?? 0) / 1000000)
+    const mil = Math.round((lang.pop ?? 0) / 1000000)
     return {
         ...lang,
         count: collection.get_translations({language: lang.code}).length,
-        pop: mil ? `${mil.toLocaleString()} million` : '< 1 million',
+        pop: lang.pop === null ? "None" : (mil ? `${mil.toLocaleString()} million` : '< 1 million'),
         mil,
     }
 })

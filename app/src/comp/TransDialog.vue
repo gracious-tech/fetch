@@ -14,9 +14,8 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
                 app-icon(name='close')
 
         div.subbar
-            v-text-field.search(v-if='show_languages' variant='outlined' density='compact'
-                type='search' placeholder="Search..." hide-details single-line
-                @input='search_input')
+            v-text-field.search(v-if='show_languages' v-model='languages_search' variant='outlined'
+                type='search' placeholder="Search..." density='compact' hide-details single-line)
             v-btn(v-else color='primary' variant='text' @click='show_languages = true')
                 app-icon(name='arrow_back' style='margin-right: 12px')
                 | {{ displayed_language_name }}
@@ -25,12 +24,17 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
                 app-icon(name='delete')
 
         v-list(v-if='show_languages')
-            v-list-item(v-for='lang of languages' :key='lang.code' density='compact'
+            v-list-item(v-for='lang of languages_filtered' :key='lang.code' density='compact'
                     @click='change_lang(lang.code)')
                 v-list-item-title
                     | {{ lang.local }}
                     |
                     template(v-if='lang.local !== lang.english') ({{ lang.english }})
+            v-btn(v-if='!languages_show_all' variant='text' color='primary'
+                    @click='languages_show_all = true')
+                app-icon(name='expand_more')
+                | &nbsp;
+                | More
         v-list(v-else)
             v-list-item(v-for='trans of translations' :key='trans.id' active-color='primary'
                     :active='trans.id === selected_trans.id' density='compact'
@@ -49,11 +53,18 @@ import {state} from '@/services/state'
 import {content} from '@/services/content'
 
 
+// Contants
+const languages = content.collection.get_languages()
+// NOTE First 50 languages covers 69% of world (even more those technically literate)
+const languages_by_pop = content.collection.get_languages({sort_by: 'population'}).slice(0, 50)
+
+
 // State
 const selected_trans_index = ref(0)
 const show_languages = ref(false)
 const displayed_language = ref('eng')
-const languages = ref(content.collection.get_languages())  // Ref since may filter
+const languages_search = ref('')
+const languages_show_all = ref(false)
 
 
 // Computes
@@ -65,6 +76,12 @@ const displayed_language_name = computed(() => {
 const translations = computed(() => {
     return content.collection.get_translations({language: displayed_language.value})
 })
+const languages_filtered = computed(() => {
+    if (languages_search.value){
+        return content.collection.get_languages({search: languages_search.value})
+    }
+    return languages_show_all.value ? languages : languages_by_pop
+})
 
 
 // Watches
@@ -75,10 +92,6 @@ watch(selected_trans_index, () => {
 
 
 // Methods
-const search_input = (event:Event) => {
-    const input = (event.target as HTMLInputElement).value
-    languages.value = content.collection.get_languages({search: input})
-}
 
 const change_lang = (code:string) => {
     displayed_language.value = code

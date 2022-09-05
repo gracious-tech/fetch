@@ -13,7 +13,7 @@ declare global {
 export interface MetaLanguage {
     local:string
     english:string
-    living:boolean
+    pop:number|null  // Null for confirmed dead languages
 }
 
 export interface MetaTranslationName {

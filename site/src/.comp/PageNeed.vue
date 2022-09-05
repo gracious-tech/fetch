@@ -4,7 +4,7 @@
 h1 The need for more access to the Bible
 h3.warn Only 81% of the world has a complete bible in their language
 p It is well known that there are still many languages without a bible translation. However, what is lesser known is how many languages lack a translation that is legal to freely share.
-p Many Christian organizations are working towards the whole world having "access" to the Bible in their own language. However, what do we really mean by "access"? At the moment, "access" usually means you can read a translation in a select few apps, buy it in a store, and quote a few verses.
+p Many Christian organizations are working towards the whole world having access to the Bible in their own language. However, what do we really mean by "access"? At the moment, access usually means you can read a translation in a select few apps, buy it in a store, and quote a few verses.
 p But there are many things you #[strong can't] do with such bibles (without special permission) due to copyright, such as print portions of them yourself, include them in ministry resources, distribute audio recordings of them, etc.
 p The following statistics are about bibles that are both #[strong complete] and #[strong modern] (published after {{ modern_year }}).
 

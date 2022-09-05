@@ -6,7 +6,7 @@ titleTemplate: fetch(bible)
 hero:
     name: fetch(bible)
     text: Digital access to Bible translations
-    tagline: Free and unrestricted
+    tagline: Free / Private / Unrestricted
     actions:
         -   theme: brand
             text: Overview

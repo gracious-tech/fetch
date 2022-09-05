@@ -3,6 +3,14 @@ import {escape_html} from './utils'
 import type {RuntimeLicense, RuntimeTranslation} from './types'
 
 
+type ListT<T> = Omit<T, 'list'> & {list:true}
+type ListF<T> = Omit<T, 'list'> & {list?:false}
+
+export interface GetPassageOptions {
+    list?:boolean
+    attribute?:boolean|RuntimeLicense
+}
+
 export interface SeparatedVerse {
     id:number
     chapter:number
@@ -23,6 +31,7 @@ export interface SeparatedVerseSynced {
 }
 
 
+export type Verses = (SeparatedVerse|SeparatedHeading)[]
 export type SyncedVerses = (SeparatedVerseSynced|SeparatedHeading)[]
 
 
@@ -54,19 +63,33 @@ export class BibleBookHtml {
         `
     }
 
-    // Get the HTML for the entire book (as a string or a list of verses)
-    get_whole(options?:{list?:false}):string
-    get_whole(options:{list:true}):(SeparatedVerse|SeparatedHeading)[]
-    get_whole({list}:{list?:boolean}={}):string|(SeparatedVerse|SeparatedHeading)[]{
-        if (list){
-            return separate_verses(this._html)
+    // @internal
+    _attribution(license:RuntimeLicense|boolean|undefined):string{
+        // Helper for getting (or not getting) attribution string based on attribute arg
+        // NOTE Defaults to including attribution unless explicitly set to false
+        if (license === false){
+            return ''
         }
-        return this._html
+        return this.get_attribution((!license || license === true) ? undefined : license)
+    }
+
+    // Get the HTML for the entire book (as a string or a list of verses)
+    get_whole(options:ListT<GetPassageOptions>):Verses
+    get_whole(options?:ListF<GetPassageOptions>):string
+    get_whole({list, attribute}:GetPassageOptions={}):string|Verses{
+        if (list){
+            return separate_verses(this._html, this._attribution(attribute))
+        }
+        return this._html + this._attribution(attribute)
     }
 
     // Get HTML for a specific passage
-    get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number)
-            :string|null{
+    get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number,
+        options:ListT<GetPassageOptions>):Verses
+    get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number,
+        options?:ListF<GetPassageOptions>):string
+    get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number,
+        {list, attribute}:GetPassageOptions={}):string|Verses{
         // NOTE Simple plain text matching is used as much faster than parsing the HTML
         // NOTE Assumes chapter headings are top-level but verse markers are always within <p>
         // NOTE end_verse can be 0 to signify non-inclusion of the first verse/heading of chapter
@@ -89,14 +112,14 @@ export class BibleBookHtml {
             // If starting from the first verse of a chapter include the chapter heading element
             start = this._html.indexOf(`<h3 data-c=${start_chapter}>`)
             if (start === -1){
-                return null  // Chapter number must be higher than available chapters
+                return list ? [] : ''  // Chapter number must be higher than available chapters
             }
         } else {
             // Will start from a certain verse within a paragraph so must reconstruct <p> start
             prefix = '<p>'
             const start = this._html.indexOf(`<sup data-v=${start_chapter}:${start_verse}>`)
             if (start === -1){
-                return null  // Verse doesn't exist
+                return list ? [] : ''  // Verse doesn't exist
             }
         }
 
@@ -126,24 +149,32 @@ export class BibleBookHtml {
         }
 
         // Return html
-        return prefix + this._html.slice(start, end) + suffix
+        const result = prefix + this._html.slice(start, end) + suffix
+        if (list){
+            return separate_verses(result, this._attribution(attribute))
+        }
+        return result + this._attribution(attribute)
     }
 
     // Get HTML for multiple chapters
-    get_chapters(first:number, last:number){
+    get_chapters(first:number, last:number, options:ListT<GetPassageOptions>):Verses
+    get_chapters(first:number, last:number, options?:ListF<GetPassageOptions>):string
+    get_chapters(first:number, last:number, options:GetPassageOptions={}):string|Verses{
         first = typeof first === 'number' ? first : parseInt(first)
         last = typeof last === 'number' ? last : parseInt(last)
-        return this.get_passage(first, 1, last + 1, 0)
+        return this.get_passage(first, 1, last + 1, 0, options)
     }
 
     // Get HTML for a single chapter
-    get_chapter(chapter:number){
-        return this.get_chapters(chapter, chapter)
+    get_chapter(chapter:number, options:ListT<GetPassageOptions>):Verses
+    get_chapter(chapter:number, options?:ListF<GetPassageOptions>):string
+    get_chapter(chapter:number, options:GetPassageOptions={}):string|Verses{
+        return this.get_chapters(chapter, chapter, options)
     }
 
     // Get HTML for a single verse
-    get_verse(chapter:number, verse:number){
-        return this.get_passage(chapter, verse, chapter, verse)
+    get_verse(chapter:number, verse:number, options:Omit<GetPassageOptions, 'list'>={}):string{
+        return this.get_passage(chapter, verse, chapter, verse, options)
     }
 
 }
@@ -177,7 +208,7 @@ function advance(current:number, target:string, string:string):number{
 }
 
 
-function separate_verses(html:string){
+function separate_verses(html:string, attribution:string){
     // Separate the verses/headings in given HTML into a list
 
     // Patterns that never change
@@ -288,6 +319,16 @@ function separate_verses(html:string){
             // Move on to next tag open
             // WARN Must +1 or will simply match same position again
             i = advance(i+1, '<', html)
+        }
+    }
+
+    // If attribution, append it to the last verse
+    if (attribution){
+        for (let i = items.length - 1; i >= 0; i--){
+            if ('verse' in items[i]!){
+                ;(items[i] as SeparatedVerse).html += attribution
+                break
+            }
         }
     }
 

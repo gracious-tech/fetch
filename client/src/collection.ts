@@ -423,17 +423,17 @@ export class BibleCollection {
     // Make request for the HTML text for a book of a translation (returns object for accessing it)
     async fetch_html(translation:string, book:string):Promise<BibleBookHtml>{
         this._ensure_book_exists(translation, book)
-        const path = `bibles/${translation}/html/${book}.html`
-        const endpoint = this._endpoints[translation]!
-        return new BibleBookHtml(await request(endpoint + path))
+        const url = `${this._endpoints[translation]!}bibles/${translation}/html/${book}.html`
+        const html = await request(url)
+        return new BibleBookHtml(this._manifest.translations[translation]!, html)
     }
 
     // Make request for the USX3+ text for a book of a translation (returns object for accessing it)
     async fetch_usx(translation:string, book:string):Promise<BibleBookUsx>{
         this._ensure_book_exists(translation, book)
-        const path = `bibles/${translation}/usx/${book}.usx`
-        const endpoint = this._endpoints[translation]!
-        return new BibleBookUsx(await request(endpoint + path))
+        const url = `${this._endpoints[translation]!}bibles/${translation}/usx/${book}.usx`
+        const usx = await request(url)
+        return new BibleBookUsx(this._manifest.translations[translation]!, usx)
     }
 
     // TODO async fetch_audio(){}

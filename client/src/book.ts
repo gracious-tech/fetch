@@ -1,4 +1,8 @@
 
+import {escape_html} from './utils'
+import type {RuntimeLicense, RuntimeTranslation} from './types'
+
+
 export interface SeparatedVerse {
     id:number
     chapter:number
@@ -26,11 +30,28 @@ export type SyncedVerses = (SeparatedVerseSynced|SeparatedHeading)[]
 export class BibleBookHtml {
 
     // @internal
+    _translation:RuntimeTranslation
+    // @internal
     _html:string
 
     // @internal
-    constructor(html:string){
+    constructor(translation:RuntimeTranslation, html:string){
+        this._translation = translation
         this._html = html
+    }
+
+    // Get appropriate text for attribution (defaults to first license, optionally provide one)
+    get_attribution(license?:RuntimeLicense):string{
+        if (!license){
+            license = this._translation.copyright.licenses[0]!  // Always at least one
+        }
+        const url = this._translation.copyright.attribution_url
+        const owner = escape_html(this._translation.copyright.attribution)
+        return `
+            <p style="fb-rem">
+                <a href="${url}">${owner}</a> (<a href="${license.url}">license</a>)
+            </p>
+        `
     }
 
     // Get the HTML for the entire book (as a string or a list of verses)
@@ -132,10 +153,13 @@ export class BibleBookHtml {
 export class BibleBookUsx {
 
     // @internal
+    _translation:RuntimeTranslation
+    // @internal
     _usx:string
 
     // @internal
-    constructor(usx:string){
+    constructor(translation:RuntimeTranslation, usx:string){
+        this._translation = translation
         this._usx = usx
     }
 

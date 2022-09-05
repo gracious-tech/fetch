@@ -163,6 +163,7 @@ export class BibleBookHtml {
     get_chapters(first:number, last:number, options:GetPassageOptions={}):string|Verses{
         first = typeof first === 'number' ? first : parseInt(first)
         last = typeof last === 'number' ? last : parseInt(last)
+        // @ts-ignore possible TS bug
         return this.get_passage(first, 1, last + 1, 0, options)
     }
 
@@ -170,6 +171,7 @@ export class BibleBookHtml {
     get_chapter(chapter:number, options:ListT<GetPassageOptions>):Verses
     get_chapter(chapter:number, options?:ListF<GetPassageOptions>):string
     get_chapter(chapter:number, options:GetPassageOptions={}):string|Verses{
+        // @ts-ignore possible TS bug
         return this.get_chapters(chapter, chapter, options)
     }
 

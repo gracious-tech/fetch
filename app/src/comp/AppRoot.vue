@@ -90,6 +90,8 @@ import {chapter_display} from '@/services/computes'
                         flex-basis: 0  // So don't crush toolbar
                         flex-grow: 1
                         overflow-y: auto
+                        overflow-x: hidden
+                        overflow-wrap: anywhere
 
 
 </style>

@@ -14,7 +14,8 @@ const wide_query = self.matchMedia('(min-width: 1000px)')
 export const state = reactive({
     trans: [] as unknown as [string, ...string[]],  // Will auto-set before app loads
     book: 'jhn',
-    chapter: 1,
+    chapter: 1,  // Currently detected chapter
+    chapter_target: null as null|number,  // Currently navigating to (null when finished)
     content: '',
     content_verses: [] as SyncedVerses,
     show_select_chapter: false,
@@ -42,3 +43,12 @@ if ('addEventListener' in wide_query){
 export const langs = computed(() => {
     return state.trans.map(id => id.split('_')[0]!)
 })
+
+
+// METHODS
+
+// Always update both when changing chapter so user isn't confused
+export const change_chapter = (num:number) => {
+    state.chapter = num
+    state.chapter_target = num
+}

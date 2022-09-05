@@ -1,8 +1,9 @@
 
 <template lang='pug'>
 
-div.content(ref='content_div' @touchstart.passive='on_touch_start' @touchend.passive='on_touch_end'
-        @touchmove.passive='on_touch_move' @touchcancel.passive='on_touch_cancel')
+div.content(ref='content_div' class='fetch-bible' @touchstart.passive='on_touch_start'
+        @touchend.passive='on_touch_end' @touchmove.passive='on_touch_move'
+        @touchcancel.passive='on_touch_cancel')
 
     div.prev_ch(ref='swipe_prev' :class='{disabled: state.chapter <= 1}')
         | {{ state.chapter - 1 }}
@@ -23,9 +24,9 @@ div.content(ref='content_div' @touchstart.passive='on_touch_start' @touchend.pas
 
 <script lang='ts' setup>
 
-import {ref, onMounted} from 'vue'
+import {ref, onMounted, watch} from 'vue'
 
-import {state} from '@/services/state'
+import {state, change_chapter} from '@/services/state'
 import {chapters} from '@/services/computes'
 
 
@@ -94,7 +95,19 @@ function cancel_swipe(){
 
 const scroll_to_ch = (ch:number) => {
     // Scroll to the given chapter
-    chapter_nodes.value[ch-1]!.scrollIntoView()
+    const rect = chapter_nodes.value[ch-1]?.getBoundingClientRect()
+    if (rect){
+        // Scroll so chapter heading is near top of screen but prev verse still visible
+        const buffer = Math.round(content_div.value!.clientHeight / 4)
+        const top = Math.max(0, content_div.value!.scrollTop + rect.top - buffer)
+        content_div.value!.scroll({top})
+    }
+
+    // Reset chapter_target once DOM gets a chance to finish scrolling
+    // NOTE This is needed to block `chapter` updating while scrolling past other chapters
+    setTimeout(() => {
+        state.chapter_target = null
+    }, 300)
 }
 
 
@@ -114,9 +127,9 @@ const on_touch_end = () => {
     // Once a touch action ends, determine if should change chapter
     const distance = intentional_swipe_distance()
     if (distance > 50 && state.chapter < chapters.value.length){
-        scroll_to_ch(state.chapter + 1)
+        change_chapter(state.chapter + 1)
     } else if (distance < -50 && state.chapter > 1){
-        scroll_to_ch(state.chapter - 1)
+        change_chapter(state.chapter - 1)
     }
     cancel_swipe()
 }
@@ -152,12 +165,36 @@ onMounted(() => {
     // Discover chapter elements once mounted so can scroll to them
     chapter_nodes.value = [...content_div.value!.querySelectorAll('h3[data-c]')]
 
+    // Scroll to chapter if one set before this component loaded
+    if (state.chapter_target){
+        scroll_to_ch(state.chapter_target)
+    }
+
     // Update chapter in state when scroll past them
-    const observer = new IntersectionObserver((entries) => {
-        state.chapter = parseInt((entries[0]!.target as HTMLElement).dataset['c']!)
-    })
+    // NOTE Two observers needed for top + bottom screen regions to detect scroll direction
+    const top_observer = new IntersectionObserver((entries) => {
+        // Prevent chapter state change while moving to a chapter to prevent user confusion
+        if (!state.chapter_target){
+            state.chapter = parseInt((entries[0]!.target as HTMLElement).dataset['c']!)
+        }
+    }, {rootMargin: '0% 0% -60% 0%'})
+    const bottom_observer = new IntersectionObserver((entries) => {
+        if (!state.chapter_target){
+            state.chapter =
+                Math.max(1, parseInt((entries[0]!.target as HTMLElement).dataset['c']!) - 1)
+        }
+    }, {rootMargin: '-60% 0% 0% 0%'})
     for (const chapter of chapter_nodes.value){
-        observer.observe(chapter)
+        top_observer.observe(chapter)
+        bottom_observer.observe(chapter)
+    }
+})
+
+
+watch(() => state.chapter_target, chapter => {
+    // Scroll to chapter whenever target changes
+    if (chapter !== null){
+        scroll_to_ch(chapter)
     }
 })
 

@@ -27,14 +27,14 @@ v-list(density='compact' color='primary')
 
 import {computed} from 'vue'
 
-import {state} from '@/services/state'
+import {state, change_chapter} from '@/services/state'
 import {content} from '@/services/content'
 import {chapters} from '@/services/computes'
 
 
 // State shortcuts
 const book = computed(() => state.book)
-const chapter = computed(() => state.chapter)
+const chapter = computed(() => state.chapter_target || state.chapter)
 
 
 // Get lists of OT and NT books
@@ -49,6 +49,7 @@ const nt_books = computed(() => {
 // Change book
 const select_book = (id:string) => {
     state.book = id
+    change_chapter(1)
     if (chapters.value.length === 1){
         state.show_select_chapter = false
     }
@@ -57,7 +58,7 @@ const select_book = (id:string) => {
 
 // Change chapter
 const select_ch = (num:number) => {
-    state.chapter = num
+    change_chapter(num)
     state.show_select_chapter = false
 }
 

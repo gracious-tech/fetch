@@ -71,7 +71,10 @@ export async function discover():Promise<void>{
 
         // Get translation's details page to see what data formats are available
         const ebible_url = `https://ebible.org/Scriptures/details.php?id=${ebible_id}`
-        const page_resp = await request(ebible_url, 'text')
+        let page_resp = await request(ebible_url, 'text')
+
+        // Some pages have broken license links
+        page_resp = page_resp.replaceAll('/by4.0/', '/by/4.0/')
 
         // Detect the license
         let license:string|null = null

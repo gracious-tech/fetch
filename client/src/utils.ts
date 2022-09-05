@@ -110,3 +110,17 @@ export function fuzzy_search<T>(input:string, candidates:T[], cand_to_str:(c:T)=
     // Only return the candidates (without score)
     return items.map(item => item.candidate)
 }
+
+
+// @internal
+export function escape_html(text:string):string{
+    // Escape the given string for use in HTML
+    const escapes:Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    }
+    return text.replace(/[&<>"']/g, char => escapes[char]!)
+}

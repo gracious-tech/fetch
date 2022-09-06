@@ -11,16 +11,36 @@ iframe
 
 # Web app (UI)
 
-The fetch(bible) web app is a static HTML app that can be directly embedded as an iframe and interacted with via Javascript `postMessage` calls.
+The fetch(bible) web app is a generic bible reading app that can be directly embedded as an iframe and interacted with via Javascript `postMessage` calls.
 
 ## Example
 This is the web app embedded as an iframe, just like you can do in any other app or website (though it's easier to use when fullscreen):
 
+    <iframe src='https://app.fetch.bible'></iframe>
+
 <iframe src='https://app.fetch.bible'></iframe>
 
 
+## Features
+
+ * Easy book & chapter selection
+ * Swipe to change chapter
+ * Scroll through entire books
+ * Compare translations
+ * Bilingual mode (both landscape and portrait)
+ * Customise font and size
+ * Private (no tracking of individuals)
+
+__Coming soon:__
+
+ * Search
+ * Audio
+
+
 ## Interaction
-Coming soon...
+With Javascript `postMessage` calls to the iframe you can customise the app's appearance to suit your own product, know what part of the Bible the user is reading, and navigate to a verse, etc.
+
+Details coming soon...
 
 ## Forking
 You can also fork the app as a base for a new fully-customised app of your own. It's written in Typescript/Vue, and available in the fetch(bible) [source code](https://github.com/gracious-tech/fetch/tree/master/app).

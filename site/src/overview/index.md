@@ -1,8 +1,13 @@
 
 <img src='/icon.svg' width='128' style='margin: auto'>
 
-&nbsp;
 
+
+:::warning fetch(bible) is still in preview
+Signup to [Gracious Tech news](https://gracious.tech) to be notified when it officially launches.
+:::
+
+&nbsp;
 
 # What is fetch(bible)?
 It is several things...
@@ -32,9 +37,12 @@ You can integrate scripture into any website or app, whether it's quoting a sing
 <img src='@/.assets/decor_apps.svg' style='max-width: 300px; margin: 40px auto'>
 
 
- <!-- * [The fetch(bible) app](https://app.fetch.bible/)
- * [Track Bible](https://track.bible) -->
+## What currently uses fetch(bible)?
+Prelaunch apps:
 
+ * [Track Bible](https://track.bible)
+
+More apps will be available after fetch(bible) officially launches.
 
 ## Who made fetch(bible)?
 

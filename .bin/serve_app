@@ -3,4 +3,4 @@
 set -e
 cd "$(dirname "$(dirname "$0")")/app"
 
-node_modules/.bin/vite
+node_modules/.bin/vite --port 8431

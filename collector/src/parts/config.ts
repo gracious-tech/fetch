@@ -9,8 +9,6 @@ integrations:
         token:
         key:
     aws:
-        key_id:
-        key_secret:
         bucket:
         region:
         cloudfront:

@@ -11,8 +11,6 @@ export interface CollectionConfig {
             key:string,
         },
         aws: {
-            key_id:string,
-            key_secret:string,
             bucket:string,
             region:string,
             cloudfront:string,

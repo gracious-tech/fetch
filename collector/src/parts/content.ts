@@ -69,6 +69,18 @@ async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
         return
     }
 
+    // Work around BMC bug by removing any /fig tags
+    // See https://github.com/schierlm/BibleMultiConverter/issues/68
+    if (format === 'usfm'){
+        for (let usfm_file of readdirSync(src_dir)){
+            usfm_file = join(src_dir, usfm_file)
+            writeFileSync(
+                usfm_file,
+                readFileSync(usfm_file, {encoding: 'utf-8'}).replace(/\\fig .*\\fig\*/g, ''),
+            )
+        }
+    }
+
     // Execute command
     // NOTE '*' is specific to BMC and is replaced by the book's uppercase code
     // NOTE keeps space between verses (https://github.com/schierlm/BibleMultiConverter/issues/63)

@@ -16,6 +16,7 @@ import {_missing_meta} from './reporting.js'
 export async function update_manifest(){
     // Generate the manifest for the collection and save to file
     // NOTE This only considers translations already output to dist dir
+    console.info("Generating manifest...")
 
     const manifest:DistManifest = {
         translations: {},

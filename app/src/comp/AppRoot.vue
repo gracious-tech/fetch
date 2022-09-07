@@ -32,6 +32,9 @@ TransDialog(v-if='state.show_trans_dialog')
 
 <script lang='ts' setup>
 
+import {watch} from 'vue'
+import {useTheme} from 'vuetify'
+
 import BookMenu from './BookMenu.vue'
 import BibleContent from './BibleContent.vue'
 import AppToolbar from './AppToolbar.vue'
@@ -41,6 +44,15 @@ import {state} from '@/services/state'
 import {chapter_display} from '@/services/computes'
 
 
+const theme = useTheme()
+
+// Update Vuetify and bg whenever color config changes
+// NOTE Done here since `useTheme` can only be called within a setup fn
+watch(() => state.color, value => {
+    theme.themes.value['dark']!.colors.primary = value
+    self.document.body.parentElement!.style.backgroundColor = value
+}, {immediate: true})
+
 </script>
 
 
@@ -48,6 +60,7 @@ import {chapter_display} from '@/services/computes'
 
 .v-application
     height: 100%
+    width: 100%
 
     // Max-out width eventually so not TOO wide and add margin
     &.wide

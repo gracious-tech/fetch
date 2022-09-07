@@ -62,6 +62,13 @@ import population from './population.json'
 const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 
 
+// arb_nav is a modern complete by-sa Arabic translation that probably covers these
+// NOTE Only included those with population greater than 1 million
+// TODO Confirm with an Arabic expert
+const ARABIC_1MIL_PLUS = ['arz', 'apd', 'arq', 'ary', 'apc', 'aec', 'ars', 'acm', 'acw', 'aeb',
+    'ajp', 'ayn', 'afb', 'acq', 'ayp', 'ayl', 'ayh', 'acx', 'avl', 'shu']
+
+
 // Get translations
 const client = new BibleClient({endpoints: [endpoint]})
 const collection = await client.fetch_collection()
@@ -81,7 +88,7 @@ const show_more = () => {
 
 // Get languages that do have a complete-modern-shareable translation
 const languages_with_shareable = collection.get_languages().map(item => item.code).filter(lang => {
-    return collection.get_translations({
+    return ARABIC_1MIL_PLUS.includes(lang) || collection.get_translations({
         language: lang,
         exclude_incomplete: true,
         usage: {limitless: true},
@@ -91,7 +98,7 @@ const languages_with_shareable = collection.get_languages().map(item => item.cod
 
 // Futher refine languages by those that have an unrestricted translation
 const languages_with_unrestricted = languages_with_shareable.filter(lang => {
-    return collection.get_translations({
+    return ARABIC_1MIL_PLUS.includes(lang) || collection.get_translations({
         language: lang,
         exclude_incomplete: true,
         usage: {limitless: true, commercial: true, derivatives: 'same-license'},

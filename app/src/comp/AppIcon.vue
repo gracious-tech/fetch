@@ -18,6 +18,10 @@ import search from '@material-symbols/svg-400/outlined/search.svg?component'
 import more_vert from '@material-symbols/svg-400/outlined/more_vert.svg?component'
 import arrow_back from '@material-symbols/svg-400/outlined/arrow_back.svg?component'
 import expand_more from '@material-symbols/svg-400/outlined/expand_more.svg?component'
+import format_size from '@material-symbols/svg-400/outlined/format_size.svg?component'
+import info from '@material-symbols/svg-400/outlined/info.svg?component'
+import dark_mode from '@material-symbols/svg-400/outlined/dark_mode.svg?component'
+import light_mode from '@material-symbols/svg-400/outlined/light_mode.svg?component'
 
 
 defineProps({
@@ -27,13 +31,14 @@ defineProps({
 
 const icons = {
     close, search, more_vert, add, delete: delete_, arrow_back, add_circle, expand_more,
+    format_size, info, dark_mode, light_mode,
 } as Record<string, FunctionalComponent>
 
 
 </script>
 
 
-<style lang='sass'>
+<style lang='sass' scoped>
 
 
 .icon

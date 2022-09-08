@@ -80,5 +80,5 @@ const languages_top20 = languages.slice().sort((a, b) => b.mil - a.mil).slice(0,
 </script>
 
 
-<style lang='sass'>
+<style lang='sass' scoped>
 </style>

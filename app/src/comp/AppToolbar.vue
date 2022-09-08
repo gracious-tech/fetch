@@ -1,7 +1,7 @@
 
 <template lang='pug'>
 
-v-toolbar(:density='state.wide ? "default" : "compact"')
+v-toolbar(:density='density')
 
     v-btn(v-if='state.back' icon @click='back')
         app-icon(name='arrow_back')
@@ -25,6 +25,17 @@ v-toolbar(:density='state.wide ? "default" : "compact"')
     //-     app-icon(name='search')
     v-btn(icon)
         app-icon(name='more_vert')
+        v-menu(activator='parent')
+            v-list
+                v-list-item(@click='state.show_style_dialog = true')
+                    template(#prepend)
+                        app-icon.menu_icon(name='format_size')
+                    v-list-item-title Appearance
+                v-list-item(@click='state.show_about_dialog = true')
+                    template(#prepend)
+                        app-icon.menu_icon(name='info')
+                    v-list-item-title About
+
 
 </template>
 
@@ -33,7 +44,7 @@ v-toolbar(:density='state.wide ? "default" : "compact"')
 
 import {computed} from 'vue'
 
-import {state} from '@/services/state'
+import {density, state} from '@/services/state'
 import {content} from '@/services/content'
 import {chapter_display} from '@/services/computes'
 import {post_message} from '@/services/post'
@@ -63,6 +74,9 @@ const button1 = () => {
 .ch_display
     font-weight: bold
     margin-left: 24px
+    margin-right: 12px
+
+.menu_icon
     margin-right: 12px
 
 .status

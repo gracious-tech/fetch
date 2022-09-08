@@ -26,6 +26,8 @@ v-app(:class='{wide: state.wide}')
                 BibleContent.content
 
 TransDialog(v-if='state.show_trans_dialog')
+StyleDialog(v-if='state.show_style_dialog')
+AboutDialog(v-if='state.show_about_dialog')
 
 </template>
 
@@ -40,6 +42,8 @@ import BibleContent from './BibleContent.vue'
 import AppToolbar from './AppToolbar.vue'
 import SearchToolbar from './SearchToolbar.vue'
 import TransDialog from './TransDialog.vue'
+import StyleDialog from './StyleDialog.vue'
+import AboutDialog from './AboutDialog.vue'
 import {state} from '@/services/state'
 import {chapter_display} from '@/services/computes'
 
@@ -50,8 +54,12 @@ const theme = useTheme()
 // NOTE Done here since `useTheme` can only be called within a setup fn
 watch(() => state.color, value => {
     theme.themes.value['dark']!.colors.primary = value
+    theme.themes.value['light']!.colors.primary = value
     self.document.body.parentElement!.style.backgroundColor = value
 }, {immediate: true})
+watch(() => state.dark, value => {
+    theme.name.value = value ? 'dark' : 'light'
+})
 
 </script>
 

@@ -1,0 +1,31 @@
+
+<template lang='pug'>
+
+v-dialog(v-model='state.show_about_dialog' :fullscreen='!state.wide')
+
+    v-card
+        v-toolbar(color='primary' :density='density')
+            v-toolbar-title About
+            template(#append)
+                v-btn(icon variant='text' @click='state.show_about_dialog = false')
+                    app-icon(name='close')
+        v-card-text
+            p This app is powered by #[a(href='https://fetch.bible' target='_blank') fetch(bible)]
+
+
+</template>
+
+
+<script lang='ts' setup>
+
+import {state, density} from '@/services/state'
+
+</script>
+
+
+<style lang='sass' scoped>
+
+.v-toolbar
+    flex-grow: 0
+
+</style>

@@ -146,7 +146,7 @@ const world_unrestricted_percent = Math.round(world_unrestricted / world_pop * 1
 </script>
 
 
-<style lang='sass'>
+<style lang='sass' scoped>
 
 .warn
     color: hsl(40, 100%, 50%)  // Work for both light/dark

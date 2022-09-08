@@ -1,7 +1,7 @@
 
 <template lang='pug'>
 
-v-toolbar(:density='state.wide ? "default" : "compact"')
+v-toolbar(:density='density')
     v-text-field.input(v-model='state.search' placeholder="Search..." hide-details density='compact'
         variant='outlined')
 
@@ -20,7 +20,7 @@ v-toolbar(:density='state.wide ? "default" : "compact"')
 <script lang='ts' setup>
 
 
-import {state} from '@/services/state'
+import {density, state} from '@/services/state'
 import {book_display} from '@/services/computes'
 
 

@@ -8,7 +8,7 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
         v-tabs(v-model='selected_trans_index' background-color='primary')
             //- eslint-disable-next-line vue/valid-v-for
             v-tab(v-for='item of chosen_translations') {{ item.name_abbrev }}
-            v-btn.add(icon variant='text' @click='add_trans')
+            v-btn.add(v-if='state.trans.length < 3' icon variant='text' @click='add_trans')
                 app-icon(name='add_circle')
             v-btn.close(icon variant='text' @click='state.show_trans_dialog = false')
                 app-icon(name='close')
@@ -122,7 +122,7 @@ const remove_trans = () => {
 </script>
 
 
-<style lang='sass'>
+<style lang='sass' scoped>
 
 .subbar
     display: flex

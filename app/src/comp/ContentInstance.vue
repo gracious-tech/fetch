@@ -244,6 +244,10 @@ watch(() => state.chapter_target, chapter => {
         align-items: center
         opacity: 0.6
 
+        @media (max-width: 600px)
+            float: left
+            margin-right: 6px
+
 
     .verse_trans
         flex-basis: 0

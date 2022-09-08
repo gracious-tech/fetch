@@ -41,6 +41,8 @@ export const state = reactive({
     content_verses: [] as SyncedVerses,
     show_select_chapter: false,
     show_trans_dialog: false,
+    show_style_dialog: false,
+    show_about_dialog: false,
     wide: wide_query.matches,
     search: null as null|string,
 })
@@ -63,6 +65,11 @@ if ('addEventListener' in wide_query){
 // Array of language codes to match currently selected translations
 export const langs = computed(() => {
     return state.trans.map(id => id.split('_')[0]!)
+})
+
+// Density value for toolbars etc
+export const density = computed(() => {
+    return state.wide ? 'default' : 'compact'
 })
 
 

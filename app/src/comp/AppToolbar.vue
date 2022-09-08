@@ -2,10 +2,14 @@
 <template lang='pug'>
 
 v-toolbar(:density='state.wide ? "default" : "compact"')
+
     v-btn(v-if='state.back' icon @click='back')
         app-icon(name='arrow_back')
-    v-btn.loc(:disabled='state.wide' @click='state.show_select_chapter = true')
+
+    div.ch_display(v-if='state.wide') {{ chapter_display }}
+    v-btn.loc(v-else @click='state.show_select_chapter = true')
         | {{ chapter_display }}
+
     v-btn(@click='state.show_trans_dialog = true') {{ trans_display }}
 
     div(style='flex-grow: 1')
@@ -55,6 +59,11 @@ const button1 = () => {
 
 .loc
     opacity: 1  // Don't make transparent, even when disabled
+
+.ch_display
+    font-weight: bold
+    margin-left: 24px
+    margin-right: 12px
 
 .status
     opacity: 0.8

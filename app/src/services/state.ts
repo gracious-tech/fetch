@@ -25,13 +25,14 @@ export const state = reactive({
     back: params.get('back') === 'true',  // i.e. default to false
     button1_icon: params.get('button1_icon') ?? '',  // i.e. disabled
     button1_color: params.get('button1_color') ?? 'currentColor',
+    // NOTE init.ts will ensure this has at least one translation before app loads
+    trans: (params.get('trans')?.split(',') ?? []) as unknown as [string, ...string[]],
     book: params.get('book') ?? 'jhn',
     // `chapter` is "currently-detected" / `chapter_target` is "currently-navigating-to" (else null)
     chapter: parseInt(params.get('chapter') ?? '1', 10),
     chapter_target: parseInt(params.get('chapter') ?? '0', 10) || null as null|number,
 
     // Not configurable by parent
-    trans: [] as unknown as [string, ...string[]],  // Will auto-set before app loads
     content: '',
     content_verses: [] as SyncedVerses,
     show_select_chapter: false,

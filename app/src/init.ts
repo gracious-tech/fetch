@@ -64,6 +64,9 @@ void content.client.fetch_collection().then(collection => {
     // Auto-detect best translation
     if (!state.trans.length){
         state.trans.push(content.collection.get_preferred_translation())
+    } else {
+        // Trigger change so content loads for first time
+        state.trans = [...state.trans]
     }
 
     // Mount app

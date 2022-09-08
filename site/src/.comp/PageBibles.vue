@@ -41,8 +41,7 @@ table
         th Licenses
     tr(v-for='bible of bibles')
         td
-            //- TODO Point to web app
-            a(href='/access/client/example/' target='_blank')
+            a(:href='`${app}#trans=${bible.id}`' target='_blank')
                 | {{ bible.name_english || bible.name_local }}
         td
             a(@click='language = bible.language') {{ bible.language }}
@@ -65,6 +64,7 @@ import {BibleClient} from './client.min.esm.js'
 
 // Use localhost endpoint during dev
 const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
+const app = import.meta.env.PROD ? 'https://app.fetch.bible/' : 'http://localhost:8431/'
 
 
 // Get collection

@@ -34,7 +34,7 @@ You can integrate scripture into any website or app, whether it's quoting a sing
 <small>* No limits from fetch(bible), but most Bible translations have terms you must still comply with</small>
 
 
-<img src='@/.assets/decor_apps.svg' style='max-width: 300px; margin: 40px auto'>
+<img src='@/.assets/decor_world.svg' style='max-width: 300px; margin: 36px auto'>
 
 
 ## What currently uses fetch(bible)?
@@ -44,6 +44,8 @@ Prelaunch apps:
 
 More apps will be available after fetch(bible) officially launches.
 
+<img src='@/.assets/decor_apps.svg' style='max-width: 300px; margin: 36px auto'>
+
 ## Who made fetch(bible)?
 
 [Gracious Tech](https://gracious.tech) created and maintains fetch(bible), and we believe _"All Scripture is God-breathed"_ (2 Timothy 3:16) and essential for everyone to have unrestricted access to.
@@ -51,5 +53,5 @@ More apps will be available after fetch(bible) officially launches.
 Though our work was only possible thanks to the [extensive efforts of others](/legal/credits/) who have been translating, collecting, and working on tools that fetch(bible) makes use of.
 
 <a href='https://gracious.tech'>
-    <img src='@/.assets/decor_gt.jpg' style='border-radius: 12px'>
+    <img src='@/.assets/decor_gt.jpg' style='border-radius: 12px; margin-top: 36px'>
 </a>

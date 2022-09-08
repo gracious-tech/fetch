@@ -264,9 +264,9 @@ watch(() => state.chapter_target, chapter => {
     .verse_trans:nth-child(2)
         background-color: transparent
     .verse_trans:nth-child(3)
-        background-color: hsla(0, 50%, 50%, 0.2)
+        background-color: hsla(0, 50%, 50%, 0.15)
     .verse_trans:nth-child(4)
-        background-color: hsla(180, 50%, 50%, 0.2)
+        background-color: hsla(40, 50%, 50%, 0.15)
 
     // Display translations in separate columns when screen wide enough
     @media (min-width: 600px)

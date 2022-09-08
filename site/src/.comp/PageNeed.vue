@@ -62,11 +62,9 @@ import population from './population.json'
 const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 
 
-// arb_nav is a modern complete by-sa Arabic translation that probably covers these
-// NOTE Only included those with population greater than 1 million
-// TODO Confirm with an Arabic expert
-const ARABIC_1MIL_PLUS = ['arz', 'apd', 'arq', 'ary', 'apc', 'aec', 'ars', 'acm', 'acw', 'aeb',
-    'ajp', 'ayn', 'afb', 'acq', 'ayp', 'ayl', 'ayh', 'acx', 'avl', 'shu']
+// Languages that have the same written form as another language that does have a translation
+const COVERED_BY_UNRESTRICTED_ALT = []
+const COVERED_BY_SHAREABLE_ALT = [...COVERED_BY_UNRESTRICTED_ALT]
 
 
 // Get translations
@@ -107,8 +105,8 @@ const languages_with_unrestricted = languages_with_shareable.filter(lang => {
 
 
 // Add special cases
-languages_with_shareable.push(...ARABIC_1MIL_PLUS)
-languages_with_unrestricted.push(...ARABIC_1MIL_PLUS)
+languages_with_shareable.push(...COVERED_BY_SHAREABLE_ALT)
+languages_with_unrestricted.push(...COVERED_BY_UNRESTRICTED_ALT)
 
 
 // Determine which languages don't have a shareable translation

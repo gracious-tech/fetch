@@ -88,7 +88,7 @@ const show_more = () => {
 
 // Get languages that do have a complete-modern-shareable translation
 const languages_with_shareable = collection.get_languages().map(item => item.code).filter(lang => {
-    return ARABIC_1MIL_PLUS.includes(lang) || collection.get_translations({
+    return collection.get_translations({
         language: lang,
         exclude_incomplete: true,
         usage: {limitless: true},
@@ -98,12 +98,17 @@ const languages_with_shareable = collection.get_languages().map(item => item.cod
 
 // Futher refine languages by those that have an unrestricted translation
 const languages_with_unrestricted = languages_with_shareable.filter(lang => {
-    return ARABIC_1MIL_PLUS.includes(lang) || collection.get_translations({
+    return collection.get_translations({
         language: lang,
         exclude_incomplete: true,
         usage: {limitless: true, commercial: true, derivatives: 'same-license'},
     }).some(t => t.year >= modern_year)
 })
+
+
+// Add special cases
+languages_with_shareable.push(...ARABIC_1MIL_PLUS)
+languages_with_unrestricted.push(...ARABIC_1MIL_PLUS)
 
 
 // Determine which languages don't have a shareable translation

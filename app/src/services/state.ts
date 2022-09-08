@@ -1,5 +1,5 @@
 
-import {reactive, computed} from 'vue'
+import {reactive, computed, watch} from 'vue'
 
 import {SyncedVerses} from '@/client/esm/book'
 
@@ -15,22 +15,26 @@ const params = new URLSearchParams(self.location.hash.slice(1))
 
 
 // Init default state
+// TODO Prefix localStorage keys with origin (either via CSP access or url param)
+const init_chapter = params.get('chapter') ?? localStorage.getItem('chapter')
+const init_dark = params.get('dark') ?? localStorage.getItem('dark')
 export const state = reactive({
 
     // Configurable by parent
     // NOTE Also update message listener in `watches.ts` if any of these change
-    dark: params.get('dark') ? params.get('dark') === 'true' : null,  // null = auto
+    dark: init_dark ? init_dark === 'true' : null,  // null = auto
     status: params.get('status') ?? '',
     color: params.get('color') ?? '#c12bdb',
     back: params.get('back') === 'true',  // i.e. default to false
     button1_icon: params.get('button1_icon') ?? '',  // i.e. disabled
     button1_color: params.get('button1_color') ?? 'currentColor',
     // NOTE init.ts will ensure this has at least one translation before app loads
-    trans: (params.get('trans')?.split(',') ?? []) as unknown as [string, ...string[]],
-    book: params.get('book') ?? 'jhn',
+    trans: ((params.get('trans') ?? localStorage.getItem('trans'))?.split(',') ?? []
+        ) as unknown as [string, ...string[]],
+    book: params.get('book') ?? localStorage.getItem('book') ?? 'jhn',
     // `chapter` is "currently-detected" / `chapter_target` is "currently-navigating-to" (else null)
-    chapter: parseInt(params.get('chapter') ?? '1', 10),
-    chapter_target: parseInt(params.get('chapter') ?? '0', 10) || null as null|number,
+    chapter: parseInt(init_chapter ?? '1', 10),
+    chapter_target: parseInt(init_chapter ?? '0', 10) || null as null|number,
 
     // Not configurable by parent
     content: '',
@@ -69,3 +73,20 @@ export const change_chapter = (num:number) => {
     state.chapter = num
     state.chapter_target = num
 }
+
+
+// WATCHES
+
+// Save some config to localStorage when it changes
+watch(() => state.trans, () => {
+    localStorage.setItem('trans', state.trans.join(','))
+}, {deep: true})
+watch(() => state.book, () => {
+    localStorage.setItem('book', state.book)
+})
+watch(() => state.chapter, () => {
+    localStorage.setItem('chapter', String(state.chapter))
+})
+watch(() => state.dark, () => {
+    localStorage.setItem('dark', String(state.dark))
+})

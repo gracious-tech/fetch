@@ -1,7 +1,8 @@
 
-import {readdirSync} from 'fs'
-import {read_json} from './utils.js'
+import {join} from 'path'
+import {existsSync, readdirSync} from 'fs'
 
+import {read_json} from './utils.js'
 import type {TranslationSourceMeta} from './types'
 
 
@@ -34,5 +35,21 @@ export function report_items(mode?:'missing'|'unreviewed'){
         // Output fields in columns
         const fields = [id, meta.year, meta.source.format, license, meta.copyright.attribution_url]
         console.info(fields.map(field => `${field ?? 'null'}`.padEnd(16)).join(' '))
+    }
+}
+
+
+export function report_unprocessed(){
+    // Report which translations haven't been processed to distributable forms yet
+    // TODO Option to require all books or just any book
+    for (const trans of readdirSync(join('dist', 'bibles'))){
+        if (trans === 'manifest.json'){
+            continue
+        }
+        const html_dir = join('dist', 'bibles', trans, 'html')
+        const html_books = existsSync(html_dir) ? readdirSync(html_dir) : []
+        if (html_books.length === 0){
+            console.error(`BOOKLESS ${trans}`)
+        }
     }
 }

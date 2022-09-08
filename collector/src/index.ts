@@ -3,7 +3,7 @@
 import yargs from 'yargs'
 
 import {gen_language_data} from './parts/languages.js'
-import {report_items} from './parts/reporting.js'
+import {report_items, report_unprocessed} from './parts/reporting.js'
 import {publish} from './parts/publish.js'
 import {update_dist, update_source} from './parts/content.js'
 import {update_bmc} from './parts/bmc.js'
@@ -45,6 +45,8 @@ await yargs(process.argv.slice(2))
         argv => report_items('unreviewed'))
     .command('report-missing', "Report translations missing metadata", {},
         argv => report_items('missing'))
+    .command('report-unprocessed', "Report translations yet to be processed", {},
+        argv => report_unprocessed())
 
     // Show help when no command
     .demandCommand()

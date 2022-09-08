@@ -1,12 +1,12 @@
 
-import {createApp, watch} from 'vue'
+import {createApp} from 'vue'
 import {createVuetify} from 'vuetify'
 
 import AppRoot from './comp/AppRoot.vue'
 import AppIcon from '@/comp/AppIcon.vue'
 import {state} from '@/services/state'
 import {content} from '@/services/content'
-import {sync_verses} from '@/client/esm/book'
+import {post_message} from '@/services/post'
 
 
 // Embed global styles
@@ -14,25 +14,34 @@ import './styles.sass'
 import '@/client/client.css'
 
 
+// Enable watches
+import '@/services/watches'
+
+
+// Tell parent ready to communicate
+post_message('ready')
+
+
 // Create app
 const app = createApp(AppRoot)
 
 
 // Add Vuetify
+const dark_val = state.dark ?? matchMedia('(prefers-color-scheme: dark)').matches
 app.use(createVuetify({
     theme: {
-        defaultTheme: 'dark', // matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+        defaultTheme: dark_val ? 'dark' : 'light',
         themes: {
             dark: {
                 dark: true,
                 colors: {
-                    primary: '#a36081',
+                    primary: state.color,
                 },
             },
             light: {
                 dark: false,
                 colors: {
-                    primary: '#a36081',
+                    primary: state.color,
                 },
             },
         },
@@ -60,34 +69,3 @@ void content.client.fetch_collection().then(collection => {
     // Mount app
     app.mount('#app')
 })
-
-
-// Auto-load content as translations/book changes
-watch([() => state.trans, () => state.book], async () => {
-
-    // Reset content so don't show old while waiting to load
-    state.content = ''
-    state.content_verses = []
-
-    // If first/primary trans doesn't have current book, change to a valid book
-    if (!content.collection.has_book(state.trans[0], state.book)){
-        state.book = content.collection.get_books(state.trans[0])[0]!.id
-        return  // Will have triggered re-execution of this function
-    }
-
-    // Fetch book for each translation
-    const books = await Promise.all(state.trans.map(trans => {
-        if (!content.collection.has_book(trans, state.book)){
-            return null
-        }
-        return content.collection.fetch_html(trans, state.book)
-    }))
-
-    // Get either plain HTML or separated verses
-    if (books.length === 1){
-        state.content = books[0]!.get_whole()
-    } else {
-        state.content_verses = sync_verses(
-            books.map(book => book ? book.get_whole({list: true}) : []))
-    }
-}, {deep: true})

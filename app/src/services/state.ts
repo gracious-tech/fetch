@@ -1,7 +1,7 @@
 
 import {reactive, computed} from 'vue'
 
-import {SyncedVerses} from '@/client/book'
+import {SyncedVerses} from '@/client/esm/book'
 
 
 // STATE
@@ -10,12 +10,28 @@ import {SyncedVerses} from '@/client/book'
 const wide_query = self.matchMedia('(min-width: 1000px)')
 
 
+// Parse initial config from URL fragment
+const params = new URLSearchParams(self.location.hash.slice(1))
+
+
 // Init default state
 export const state = reactive({
+
+    // Configurable by parent
+    // NOTE Also update message listener in `watches.ts` if any of these change
+    dark: params.get('dark') ? params.get('dark') === 'true' : null,  // null = auto
+    status: params.get('status') ?? '',
+    color: params.get('color') ?? '#c12bdb',
+    back: params.get('back') === 'true',  // i.e. default to false
+    button1_icon: params.get('button1_icon') ?? '',  // i.e. disabled
+    button1_color: params.get('button1_color') ?? 'currentColor',
+    book: params.get('book') ?? 'jhn',
+    // `chapter` is "currently-detected" / `chapter_target` is "currently-navigating-to" (else null)
+    chapter: parseInt(params.get('chapter') ?? '1', 10),
+    chapter_target: parseInt(params.get('chapter') ?? '0', 10) || null as null|number,
+
+    // Not configurable by parent
     trans: [] as unknown as [string, ...string[]],  // Will auto-set before app loads
-    book: 'jhn',
-    chapter: 1,  // Currently detected chapter
-    chapter_target: null as null|number,  // Currently navigating to (null when finished)
     content: '',
     content_verses: [] as SyncedVerses,
     show_select_chapter: false,

@@ -79,7 +79,7 @@ export async function update_manifest(){
         manifest.translations[trans] = {
             language: meta.language,
             name: meta.name,
-            year: meta.year,
+            year: meta.year as number,  // Verified to exist above
             direction: meta.direction,
             audio: meta.audio,
             video: meta.video,

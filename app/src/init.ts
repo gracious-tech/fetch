@@ -18,10 +18,6 @@ import '@/client/client.css'
 import '@/services/watches'
 
 
-// Tell parent ready to communicate
-post_message('ready')
-
-
 // Create app
 const app = createApp(AppRoot)
 
@@ -68,6 +64,9 @@ void content.client.fetch_collection().then(collection => {
         // Trigger change so content loads for first time
         state.trans = [...state.trans]
     }
+
+    // Tell parent ready to communicate (once a trans has been set)
+    post_message('ready')
 
     // Mount app
     app.mount('#app')

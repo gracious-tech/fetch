@@ -136,4 +136,7 @@ const remove_trans = () => {
 .close
     margin-left: auto
 
+.v-tabs
+    min-height: var(--v-tabs-height)  // Safari bug fix
+
 </style>

@@ -107,7 +107,7 @@ const change_trans = (id:string) => {
 }
 
 const add_trans = () => {
-    state.trans.push(state.trans.at(-1)!)
+    state.trans.push(state.trans[state.trans.length-1]!)
     selected_trans_index.value = state.trans.length - 1
 }
 

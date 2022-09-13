@@ -30,7 +30,7 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
                     | {{ lang.local }}
                     |
                     template(v-if='lang.local !== lang.english') ({{ lang.english }})
-            v-btn(v-if='!languages_show_all' variant='text' color='primary'
+            v-btn(v-if='!languages_search && !languages_show_all' variant='text' color='primary'
                     @click='languages_show_all = true')
                 app-icon(name='expand_more')
                 | &nbsp;

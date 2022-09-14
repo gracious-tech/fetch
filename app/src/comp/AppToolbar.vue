@@ -70,6 +70,12 @@ const button1 = () => {
 
 .loc
     opacity: 1  // Don't make transparent, even when disabled
+    // Don't squish other buttons
+    flex-basis: 0
+    flex-grow: 999
+    max-width: 150px
+    overflow: hidden
+    justify-content: flex-start
 
 .ch_display
     font-weight: bold

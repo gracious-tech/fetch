@@ -385,6 +385,11 @@ export class BibleCollection {
         return list
     }
 
+    // Get the URL for a book's content (useful for caching and manual retrieval)
+    get_book_url(translation:string, book:string, format:'html'|'usx'='html'){
+        return `${this._endpoints[translation]!}bibles/${translation}/${format}/${book}.${format}`
+    }
+
     // Get book ids that are available/missing for a translation for each testament
     get_completion(translation:string):GetCompletionReturn{
 
@@ -427,19 +432,16 @@ export class BibleCollection {
     }
 
     // Make request for the HTML text for a book of a translation (returns object for accessing it)
-    async fetch_html(translation:string, book:string):Promise<BibleBookHtml>{
+    async fetch_book(translation:string, book:string, format?:'html'):Promise<BibleBookHtml>
+    async fetch_book(translation:string, book:string, format:'usx'):Promise<BibleBookUsx>
+    async fetch_book(translation:string, book:string, format:'html'|'usx'='html'):
+            Promise<BibleBookHtml|BibleBookUsx>{
         this._ensure_book_exists(translation, book)
-        const url = `${this._endpoints[translation]!}bibles/${translation}/html/${book}.html`
-        const html = await request(url)
-        return new BibleBookHtml(this._manifest.translations[translation]!, html)
-    }
-
-    // Make request for the USX3+ text for a book of a translation (returns object for accessing it)
-    async fetch_usx(translation:string, book:string):Promise<BibleBookUsx>{
-        this._ensure_book_exists(translation, book)
-        const url = `${this._endpoints[translation]!}bibles/${translation}/usx/${book}.usx`
-        const usx = await request(url)
-        return new BibleBookUsx(this._manifest.translations[translation]!, usx)
+        const contents = await request(this.get_book_url(translation, book, format))
+        if (format === 'html'){
+            return new BibleBookHtml(this._manifest.translations[translation]!, contents)
+        }
+        return new BibleBookUsx(this._manifest.translations[translation]!, contents)
     }
 
     // TODO async fetch_audio(){}

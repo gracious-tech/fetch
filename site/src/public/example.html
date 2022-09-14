@@ -68,7 +68,7 @@ const collection = await client.fetch_collection()
 
 // Method for updating the content shown
 async function update_content(){
-    const book = await collection.fetch_html(
+    const book = await collection.fetch_book(
         select_translation.value,
         select_book.value,
     )

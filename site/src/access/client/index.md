@@ -23,7 +23,7 @@ __Node:__ 18+
 
 ## Usage
 
-The standard way to use the client is to start with a `new BibleClient()` and then call `fetch_collection()`, which will return a promise for a `BibleCollection` which you can use to explore all the languages and translations available, and then call `fetch_html(translation, book)` and similar methods to get access to actual Bible content.
+The standard way to use the client is to start with a `new BibleClient()` and then call `fetch_collection()`, which will return a promise for a `BibleCollection` which you can use to explore all the languages and translations available, and then call `fetch_book(translation, book)` and similar methods to get access to actual Bible content.
 
 Methods starting with `fetch_` will make a network request and return a promise, where as methods starting with `get_` do not and are synchronous. For methods that return a list (e.g. languages, translations) you can usually pass `{object: true}` in the options argument to have them return an object keyed by `id` instead.
 
@@ -54,8 +54,8 @@ const translation_id = translations[0].id
 // (may be whole Bible or may only be e.g. NT)
 const books = collection.get_books(translation_id)
 
-// Fetch the contents of the first book as HTML
-const book = await collection.fetch_html(translation_id, books[0].id)
+// Fetch the contents of the first book
+const book = await collection.fetch_book(translation_id, books[0].id)
 
 // Output the HTML of the first chapter of the book
 console.log(book.get_chapter(1))

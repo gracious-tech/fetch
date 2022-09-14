@@ -3,4 +3,5 @@
 set -e
 cd "$(dirname "$(dirname "$0")")/app"
 
-node_modules/.bin/vite --port 8431 --mode production
+node_modules/.bin/vite build --watch &
+serve 8431 dist

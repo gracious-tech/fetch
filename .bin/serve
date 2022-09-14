@@ -116,6 +116,9 @@ async function main() {
       switch (req.method) {
         case 'GET': {
           let filename = decodeURIComponent(req.url).replace(/^\//, './')
+          if (filename === './'){
+            filename = './index.html'
+          }
           let file = path.join(root, filename)
           if (!fs.existsSync(file)) {
             end(res, 404, `File not found: ${file}`)

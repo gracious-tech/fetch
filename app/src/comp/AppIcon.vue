@@ -22,6 +22,8 @@ import format_size from '@material-symbols/svg-400/outlined/format_size.svg?comp
 import info from '@material-symbols/svg-400/outlined/info.svg?component'
 import dark_mode from '@material-symbols/svg-400/outlined/dark_mode.svg?component'
 import light_mode from '@material-symbols/svg-400/outlined/light_mode.svg?component'
+import cloud_off from '@material-symbols/svg-400/outlined/cloud_off.svg?component'
+import sync from '@material-symbols/svg-400/outlined/sync.svg?component'
 
 
 defineProps({
@@ -31,7 +33,7 @@ defineProps({
 
 const icons = {
     close, search, more_vert, add, delete: delete_, arrow_back, add_circle, expand_more,
-    format_size, info, dark_mode, light_mode,
+    format_size, info, dark_mode, light_mode, cloud_off, sync,
 } as Record<string, FunctionalComponent>
 
 

@@ -7,12 +7,36 @@ import {sync_verses} from '@/client/esm/book'
 import {state} from './state'
 import {content} from './content'
 import {post_message} from './post'
+import {wait} from './utils'
+
+
+// Cache entire translation whenever it changes
+watch(() => state.trans, async () => {
+
+    // Avoid delaying render of whatever triggered this
+    await wait(3000)
+
+    // Trigger SW cache by fetching assets (and ignoring response)
+    void self.caches.open('fetch-collection').then(cache => {
+        for (const trans of state.trans){
+            for (const book of content.collection.get_books(trans)){
+                const url = content.collection.get_book_url(trans, book.id, 'html')
+                void cache.match(url).then(resp => {
+                    if (!resp){
+                        void fetch(url)
+                    }
+                })
+            }
+        }
+    })
+}, {deep: true})
 
 
 // Auto-load content as translations/book changes
 watch([() => state.trans, () => state.book], async () => {
 
     // Reset content so don't show old while waiting to load
+    state.offline = false
     state.content = ''
     state.content_verses = []
 
@@ -23,12 +47,22 @@ watch([() => state.trans, () => state.book], async () => {
     }
 
     // Fetch book for each translation
-    const books = await Promise.all(state.trans.map(trans => {
+    const books = await Promise.all(state.trans.map(async trans => {
         if (!content.collection.has_book(trans, state.book)){
             return null
         }
-        return content.collection.fetch_html(trans, state.book)
+        try {
+            return await content.collection.fetch_book(trans, state.book)
+        } catch {
+            state.offline = true
+            return null
+        }
     }))
+
+    // If offline, no point updating content
+    if (state.offline){
+        return
+    }
 
     // Get either plain HTML or separated verses
     if (books.length === 1){
@@ -49,6 +83,7 @@ self.addEventListener('message', event => {
 
     // Handle update commands
     // NOTE Also update initial load config in `state.ts` if any of these change
+    // TODO Implement the same as init state has
     if (data['type'] === 'update'){
         if (typeof data['status'] === 'string'){
             state.status = data['status']

@@ -40,6 +40,7 @@ You can integrate scripture into any website or app, whether it's quoting a sing
 ## What currently uses fetch(bible)?
 Prelaunch apps:
 
+ * [Official fetch(bible) app](https://app.fetch.bible)
  * [Track Bible](https://track.bible)
 
 More apps will be available after fetch(bible) officially launches.

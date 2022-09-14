@@ -15,7 +15,7 @@ v-dialog(v-model='state.show_style_dialog' :fullscreen='!state.wide')
 
             div.row
                 app-icon(name='light_mode')
-                v-switch(v-model='state.dark' hide-details)
+                v-switch.theme(v-model='state.dark' hide-details)
                 app-icon(name='dark_mode')
 
 
@@ -47,5 +47,8 @@ import {state, density} from '@/services/state'
     .v-switch
         flex-grow: 0
         margin: 0 12px
+
+        &.theme :deep(.v-switch__thumb)
+            color: rgb(var(--v-theme-primary))
 
 </style>

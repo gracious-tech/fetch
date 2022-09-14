@@ -34,7 +34,7 @@ AboutDialog(v-if='state.show_about_dialog')
 
 <script lang='ts' setup>
 
-import {watch} from 'vue'
+import {watch, onMounted} from 'vue'
 import {useTheme} from 'vuetify'
 
 import BookMenu from './BookMenu.vue'
@@ -59,6 +59,13 @@ watch(() => state.color, value => {
 }, {immediate: true})
 watch(() => state.dark, value => {
     theme.name.value = value ? 'dark' : 'light'
+})
+
+onMounted(() => {
+    // Register SW once app mounted so doesn't slow down initial render
+    if (import.meta.env.PROD){
+        void self.navigator.serviceWorker.register('/sw.js')
+    }
 })
 
 </script>

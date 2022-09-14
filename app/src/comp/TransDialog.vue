@@ -49,7 +49,7 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
 
 import {computed, ref, watch} from 'vue'
 
-import {state} from '@/services/state'
+import {state, langs} from '@/services/state'
 import {content} from '@/services/content'
 
 
@@ -62,7 +62,7 @@ const languages_by_pop = content.collection.get_languages({sort_by: 'population'
 // State
 const selected_trans_index = ref(0)
 const show_languages = ref(false)
-const displayed_language = ref('eng')
+const displayed_language = ref(langs.value[0])
 const languages_search = ref('')
 const languages_show_all = ref(false)
 

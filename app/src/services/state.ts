@@ -16,7 +16,12 @@ const params = new URLSearchParams(self.location.hash.slice(1))
 
 // Init default state
 // TODO Prefix localStorage keys with origin (either via CSP access or url param)
-const init_chapter = params.get('chapter') ?? localStorage.getItem('chapter')
+const target_raw = (params.get('verse') ?? localStorage.getItem('verse') ?? '').split(':')
+    .map(val => parseInt(val, 10))
+let target = null as null|[number, number]
+if (target_raw[0] && target_raw[1]){
+    target = target_raw.slice(0, 2) as [number, number]
+}
 const init_dark = params.get('dark') ?? localStorage.getItem('dark')
 export const state = reactive({
 
@@ -32,11 +37,13 @@ export const state = reactive({
     trans: ((params.get('trans') ?? localStorage.getItem('trans'))?.split(',') ?? []
         ) as unknown as [string, ...string[]],
     book: params.get('book') ?? localStorage.getItem('book') ?? 'jhn',
-    // `chapter` is "currently-detected" / `chapter_target` is "currently-navigating-to" (else null)
-    chapter: parseInt(init_chapter ?? '1', 10),
-    chapter_target: parseInt(init_chapter ?? '0', 10) || null as null|number,
+    // `chapter/verse` is "currently-detected" / `target` is "currently-navigating-to" (else null)
+    chapter: target ? target[0] : 1,
+    verse: target ? target[1] : 1,
+    target,
 
     // Not configurable by parent
+    offline: false,
     content: '',
     content_verses: [] as SyncedVerses,
     show_select_chapter: false,
@@ -75,10 +82,11 @@ export const density = computed(() => {
 
 // METHODS
 
-// Always update both when changing chapter so user isn't confused
+// Change chapter helper
 export const change_chapter = (num:number) => {
     state.chapter = num
-    state.chapter_target = num
+    state.verse = 1
+    state.target = [num, 1]
 }
 
 
@@ -91,8 +99,8 @@ watch(() => state.trans, () => {
 watch(() => state.book, () => {
     localStorage.setItem('book', state.book)
 })
-watch(() => state.chapter, () => {
-    localStorage.setItem('chapter', String(state.chapter))
+watch([() => state.chapter, () => state.verse], () => {
+    localStorage.setItem('verse', `${state.chapter}:${state.verse}`)
 })
 watch(() => state.dark, () => {
     localStorage.setItem('dark', String(state.dark))

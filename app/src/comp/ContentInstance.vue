@@ -36,11 +36,13 @@ let touch_start_y:number|null = null
 let touch_end_x:number|null = null
 let touch_end_y:number|null = null
 
+// Verse nodes
+const verse_nodes = {} as Record<string, HTMLElement>
+
 // References to DOM elements
 const swipe_prev = ref<HTMLDivElement>()
 const swipe_next = ref<HTMLDivElement>()
 const content_div = ref<HTMLDivElement>()
-const chapter_nodes = ref([] as Element[])
 
 
 function intentional_swipe_distance(){
@@ -93,20 +95,26 @@ function cancel_swipe(){
 }
 
 
-const scroll_to_ch = (ch:number) => {
-    // Scroll to the given chapter
-    const rect = chapter_nodes.value[ch-1]?.getBoundingClientRect()
+const scroll_to_verse = ([chapter, verse]:[number, number]) => {
+    // Scroll to the given verse
+
+    // Fallback on first of chapter if verse missing
+    const node = verse_nodes[`${chapter}:${verse}`]
+        ?? verse_nodes[`${chapter}:${verse-1}`]
+        ?? verse_nodes[`${chapter}:1`]
+
+    const rect = node?.getBoundingClientRect()
     if (rect){
-        // Scroll so chapter heading is near top of screen but prev verse still visible
-        const buffer = Math.round(content_div.value!.clientHeight / 4)
+        // Scroll so verse is near top of screen but prev verse still visible
+        const buffer = 60
         const top = Math.max(0, content_div.value!.scrollTop + rect.top - buffer)
         content_div.value!.scroll({top})
     }
 
-    // Reset chapter_target once DOM gets a chance to finish scrolling
-    // NOTE This is needed to block `chapter` updating while scrolling past other chapters
+    // Reset target once DOM gets a chance to finish scrolling
+    // NOTE This is needed to block `chapter/verse` updating while scrolling past other verses
     setTimeout(() => {
-        state.chapter_target = null
+        state.target = null
     }, 300)
 }
 
@@ -162,39 +170,43 @@ const on_touch_cancel = () => {
 
 
 onMounted(() => {
-    // Discover chapter elements once mounted so can scroll to them
-    chapter_nodes.value = [...content_div.value!.querySelectorAll('h3[data-c]')]
-
-    // Scroll to chapter if one set before this component loaded
-    if (state.chapter_target){
-        scroll_to_ch(state.chapter_target)
+    // Discover verse elements once mounted so can scroll/detect them
+    for (const node of content_div.value!.querySelectorAll('sup[data-v]')){
+        verse_nodes[(node as HTMLElement).dataset['v']!] = node as HTMLElement
     }
 
-    // Update chapter in state when scroll past them
-    // NOTE Two observers needed for top + bottom screen regions to detect scroll direction
-    const top_observer = new IntersectionObserver((entries) => {
-        // Prevent chapter state change while moving to a chapter to prevent user confusion
-        if (!state.chapter_target){
-            state.chapter = parseInt((entries[0]!.target as HTMLElement).dataset['c']!)
+    // Scroll to current chapter
+    scroll_to_verse(state.target ?? [state.chapter, state.verse])
+
+    // Update chapter/verse in state when scroll past them
+    const observer = new IntersectionObserver((entries) => {
+        // Prevent state change while moving to a verse to prevent user confusion
+        if (!state.target){
+            for (const entry of entries){
+
+                // Ignore when nodes leave capture area, only listen when they enter
+                if (!entry.isIntersecting){
+                    continue
+                }
+
+                const [ch, v] = (entry.target as HTMLElement).dataset['v']!.split(':')
+                state.chapter = parseInt(ch!)
+                state.verse = parseInt(v!)
+                break  // Only pay attention to one verse if multiple
+
+            }
         }
-    }, {rootMargin: '0% 0% -60% 0%'})
-    const bottom_observer = new IntersectionObserver((entries) => {
-        if (!state.chapter_target){
-            state.chapter =
-                Math.max(1, parseInt((entries[0]!.target as HTMLElement).dataset['c']!) - 1)
-        }
-    }, {rootMargin: '-60% 0% 0% 0%'})
-    for (const chapter of chapter_nodes.value){
-        top_observer.observe(chapter)
-        bottom_observer.observe(chapter)
+    }, {root: content_div.value!, rootMargin: '0% 0% -90% 0%'})
+    for (const verse of Object.values(verse_nodes)){
+        observer.observe(verse)
     }
 })
 
 
-watch(() => state.chapter_target, chapter => {
-    // Scroll to chapter whenever target changes
-    if (chapter !== null){
-        scroll_to_ch(chapter)
+watch(() => state.target, target => {
+    // Scroll to verse whenever target changes
+    if (target !== null){
+        scroll_to_verse(target)
     }
 })
 
@@ -203,6 +215,9 @@ watch(() => state.chapter_target, chapter => {
 
 
 <style lang='sass' scoped>
+
+.content > *:last-child
+    margin-bottom: 90vh  // So can scroll last verse to very top and trigger state for it
 
 .single
     padding: 24px

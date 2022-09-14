@@ -30,5 +30,5 @@ export const chapter_display = computed(() => {
         return book_display.value
     }
     // Show chapter target if still navigating to it so user knows their action was applied
-    return `${book_display.value} ${state.chapter_target || state.chapter}`
+    return `${book_display.value} ${state.target?.[0] || state.chapter}`
 })

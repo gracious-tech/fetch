@@ -34,7 +34,7 @@ import {chapters} from '@/services/computes'
 
 // State shortcuts
 const book = computed(() => state.book)
-const chapter = computed(() => state.chapter_target || state.chapter)
+const chapter = computed(() => state.target?.[0] || state.chapter)
 
 
 // Get lists of OT and NT books

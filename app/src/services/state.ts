@@ -4,6 +4,31 @@ import {reactive, computed, watch} from 'vue'
 import {SyncedVerses} from '@/client/esm/book'
 
 
+// LOCAL STORAGE
+
+
+export const local_storage = {
+    // Wrap localStorage to prevent error throws when not available
+    // NOTE Might not be available in incognito tabs, iframe cookie blocking, etc
+
+    getItem(key:string):string|null{
+        try {
+            return localStorage.getItem(key)
+        } catch {
+            return null
+        }
+    },
+
+    setItem(key:string, value:string):void{
+        try {
+            localStorage.setItem(key, value)
+        } catch {
+            // pass
+        }
+    },
+}
+
+
 // STATE
 
 // Create media query for screen width
@@ -15,14 +40,13 @@ const params = new URLSearchParams(self.location.hash.slice(1))
 
 
 // Init default state
-// TODO Prefix localStorage keys with origin (either via CSP access or url param)
-const target_raw = (params.get('verse') ?? localStorage.getItem('verse') ?? '').split(':')
+const target_raw = (params.get('verse') ?? local_storage.getItem('verse') ?? '').split(':')
     .map(val => parseInt(val, 10))
 let target = null as null|[number, number]
 if (target_raw[0] && target_raw[1]){
     target = target_raw.slice(0, 2) as [number, number]
 }
-const init_dark = params.get('dark') ?? localStorage.getItem('dark')
+const init_dark = params.get('dark') ?? local_storage.getItem('dark')
 export const state = reactive({
 
     // Configurable by parent
@@ -34,9 +58,9 @@ export const state = reactive({
     button1_icon: params.get('button1_icon') ?? '',  // i.e. disabled
     button1_color: params.get('button1_color') ?? 'currentColor',
     // NOTE init.ts will ensure this has at least one translation before app loads
-    trans: ((params.get('trans') ?? localStorage.getItem('trans'))?.split(',') ?? []
+    trans: ((params.get('trans') ?? local_storage.getItem('trans'))?.split(',') ?? []
         ) as unknown as [string, ...string[]],
-    book: params.get('book') ?? localStorage.getItem('book') ?? 'jhn',
+    book: params.get('book') ?? local_storage.getItem('book') ?? 'jhn',
     // `chapter/verse` is "currently-detected" / `target` is "currently-navigating-to" (else null)
     chapter: target ? target[0] : 1,
     verse: target ? target[1] : 1,
@@ -92,16 +116,16 @@ export const change_chapter = (num:number) => {
 
 // WATCHES
 
-// Save some config to localStorage when it changes
+// Save some config to local_storage when it changes
 watch(() => state.trans, () => {
-    localStorage.setItem('trans', state.trans.join(','))
+    local_storage.setItem('trans', state.trans.join(','))
 }, {deep: true})
 watch(() => state.book, () => {
-    localStorage.setItem('book', state.book)
+    local_storage.setItem('book', state.book)
 })
 watch([() => state.chapter, () => state.verse], () => {
-    localStorage.setItem('verse', `${state.chapter}:${state.verse}`)
+    local_storage.setItem('verse', `${state.chapter}:${state.verse}`)
 })
 watch(() => state.dark, () => {
-    localStorage.setItem('dark', String(state.dark))
+    local_storage.setItem('dark', String(state.dark))
 })

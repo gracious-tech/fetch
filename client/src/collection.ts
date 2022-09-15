@@ -88,6 +88,8 @@ export class BibleCollection {
     _manifest:RuntimeManifest
     // @internal
     _endpoints:Record<string, string> = {}  // Map translation ids to endpoints
+    // @internal
+    _modern_year = new Date().getFullYear() - 70
 
     // @internal
     constructor(usage:UsageConfig, manifests:OneOrMore<[string, DistManifest]>){
@@ -302,13 +304,15 @@ export class BibleCollection {
             list = list.filter(item => item.language === language)
         }
 
-        // Optionally exclude obsolete translations (only if alternate not itself filtered out)
+        // Optionally exclude obsolete translations (as long as better alternative exists)
         if (exclude_obsolete){
-            const list_ids = list.map(item => item.id)
-            list = list.filter(item => {
-                const obsoleted_by = this._manifest.translations[item.id]!.obsoleted_by
-                return !obsoleted_by || !list_ids.includes(obsoleted_by)
+            const decent = list.filter(item => {
+                const recommended = this._manifest.translations[item.id]!.recommended
+                return recommended === null ? item.year >= this._modern_year : recommended
             })
+            if (decent.length){
+                list = decent  // Only filter out obsolete if at least one translation will remain
+            }
         }
 
         // Optionally exclude incomplete translations
@@ -337,16 +341,36 @@ export class BibleCollection {
         // First get preferred language
         const language = this.get_preferred_language(languages)
 
-        // Return most modern full translation that isn't obsolete
+        // Return recommended translation, or otherwise the most modern full translation
         let candidate:string|null = null
+        let candidate_full = false
         let candidate_year = -9999
         for (const [id, data] of Object.entries(this._manifest.translations)){
-            if (data.language === language && data.year > candidate_year && !data.obsoleted_by
-                    && Object.keys(data.books).length === this._manifest.books_ordered.length){
-                candidate = id
-                candidate_year = data.year
+
+            // Obviously must be desired language
+            if (data.language === language){
+
+                // If recommended, don't bother checking any others
+                if (data.recommended){
+                    return id
+                }
+
+                // Consider as a candidate until something better comes up
+                const full = Object.keys(data.books).length === this._manifest.books_ordered.length
+                if (
+                    !candidate  // Something better than nothing
+                    || (!candidate_full && full)  // Full translation better than partial
+                    // Otherwise only consider if more modern
+                    || (full && data.year > candidate_year && data.recommended !== false)
+                ){
+                    candidate = id
+                    candidate_year = data.year
+                    candidate_full = full
+                }
             }
         }
+
+        // If no candidate for this language, just return the first translation whatever that is
         return candidate ?? Object.keys(this._manifest.translations)[0]!
     }
 

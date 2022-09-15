@@ -76,7 +76,7 @@ export async function gen_language_data(){
     }
 
     // Save to file
-    writeFileSync('languages.json', JSON.stringify(data))
+    writeFileSync('languages.json', JSON.stringify(data, undefined, 4))
 }
 
 

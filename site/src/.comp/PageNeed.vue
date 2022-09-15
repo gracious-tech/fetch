@@ -6,7 +6,7 @@ h3.warn Only 81% of the world has a complete bible in their language
 p It is well known that there are still many languages without a bible translation. However, what is lesser known is how many languages lack a translation that is legal to freely share.
 p Many Christian organizations are working towards the whole world having access to the Bible in their own language. However, what do we really mean by "access"? At the moment, access usually means you can read a translation in a select few apps, buy it in a store, and quote a few verses.
 p But there are many things you #[strong can't] do with such bibles (without special permission) due to copyright, such as print portions of them yourself, include them in ministry resources, distribute audio recordings of them, etc.
-p The following statistics are about bibles that are both #[strong complete] and #[strong modern] (published after {{ modern_year }}).
+p The following statistics are about bibles that are both #[strong complete] and #[strong modern] (published in last {{ modern_years }} years).
 
 h2 Shareable bible translations
 p A truely shareable bible translation is one that can be copied and quoted without verse limits.
@@ -73,8 +73,8 @@ const collection = await client.fetch_collection()
 const translations = collection.get_translations()
 
 
-// Define "modern"
-const modern_year = 1950
+// Detect modern years
+const modern_years = new Date().getFullYear() - collection._modern_year
 
 
 // Functionality for "show more"
@@ -90,7 +90,7 @@ const languages_with_shareable = collection.get_languages().map(item => item.cod
         language: lang,
         exclude_incomplete: true,
         usage: {limitless: true},
-    }).some(t => t.year >= modern_year)
+    }).some(t => t.year >= collection._modern_year)
 })
 
 
@@ -100,7 +100,7 @@ const languages_with_unrestricted = languages_with_shareable.filter(lang => {
         language: lang,
         exclude_incomplete: true,
         usage: {limitless: true, commercial: true, derivatives: 'same-license'},
-    }).some(t => t.year >= modern_year)
+    }).some(t => t.year >= collection._modern_year)
 })
 
 

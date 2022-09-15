@@ -84,7 +84,7 @@ export async function update_manifest(){
             audio: meta.audio,
             video: meta.video,
             copyright: meta.copyright,
-            obsoleted_by: meta.obsoleted_by,
+            recommended: meta.recommended,
             books: book_names,
             last_verse: isEqual(last_verse, own_last_verse) ? null : own_last_verse,
         }

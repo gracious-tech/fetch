@@ -44,7 +44,11 @@ export interface TranslationSourceMeta {
     audio:unknown[]
     video:unknown[]
     copyright:MetaCopyright
-    obsoleted_by:string|null  // id of better translation (single even if multiple alternatives)
+    // Recommended is used to further customise the exclude_obsolete filter and default translation
+    // They are usually based on year, but this can manually account for other factors
+    // Set to false to consider even a modern translation obsolete
+    // Set to true to consider a translation the best available even if others newer
+    recommended:boolean|null  // Only one per language should be true
     source:TranslationSource
     reviewed:boolean
 }

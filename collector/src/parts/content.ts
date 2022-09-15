@@ -111,7 +111,7 @@ async function _create_extracts(src_dir:string, usx_dir:string):Promise<void>{
         const book = file.split('.')[0]!
         extracts[book] = extract_meta(join(usx_dir, `${book}.usx`))
     }
-    writeFileSync(extracts_path, JSON.stringify(extracts))
+    writeFileSync(extracts_path, JSON.stringify(extracts, undefined, 4))
 }
 
 

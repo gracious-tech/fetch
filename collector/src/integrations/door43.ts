@@ -159,13 +159,13 @@ export async function discover():Promise<void>{
                     url: format['url'],
                     updated: format['modified'].split('T')[0]!,
                 },
-                obsoleted_by: null,
+                recommended: null,
                 reviewed: false,
             }
 
             // Save meta file
             mkdirSync(trans_dir, {recursive: true})
-            writeFileSync(meta_file, JSON.stringify(translation))
+            writeFileSync(meta_file, JSON.stringify(translation, undefined, 4))
             added.push(door43_id)
         }
     }

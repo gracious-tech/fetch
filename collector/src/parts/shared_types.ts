@@ -100,7 +100,7 @@ export interface DistTranslation {
     audio:unknown[]
     video:unknown[]
     copyright:MetaCopyright
-    obsoleted_by:string|null  // id of better translation (single even if multiple alternatives)
+    recommended:boolean|null
     books:Record<string, string>  // Books that are available and their names
     last_verse:Record<string, number[]>|null  // Null if same as most common system
 }

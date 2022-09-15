@@ -130,13 +130,13 @@ export async function discover():Promise<void>{
                 url: `https://ebible.org/Scriptures/${ebible_id}_usfm.zip`,
                 updated: row['UpdateDate'],
             },
-            obsoleted_by: null,
+            recommended: null,
             reviewed: false,
         }
 
         // Save meta file
         mkdirSync(trans_dir, {recursive: true})
-        writeFileSync(meta_file, JSON.stringify(meta))
+        writeFileSync(meta_file, JSON.stringify(meta, undefined, 4))
         added.push(ebible_id)
     }))
 

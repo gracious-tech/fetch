@@ -7,6 +7,21 @@ import {fileURLToPath} from 'node:url'
 import {writeFileSync} from 'fs'
 
 
+// Util for cleaning language names
+// NOTE DBS data has some names entirely surrounded by brackets and some with leading whitespace
+function clean_name(value){
+    value = value.trim()
+    if (value[0] === '('){
+        value = value.slice(1)
+        if (value.at(-1) === ')'){
+            value = value.slice(0, -1)
+        }
+        value = value.trim()
+    }
+    return value
+}
+
+
 // Get project path
 const project = dirname(dirname(fileURLToPath(import.meta.url)))
 
@@ -47,8 +62,8 @@ data = Object.fromEntries(data.map(item => {
     return [item.id, {
         pop: recent_data[item.id] ?? item.po ?? 0,
         // Names used when identifying languages missing from collection
-        english: item.tt || item.tv,
-        local: item.tv || item.tt,
+        english: clean_name(item.tt || item.tv),
+        local: clean_name(item.tv || item.tt),
     }]
 }))
 

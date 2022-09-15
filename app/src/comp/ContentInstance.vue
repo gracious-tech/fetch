@@ -103,10 +103,16 @@ const scroll_to_verse = ([chapter, verse]:[number, number]) => {
         ?? verse_nodes[`${chapter}:${verse-1}`]
         ?? verse_nodes[`${chapter}:1`]
 
+    // Get position of content div for use in calcs
+    // NOTE `getBoundingClientRect` results are relative to viewport (and not parent like scroll is)
+    const content_top = content_div.value!.getBoundingClientRect().top
+
+    // Get position of verse and scroll to it if find it
     const rect = node?.getBoundingClientRect()
     if (rect){
         // Scroll so verse is near top of screen but prev verse still visible
-        const buffer = 60
+        // NOTE Adding content_top effectively offsets any toolbar (rect is relative to viewport)
+        const buffer = content_top + 60
         const top = Math.max(0, content_div.value!.scrollTop + rect.top - buffer)
         content_div.value!.scroll({top})
     }
@@ -193,10 +199,13 @@ onMounted(() => {
                 state.chapter = parseInt(ch!)
                 state.verse = parseInt(v!)
                 break  // Only pay attention to one verse if multiple
-
             }
         }
-    }, {root: content_div.value!, rootMargin: '0% 0% -90% 0%'})
+    }, {
+        root: content_div.value!,
+        // Thin trigger line at around 1/3 from top of content area
+        rootMargin: '-29% 0% -70% 0%',
+    })
     for (const verse of Object.values(verse_nodes)){
         observer.observe(verse)
     }

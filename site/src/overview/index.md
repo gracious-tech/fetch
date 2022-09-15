@@ -9,29 +9,26 @@ Signup to [Gracious Tech news](https://gracious.tech) to be notified when it off
 
 &nbsp;
 
-# What is fetch(bible)?
-It is several things...
+# fetch(bible) is...
 
- * __An initiative__ for making digital access to the Bible easier and more efficient
- * __A collection__ of all the Bible translations in the world that we can find
- * __A service__ for free unlimited unrestricted access to Bible content
- * __A tool__ for integrating the Bible into apps and websites with minimal effort
+ * __A collection__ of all available Bible translations
+ * __A service__ for free access to the collection
+ * __A tool__ for integrating the Bible into apps and websites
+
+Together, it's a digital bible platform that lets anyone access scripture in thousands of translations, whether to display a single verse or power an entire bible app.
 
 <img src='@/.assets/decor_book.svg' style='max-width: 300px; margin: 0 auto'>
 
-## What can you do with fetch(bible)?
 
-You can integrate scripture into any website or app, whether it's quoting a single verse or creating an entire Bible app.
+## What makes fetch(bible) special?
 
-#### fetch(bible) stands out in the following ways:
-
- * __It's easy to use__ &mdash; Get a passage in 1000+ Bibles with a few lines of code
- * __It's efficient__ &mdash; All content is distributed via a CDN making it very fast
- * __It's open source__ &mdash; Anyone can examine how it works and contribute
+ * __It's easy to use__ &mdash; Whether you want a UI, API, or manual access
+ * __It's efficient__ &mdash; All content is compressed and distributed via a CDN
+ * __It's open source__ &mdash; Anyone can contribute, fork, self-host
  * __It's private__ &mdash; No tracking of users and no registration required
- * __It's unrestricted__ &mdash; No request limits, no cache limits, can self-host
+ * __It's unrestricted__ &mdash; No request limits, no cache limits, 100% free
 
-<small>* No limits from fetch(bible), but most Bible translations have terms you must still comply with</small>
+While fetch(bible) has no restrictions itself, most Bible translations have terms you must still comply with, and fetch(bible) makes this easy by filtering translations based on your intended use.
 
 
 <img src='@/.assets/decor_world.svg' style='max-width: 300px; margin: 36px auto'>

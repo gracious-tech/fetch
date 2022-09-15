@@ -21,9 +21,7 @@ table
         td {{ lang.pop || "None" }}
         td
             a(:href='`../bibles/#${lang.code}`') {{ lang.count }}
-p
-    | Also see the <a href='/content/stats/'>statistics page</a> for the top 20 languages
-    | still without a modern open translation.
+p Also see which languages are <a href='/content/need/'>still without a shareable translation</a>
 
 
 h3 All languages available

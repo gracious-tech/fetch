@@ -6,7 +6,7 @@ titleTemplate: fetch(bible)
 hero:
     name: fetch(bible)
     text: Digital access to Bible translations
-    tagline: Free / Private / Unrestricted
+    tagline: Free / Private / Open source
     actions:
         -   theme: brand
             text: Overview
@@ -18,13 +18,6 @@ hero:
             text: How to access
             link: /access/
 
-features:
-    -   icon: ∞
-        title: Limitless use
-        details: Full access to the whole collection of Bibles with no signup, no request limits, and no tracking
-    -   icon: ⚡️
-        title: Integrate at any level
-        details: Choose between an official UI, API, or manual access
 ---
 
 

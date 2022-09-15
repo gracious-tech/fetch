@@ -23,6 +23,7 @@ This is the web app embedded as an iframe, just like you can do in any other app
 
 ## Features
 
+ * Works offline
  * Easy book & chapter selection
  * Swipe to change chapter
  * Scroll through entire books

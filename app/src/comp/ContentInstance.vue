@@ -38,6 +38,7 @@ let touch_end_y:number|null = null
 
 // Verse nodes
 const verse_nodes = {} as Record<string, HTMLElement>
+const chapter_nodes = {} as Record<string, HTMLElement>
 
 // References to DOM elements
 const swipe_prev = ref<HTMLDivElement>()
@@ -99,9 +100,11 @@ const scroll_to_verse = ([chapter, verse]:[number, number]) => {
     // Scroll to the given verse
 
     // Fallback on first of chapter if verse missing
-    const node = verse_nodes[`${chapter}:${verse}`]
-        ?? verse_nodes[`${chapter}:${verse-1}`]
-        ?? verse_nodes[`${chapter}:1`]
+    // NOTE Also better to use chapter node if first verse, so can show any headings too
+    let node = verse_nodes[`${chapter}:${verse}`] ?? verse_nodes[`${chapter}:${verse-1}`]
+    if (!node || verse === 1){
+        node = chapter_nodes[chapter]
+    }
 
     // Get position of content div for use in calcs
     // NOTE `getBoundingClientRect` results are relative to viewport (and not parent like scroll is)
@@ -179,6 +182,9 @@ onMounted(() => {
     // Discover verse elements once mounted so can scroll/detect them
     for (const node of content_div.value!.querySelectorAll('sup[data-v]')){
         verse_nodes[(node as HTMLElement).dataset['v']!] = node as HTMLElement
+    }
+    for (const node of content_div.value!.querySelectorAll('h3[data-c]')){
+        chapter_nodes[(node as HTMLElement).dataset['c']!] = node as HTMLElement
     }
 
     // Scroll to current chapter

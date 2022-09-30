@@ -82,6 +82,15 @@ When the app is ready to receive messages it will emit the `ready` event. Whenev
 You can send the iframe a message with `{"type": "update", ...}` and add any of the config params you'd like to change.
 
 
+## Offline support
+The app will work offline by default on most devices, however there are some situations that it won't. If a user has disabled third-party cookies in their browser it can prevent iframes from caching responses (even though the app doesn't use any actual cookies).
+
+You can work around this by:
+
+ 1. Forking and extending the app (rather than loading in an iframe)
+ 1. Loading in a webview in a native app (instead of via an iframe)
+
+
 ## Forking
 You can also fork the app as a base for a new fully-customised app of your own. It's written in Typescript/Vue, and available in the fetch(bible) [source code](https://github.com/gracious-tech/fetch/tree/master/app).
 

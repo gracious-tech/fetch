@@ -1,0 +1,6 @@
+{
+    "display": "standalone",
+    "name": "fetch(bible) app",
+    "short_name": "fetch(bible)",
+    "icons": [{"src": "/icon.png"}]
+}

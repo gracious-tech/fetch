@@ -12,6 +12,7 @@ import plugin_index from './vite_plugin_index'
 
 export default defineConfig(({mode}) => {
     return {
+        publicDir: 'src/public',
         clearScreen: false,
         plugins: [
             plugin_index(path.join(__dirname, 'src/index.pug')),
@@ -22,6 +23,7 @@ export default defineConfig(({mode}) => {
                 swDest: 'dist/sw.js',  // WARN Must be at root level to control all paths
                 globDirectory: 'dist',
                 globPatterns: ['**/*'],  // Override default which excludes images etc
+                globIgnores: ['icon.png', 'manifest.json'],
                 cacheId: 'fetch',  // Will get -precache-... appended
                 runtimeCaching: [
                     {

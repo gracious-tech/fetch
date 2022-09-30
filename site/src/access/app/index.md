@@ -56,7 +56,7 @@ Param           | Type          | Default   | Description
 `back`          | `true\|false` | `false`   | Whether to show a back button in the toolbar (only enable if you listen to back button clicks and act on them).
 `button1_icon`  | `coordinates` | `[disabled]` | The icon to display for a custom button in the toolbar. It must be a string for an SVG `<path d="">` that must conform to a 48x48 viewport (any value from a [Material icon/symbol](https://fonts.google.com/icons) will work).
 `button1_color` | `CSS color`   | `currentColor` | A color for the button's fill.
-`trans`         | `lll_ttt`     | `[auto]`      | A translation to force use of. Must be a fetch(bible) id ([preview any translation](/content/bibles/) to find the id in the url).
+`trans`         | `lll_ttt`     | `[auto]`      | A translation to force use of (comma-separate for multiple). Must be a fetch(bible) id ([preview any translation](/content/bibles/) to find the id in the url).
 `book`          | `bbb`         | `[auto]`      | A book to show (otherwise remembers last opened).
 `verse`         | `chap:verse`  | `[auto]`      | A chapter and verse to show (otherwise remembers last viewed).
 
@@ -69,8 +69,8 @@ Every message sent from the iframe via `postMessage` contains the following data
 Property        | Type      | Description
 | -             | -         | -
 type            | `ready\|verse\|back\|button1\|dark` | The event type
-language        | `lll`     | The three char language code (ISO 639‑3) of the primary translation being viewed
-translation     | `lll_ttt` | The primary translation currently being viewed
+languages       | `[string, ...]` | The three char language codes (ISO 639‑3) of the translations being viewed
+translations    | `[string, ...]` | The translations currently being used (always at least one)
 book            | `bbb`     | [USX bible book code](https://ubsicap.github.io/usx/vocabularies.html#usx-vocab-bookcode) (in lowercase)
 chapter         | `number`    | Chapter number currently being viewed
 verse           | `number`    | Verse number currently being viewed

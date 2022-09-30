@@ -1,8 +1,8 @@
 {
   "name": "@gracious.tech/fetch-client",
   "version": "0.0.0",
-  "description": "Fetch bible content from a bible CDN in an API-like way",
-  "main": "dist/index.js",
+  "description": "Interact with a fetch(bible) collection in an API-like way",
+  "main": "dist/esm/index.js",
   "files": [
     "dist"
   ],

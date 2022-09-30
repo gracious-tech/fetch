@@ -105,7 +105,6 @@ self.addEventListener('message', event => {
 
 
 // Report to parent whenever currently displayed verse changes
-// TODO Currently only reporting chapter changes
-watch([() => state.chapter, () => state.book], () => {
-    post_message('verse_change')
+watch([() => state.book, () => state.chapter, () => state.verse], () => {
+    post_message('verse')
 })

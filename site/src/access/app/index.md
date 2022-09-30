@@ -68,7 +68,7 @@ Every message sent from the iframe via `postMessage` contains the following data
 
 Property        | Type      | Description
 | -             | -         | -
-type            | `ready\|verse\|back\|button1\|dark` | The event type
+type            | `ready\|translation\|verse\|back\|button1\|dark` | The event type
 languages       | `[string, ...]` | The three char language codes (ISO 639‑3) of the translations being viewed
 translations    | `[string, ...]` | The translations currently being used (always at least one)
 book            | `bbb`     | [USX bible book code](https://ubsicap.github.io/usx/vocabularies.html#usx-vocab-bookcode) (in lowercase)

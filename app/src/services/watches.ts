@@ -108,3 +108,9 @@ self.addEventListener('message', event => {
 watch([() => state.book, () => state.chapter, () => state.verse], () => {
     post_message('verse')
 })
+
+
+// Report to parent whenever dark changes
+watch(() => state.dark, () => {
+    post_message('dark')
+})

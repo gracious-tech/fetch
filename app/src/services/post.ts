@@ -1,4 +1,6 @@
 
+import {toRaw} from 'vue'
+
 import {state, langs} from '@/services/state'
 
 
@@ -8,7 +10,7 @@ export function post_message(type:'ready'|'translation'|'verse'|'back'|'button1'
     self.parent.postMessage({
         type,
         languages: langs.value,
-        translations: state.trans,
+        translations: toRaw(state.trans),
         book: state.book,
         chapter: state.chapter,
         verse: state.verse,

@@ -14,6 +14,6 @@ export function post_message(type:'ready'|'translation'|'verse'|'back'|'button1'
         book: state.book,
         chapter: state.chapter,
         verse: state.verse,
-        dark: state.dark,
+        dark: !!state.dark,  // Shouldn't be null but ensure never is
     }, '*')  // SECURITY Any origin is allowed to embed fetch(bible) so '*'
 }

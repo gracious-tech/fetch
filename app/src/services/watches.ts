@@ -104,6 +104,12 @@ self.addEventListener('message', event => {
 })
 
 
+// Report to parent whenever translations change
+watch(() => state.trans, () => {
+    post_message('translation')
+}, {deep: true})
+
+
 // Report to parent whenever currently displayed verse changes
 watch([() => state.book, () => state.chapter, () => state.verse], () => {
     post_message('verse')

@@ -2,13 +2,13 @@
 import {state, langs} from '@/services/state'
 
 
-export function post_message(type:'ready'|'verse'|'back'|'button1'|'dark'){
+export function post_message(type:'ready'|'translation'|'verse'|'back'|'button1'|'dark'){
     // Send a message to a parent frame
     // NOTE Includes status properties with every message for convenience
     self.parent.postMessage({
         type,
-        language: langs.value[0],
-        translation: state.trans[0],
+        languages: langs.value,
+        translations: state.trans,
         book: state.book,
         chapter: state.chapter,
         verse: state.verse,

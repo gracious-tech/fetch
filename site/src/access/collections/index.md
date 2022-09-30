@@ -14,7 +14,8 @@ You can still use the fetch(bible) client with your own collection by passing it
 
 ## collector
 
-`npm install @gracious.tech/fetch-collector`
+[This has not yet been published to NPM]
+<!-- `npm install @gracious.tech/fetch-collector` -->
 
 The collector is a Node CLI for managing a collection. It's used to manage the official fetch(bible) collection, and you can use it to create your own as well.
 

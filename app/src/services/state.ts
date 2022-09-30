@@ -95,7 +95,7 @@ if ('addEventListener' in wide_query){
 
 // Array of language codes to match currently selected translations
 export const langs = computed(() => {
-    return state.trans.map(id => id.split('_')[0]!)
+    return state.trans.map(id => id.split('_')[0]!) as [string, ...string[]]
 })
 
 // Density value for toolbars etc

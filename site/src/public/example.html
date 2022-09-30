@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html>
 
-<!-- Some basic meta and styles (nothing interesting) -->
+<!-- Some basic meta and styles -->
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+    <!-- Include client CSS -->
+    <link rel='stylesheet' href='https://fetch.bible/client.css'>
+
     <style>
         body {
             margin: 0;
@@ -38,7 +42,9 @@
         <select class='book'></select>
         <select class='chapter'></select>
     </div>
-    <div class='content'></div>
+
+    <!-- Scripture must be under class "fetch-bible" for styles -->
+    <div class='content fetch-bible'></div>
 
 
     <script type='module'>

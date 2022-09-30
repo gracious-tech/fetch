@@ -35,6 +35,7 @@ cp dist/client.min.esm.js ../site/src/public/client.min.esm.js
 cp dist/client.min.esm.js ../site/src/public/client.min.esm.js.map
 cp dist/client.min.iife.js ../site/src/public/client.min.iife.js
 cp dist/client.min.iife.js ../site/src/public/client.min.iife.js.map
+cp dist/client.css ../site/src/public/client.css
 
 
 # Put in comp dir as well as Vitepress doesn't like importing from public

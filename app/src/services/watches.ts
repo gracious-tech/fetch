@@ -83,8 +83,10 @@ self.addEventListener('message', event => {
 
     // Handle update commands
     // NOTE Also update initial load config in `state.ts` if any of these change
-    // TODO Implement the same as init state has
     if (data['type'] === 'update'){
+        if (typeof data['dark'] === 'boolean' || data['dark'] === null){
+            state.dark = data['dark']
+        }
         if (typeof data['status'] === 'string'){
             state.status = data['status']
         }
@@ -99,6 +101,20 @@ self.addEventListener('message', event => {
         }
         if (typeof data['button1_color'] === 'string'){
             state.button1_color = data['button1_color']
+        }
+        if (typeof data['trans'] === 'string'){
+            state.trans = data['trans'].split(',') as [string, ...string[]]
+        }
+        if (typeof data['book'] === 'string'){
+            state.book = data['book']
+        }
+        if (typeof data['verse'] === 'string'){
+            const target:number[] = data['verse'].split(':').map(val => parseInt(val, 10))
+            if (target.length === 2){
+                state.chapter = target[0]!
+                state.verse = target[1]!
+                state.target = target as [number, number]
+            }
         }
     }
 })

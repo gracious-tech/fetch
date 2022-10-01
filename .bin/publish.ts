@@ -12,6 +12,9 @@ import {S3} from '@aws-sdk/client-s3'
 import {CloudFront} from '@aws-sdk/client-cloudfront'
 
 
+const DONT_PUBLISH = ['.npmignore']
+
+
 async function concurrent(tasks:(()=>Promise<unknown>)[], limit=10):Promise<void>{
     // Complete the given tasks concurrently and return promise that resolves when all done
     // NOTE Upon failure this will reject and stop starting tasks (though some may still be ongoing)
@@ -42,7 +45,7 @@ function get_files(dir:string):string[]{
         const path = `${dir}/${name}`
         if (statSync(path).isDirectory()){
             files.push(...get_files(path))
-        } else {
+        } else if (!DONT_PUBLISH.includes(name)){
             files.push(path)
         }
     }
@@ -83,7 +86,7 @@ await concurrent(get_files('dist').map(file => async () => {
     // Detect mime type
     const mime = MimeTypes.lookup(file)
     if (!mime || typeof mime !== 'string'){
-        throw new Error()
+        throw new Error(`Don't know mimetype for ${file}`)
     }
 
     // Upload

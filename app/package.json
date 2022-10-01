@@ -1,11 +1,26 @@
 {
-    "private": true,
-    "dependencies": {
-        "@material-symbols/svg-400": "^0.2.8",
-        "vue": "^3.2.37",
-        "vuetify": "^3.0.0-beta.8"
+    "name": "@gracious.tech/fetch-app",
+    "version": "0.0.0",
+    "description": "Configurable bible app powered by fetch(bible)",
+    "files": [
+        "dist"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gracious-tech/fetch.git"
     },
+    "keywords": [
+        "bible",
+        "app"
+    ],
+    "author": "Gracious Tech",
+    "license": "MIT-0",
+    "bugs": {
+        "url": "https://github.com/gracious-tech/fetch/issues"
+    },
+    "homepage": "https://fetch.bible/",
     "devDependencies": {
+        "@material-symbols/svg-400": "^0.2.12",
         "@types/pug": "^2.0.6",
         "@vitejs/plugin-vue": "^2.3.3",
         "pug": "^3.0.2",
@@ -13,6 +28,8 @@
         "sass": "^1.53.0",
         "vite": "^2.9.12",
         "vite-plugin-vuetify": "^1.0.0-alpha.14",
-        "vite-svg-loader": "^3.4.0"
+        "vite-svg-loader": "^3.4.0",
+        "vue": "^3.2.40",
+        "vuetify": "^3.0.0-beta.11"
     }
 }

@@ -35,13 +35,16 @@ __Coming soon:__
 
 ## Usage
 You can use the app in the following ways:
- 1. Embed it as an iframe `<iframe src='https://app.fetch.bible'>`
+ 1. Embed it as an iframe
+    * `<iframe src='https://app.fetch.bible'>`
  1. Load it in a webview in a native app
- 1. Navigate to `https://app.fetch.bible/#back=https://example.com`
-    * Provide a back URL to return to your app/site
+ 1. Navigate to the app and provide a back URL
+    * e.g. `https://app.fetch.bible/#back=https://example.com`
     * Doesn't support interaction via `postMessage`
  1. Self-host on your own subdomain
+    * `npm install @gracious.tech/fetch-app`
  1. Extend the app with your own components/routes
+    * [Written in Typescript/Vue](https://github.com/gracious-tech/fetch/tree/master/app)
 
 
 ## Customisation
@@ -88,12 +91,6 @@ When the app is ready to receive messages it will emit the `ready` event. Whenev
 
 ### To the app
 You can use `postMessage` to send the app a message with `{"type": "update", ...}` and add any of the config params you'd like to change.
-
-
-## Forking
-You can also fork the app as a base for a new fully-customised app of your own. It's written in Typescript/Vue, and available in the fetch(bible) [source code](https://github.com/gracious-tech/fetch/tree/master/app).
-
-The downside of forking is there may be some translations that you won't have access to, because the owners have only given permission for them to be used in official Gracious Tech products.
 
 
 ## Offline support

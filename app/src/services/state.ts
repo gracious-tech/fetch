@@ -54,7 +54,7 @@ export const state = reactive({
     dark: init_dark ? init_dark === 'true' : null,  // null = auto
     status: params.get('status') ?? '',
     color: params.get('color') ?? '#c12bdb',
-    back: params.get('back') === 'true',  // i.e. default to false
+    back: (params.get('back') === 'true' || params.get('back')) ?? false,  // true|'url'|false
     button1_icon: params.get('button1_icon') ?? '',  // i.e. disabled
     button1_color: params.get('button1_color') ?? 'currentColor',
     // NOTE init.ts will ensure this has at least one translation before app loads

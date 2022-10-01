@@ -93,7 +93,7 @@ self.addEventListener('message', event => {
         if (typeof data['color'] === 'string'){
             state.color = data['color']
         }
-        if (typeof data['back'] === 'boolean'){
+        if (typeof data['back'] === 'boolean' || typeof data['back'] === 'string'){
             state.back = data['back']
         }
         if (typeof data['button1_icon'] === 'string'){

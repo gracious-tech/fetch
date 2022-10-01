@@ -55,7 +55,11 @@ const trans_display = computed(() => {
 })
 
 const back = () => {
-    post_message('back')
+    if (typeof state.back === 'string'){
+        self.location.assign(state.back)
+    } else {
+        post_message('back')
+    }
 }
 
 const button1 = () => {

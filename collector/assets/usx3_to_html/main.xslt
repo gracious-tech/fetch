@@ -1,6 +1,9 @@
 <xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <!-- Transform USX3 to fetch(bible) HTML
 
+    Much credit to The Digital Bible Society and their https://github.com/digitalbiblesociety/lamedh
+    This was initially a fork of lamedh until it was all rewritten for fetch(bible) use
+
     Methodology:
         Stay close to USX3, so keep class names matching USX styles
         Prefix all classes with 'fb-' so an app's CSS less likely to affect fetch(bible) content

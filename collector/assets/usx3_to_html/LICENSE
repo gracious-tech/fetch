@@ -1,8 +1,0 @@
-
-USX->HTML XSLT based on https://github.com/digitalbiblesociety/lamedh
-
-Copyright (c) 2022 Digital Bible Society
-
-GPL-3.0 license: https://github.com/digitalbiblesociety/lamedh/blob/main/LICENSE.md
-
-Extensive changes made to repurpose for fetch(bible) use

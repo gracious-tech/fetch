@@ -1,6 +1,6 @@
 
 # fetch(bible) collector
 
-A node CLI for managing a [fetch(bible)](https://fetch.bible) collection.
+A node CLI for managing a [fetch(bible) collection](https://fetch.bible/access/collections/).
 
-See `collector --help` for usage.
+Run `npx fetch-collector --help` for usage.

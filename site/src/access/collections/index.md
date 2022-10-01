@@ -21,4 +21,4 @@ The collector is a Node CLI for managing a collection. It's used to manage the o
 
 While you can technically use it to recreate the official collection, it is better to clone our existing collection rather than start from scratch, as there is a lot of meta data that has been manually improved.
 
-Run `node_modules/.bin/fetch-collector --help` for usage.
+Run `npx fetch-collector --help` for usage.

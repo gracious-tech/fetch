@@ -19,6 +19,15 @@
     font-weight: bold
     font-style: italic
 
-    @at-root .fb-alt-bold-italic#{&}
+    @at-root .fb-alt-bold:not(.fb-alt-italic)#{&}
         font-weight: normal
+        filter: var(--fb-alt-bold-filter)
+
+    @at-root .fb-alt-italic:not(.fb-alt-bold)#{&}
+        font-style: normal
+        filter: var(--fb-alt-italic-filter)
+
+    @at-root .fb-alt-bold.fb-alt-italic#{&}
+        font-weight: normal
+        font-style: normal
         filter: var(--fb-alt-bold-italic-filter)

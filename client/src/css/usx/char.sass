@@ -63,10 +63,7 @@
         @include utils.italic
 
     .fb-wj  // Words of Jesus
-        color: #f00c  // Support both light/dark bgs
-
-    &.fb-no-wj .fb-wj  // Ability to disable wj styling
-        color: inherit
+        color: var(--fb-red-letter)
 
 
     // STYLING
@@ -75,13 +72,15 @@
         @include utils.italic
 
     .fb-bd  // Bold text
-        @include utils.bold
+        font-weight: bold  // Always bold as incompatible languages wouldn't use this tag anyway
 
     .fb-bdit  // Bold-italic text
-        @include utils.bold-italic
+        // Always bold/italic as incompatible languages wouldn't use this tag anyway
+        font-weight: bold
+        font-style: italic
 
     .fb-it  // Italic text
-        @include utils.italic
+        font-style: italic  // Always italic as incompatible languages wouldn't use this tag anyway
 
     .fb-no  // Normal text (when parent is styled)
         font-weight: normal

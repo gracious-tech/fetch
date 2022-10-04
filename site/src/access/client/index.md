@@ -29,17 +29,8 @@ Methods starting with `fetch_` will make a network request and return a promise,
 
 If your code editor supports Typescript you'll get helpful auto-suggestions that explain all the methods and arguments possible, or alternatively you can also explore the [auto-generated docs](api/classes/client.BibleClient.html).
 
-### Styles
-The client includes a functional stylesheet, meaning styles that are minimalistic and critical for correct display. If you don't include this in your project then, for example, footnotes etc. are going to appear inline and undistinguishable from actual scripture.
 
-If you use a tool like Webpack or Vite then you'll simply need to `import '@gracious.tech/fetch-client/dist/client.css'` in a Javascript module, or you could alternatively deploy it with your code and use a `<link>` element to include it.
-
-All styles are namespaced under the class `fetch-bible` and all subclasses are prefixed with `fb-` so that it won't affect your existing styles and they also are unlikely to affect fetch(bible) HTML. So you must embed fetch(bible) HTML under a container element with the class `fetch-bible`.
-
-
-## Example
-
-Here is a basic example that outputs a single chapter of a random translation and book.
+### Example
 
 ```typescript
 
@@ -70,6 +61,34 @@ console.log(book.get_chapter(1))
 ```
 
 <p><VPButton href='/access/client/example/' text="See more detailed example"></VPButton></p>
+
+
+## Styles
+The client includes a functional stylesheet, meaning styles that are minimalistic and critical for correct display. If you don't include this in your project then, for example, footnotes etc. are going to appear inline and undistinguishable from actual scripture.
+
+If you use a tool like Webpack or Vite then you'll simply need to `import '@gracious.tech/fetch-client/dist/client.css'` in a Javascript module, or you could alternatively deploy it with your code and use a `<link>` element to include it.
+
+All styles are namespaced under the class `fetch-bible` and all subclasses are prefixed with `fb-` so that it won't affect your existing styles and they also are unlikely to affect fetch(bible) HTML. So you must embed fetch(bible) HTML under a container element with the class `fetch-bible`.
+
+The following classes can be added to your `.fetch-bible` container element:
+
+Class               | Effect
+| -                 | -
+`.fb-plain`         | Disables the more opinionated aspects of the styles so you can more easily customise them to suit your situation. E.g. Disables fading of verse numbers, chapter heading styling, notes show-on-hover, etc
+`.fb-no-verses`     | Hides verse numbers
+`.fb-no-chapters`   | Hides chapter headings
+`.fb-no-headings`   | Hides section headings
+`.fb-no-notes`      | Hides translation notes
+`.fb-no-red-letter` | Disables coloring words of Jesus in red (for translations that support it)
+
+The `.fetch-bible` class also has some variables you can customise:
+
+Variable                        | Default           | Description
+| -                             | -                 | -
+`--fb-red-letter`               | `hsl(0, 60%, 50%)`| The color of Jesus' words (for translations that support it). Be sure to choose a color that works for both light & dark backgrounds.
+`--fb-alt-italic-filter`        | `opacity(0.85)`   | A CSS filter to apply to text that would normally be displayed in italics, for use when italics aren't suitable for a language's script.
+`--fb-alt-bold-filter`          | `contrast(2)`     | A CSS filter to apply to text that would normally be displayed in bold, for use when bold isn't suitable for a language's script.
+`--fb-alt-bold-italic-filter`   | `drop-shadow(0 0 5px hsl(0, 50%, 0%))` | A CSS filter to apply to text that would normally be displayed in bold+italics, for use when bold+italics isn't suitable for a language's script.
 
 
 ## Design

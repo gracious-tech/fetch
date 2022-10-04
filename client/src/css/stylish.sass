@@ -1,0 +1,54 @@
+
+// Default styles that most users will benefit from, with option to stick to basics only
+.fetch-bible:not(.fb-plain)
+
+    // Need to position for note hovering to place correctly
+    position: relative
+
+    // Decent sized font for readability
+    line-height: 1.65
+    font-size: 16px
+    @media (min-width: 800px)
+        font-size: 18px  // Larger font for wide screens as face usually further from device
+
+    // Make chapter headings subtle dividers rather than actual headings
+    h3[data-c]
+        text-align: center
+        opacity: 0.5
+        font-size: 0.8em
+
+        &::before
+            content: '——— '
+        &::after
+            content: ' ———'
+
+    // Make verse number subtle
+    sup[data-v]
+        opacity: 0.6
+        padding-right: 0.3em
+        font-size: 0.7em
+
+    // Show notes on hover/touch
+    .fb-note
+        cursor: help
+
+        > span
+                display: none
+                position: absolute
+                z-index: 1
+                font-size: 0.8em
+                padding: 6px 12px
+                border-radius: 4px
+                background-color: hsla(0, 0%, 50%, 0.1)  // Slight dark/light bg to stand out
+                backdrop-filter: blur(50px)  // So get solid color as bg whether light/dark theme
+
+        &:hover > span
+            display: block  // Don't use inline-block as won't wrap when near right end
+
+
+// Styles to only apply if not using default styling
+.fetch-bible.fb-plain
+
+    // Only show the asterisk for notes as user must implement styling for note display themself
+    .fb-note > span
+        display: none

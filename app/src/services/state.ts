@@ -7,13 +7,19 @@ import {SyncedVerses} from '@/client/esm/book'
 // LOCAL STORAGE
 
 
+// Prefix all storage keys with the parent's origin so settings not shared between sites
+// NOTE Firefox still doesn't support `ancestorOrigins` so fallback to sharing settings
+const STORAGE_PREFIX =
+    self.location.ancestorOrigins?.[0] ?? (self.parent === self ? self.location.origin : 'unknown')
+
+
 export const local_storage = {
     // Wrap localStorage to prevent error throws when not available
     // NOTE Might not be available in incognito tabs, iframe cookie blocking, etc
 
     getItem(key:string):string|null{
         try {
-            return localStorage.getItem(key)
+            return localStorage.getItem(`${STORAGE_PREFIX} ${key}`)
         } catch {
             return null
         }
@@ -21,7 +27,7 @@ export const local_storage = {
 
     setItem(key:string, value:string):void{
         try {
-            localStorage.setItem(key, value)
+            localStorage.setItem(`${STORAGE_PREFIX} ${key}`, value)
         } catch {
             // pass
         }

@@ -29,8 +29,8 @@ v-toolbar(:density='density')
             v-list
                 v-list-item(@click='state.show_style_dialog = true')
                     template(#prepend)
-                        app-icon.menu_icon(name='format_size')
-                    v-list-item-title Appearance
+                        app-icon.menu_icon(name='settings')
+                    v-list-item-title Settings
                 v-list-item(@click='state.show_about_dialog = true')
                     template(#prepend)
                         app-icon.menu_icon(name='info')

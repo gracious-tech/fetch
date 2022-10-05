@@ -6,7 +6,7 @@ v-dialog(v-model='state.show_style_dialog' :fullscreen='!state.wide')
     v-card
 
         v-toolbar(color='primary' :density='density')
-            v-toolbar-title Appearance
+            v-toolbar-title Settings
             template(#append)
                 v-btn(icon variant='text' @click='state.show_style_dialog = false')
                     app-icon(name='close')

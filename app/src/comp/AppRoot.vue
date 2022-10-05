@@ -1,7 +1,7 @@
 
 <template lang='pug'>
 
-v-app(:class='{wide: state.wide}')
+v-app(:style='{"max-width": max_width}')
 
     //- Show book menu in drawer for narrow screens
     //- NOTE touchless disables swiping right from screen edge to open (conflicts with prev ch)
@@ -34,7 +34,7 @@ AboutDialog(v-if='state.show_about_dialog')
 
 <script lang='ts' setup>
 
-import {watch, onMounted} from 'vue'
+import {watch, onMounted, computed} from 'vue'
 import {useTheme} from 'vuetify'
 
 import BookMenu from './BookMenu.vue'
@@ -46,6 +46,13 @@ import SettingsDialog from './SettingsDialog.vue'
 import AboutDialog from './AboutDialog.vue'
 import {state} from '@/services/state'
 import {chapter_display} from '@/services/computes'
+
+
+// Increase max width of app depending on number of translations being shown
+const max_width = computed(() => {
+    const pixels = 1000 + 500 * state.trans.length
+    return `${pixels}px`
+})
 
 
 const theme = useTheme()
@@ -76,12 +83,7 @@ onMounted(() => {
 .v-application
     height: 100%
     width: 100%
-
-    // Max-out width eventually so not TOO wide and add margin
-    &.wide
-        max-width: 1400px
-        @media (min-width: 1400px)
-            margin: 20px auto
+    margin: 0 auto
 
     :deep(.v-application__wrap)
         min-height: auto  // Override Vuetify 100vh

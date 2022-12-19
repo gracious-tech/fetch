@@ -55,14 +55,20 @@ if (target_raw[0] && target_raw[1]){
 const init_dark = params.get('dark') ?? local_storage.getItem('dark')
 export const state = reactive({
 
-    // Configurable by parent
+    // CONFIGURABLE
     // NOTE Also update message listener in `watches.ts` if any of these change
+
+    // Settings
     dark: init_dark ? init_dark === 'true' : null,  // null = auto
+
+    // Customise
     status: params.get('status') ?? '',
     color: params.get('color') ?? '#c12bdb',
     back: (params.get('back') === 'true' || params.get('back')) ?? false,  // true|'url'|false
     button1_icon: params.get('button1_icon') ?? '',  // i.e. disabled
     button1_color: params.get('button1_color') ?? 'currentColor',
+
+    // Passage
     // NOTE init.ts will ensure this has at least one translation before app loads
     trans: ((params.get('trans') ?? local_storage.getItem('trans'))?.split(',') ?? []
         ) as unknown as [string, ...string[]],
@@ -72,7 +78,17 @@ export const state = reactive({
     verse: target ? target[1] : 1,
     target,
 
-    // Not configurable by parent
+    // NOT CONFIGURABLE
+
+    // Settings
+    // TODO Consider making configurable either by setting a default or disabling changing it
+    show_headings: local_storage.getItem('show_headings') !== 'false',
+    show_chapters: local_storage.getItem('show_chapters') !== 'false',
+    show_verses: local_storage.getItem('show_verses') !== 'false',
+    show_notes: local_storage.getItem('show_notes') !== 'false',
+    show_redletter: local_storage.getItem('show_redletter') !== 'false',
+
+    // State
     offline: false,
     content: '',
     content_verses: [] as SyncedVerses,
@@ -134,4 +150,19 @@ watch([() => state.chapter, () => state.verse], () => {
 })
 watch(() => state.dark, () => {
     local_storage.setItem('dark', String(state.dark))
+})
+watch(() => state.show_headings, () => {
+    local_storage.setItem('show_headings', String(state.show_headings))
+})
+watch(() => state.show_chapters, () => {
+    local_storage.setItem('show_chapters', String(state.show_chapters))
+})
+watch(() => state.show_verses, () => {
+    local_storage.setItem('show_verses', String(state.show_verses))
+})
+watch(() => state.show_notes, () => {
+    local_storage.setItem('show_notes', String(state.show_notes))
+})
+watch(() => state.show_redletter, () => {
+    local_storage.setItem('show_redletter', String(state.show_redletter))
 })

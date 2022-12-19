@@ -3,7 +3,7 @@
 
 div.content(ref='content_div' class='fetch-bible' @touchstart.passive='on_touch_start'
         @touchend.passive='on_touch_end' @touchmove.passive='on_touch_move'
-        @touchcancel.passive='on_touch_cancel')
+        @touchcancel.passive='on_touch_cancel' :class='fetch_classes')
 
     div.prev_ch(ref='swipe_prev' :class='{disabled: state.chapter <= 1}')
         | {{ state.chapter - 1 }}
@@ -24,7 +24,7 @@ div.content(ref='content_div' class='fetch-bible' @touchstart.passive='on_touch_
 
 <script lang='ts' setup>
 
-import {ref, onMounted, watch} from 'vue'
+import {ref, onMounted, watch, computed} from 'vue'
 
 import {state, change_chapter} from '@/services/state'
 import {chapters} from '@/services/computes'
@@ -44,6 +44,18 @@ const chapter_nodes = {} as Record<string, HTMLElement>
 const swipe_prev = ref<HTMLDivElement>()
 const swipe_next = ref<HTMLDivElement>()
 const content_div = ref<HTMLDivElement>()
+
+
+// Fetch classes
+const fetch_classes = computed(() => {
+    return {
+        'no-headings': !state.show_headings,
+        'no-chapters': !state.show_chapters,
+        'no-verses': !state.show_verses,
+        'no-notes': !state.show_notes,
+        'no-red-letter': !state.show_redletter,
+    }
+})
 
 
 function intentional_swipe_distance(){

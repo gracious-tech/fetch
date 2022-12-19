@@ -18,6 +18,21 @@ v-dialog(v-model='state.show_style_dialog' :fullscreen='!state.wide')
                 v-switch.theme(v-model='state.dark' hide-details)
                 app-icon(name='dark_mode')
 
+            v-switch(v-model='state.show_headings' hide-details color='primary'
+                label="Show headings")
+
+            v-switch(v-model='state.show_chapters' hide-details color='primary'
+                label="Show chapter dividers")
+
+            v-switch(v-model='state.show_verses' hide-details color='primary'
+                label="Show verse numbers")
+
+            v-switch(v-model='state.show_notes' hide-details color='primary'
+                label="Show notes")
+
+            v-switch(v-model='state.show_redletter' hide-details color='primary'
+                label="Show words of Jesus in red")
+
 
 </template>
 

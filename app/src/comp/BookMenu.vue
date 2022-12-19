@@ -80,7 +80,4 @@ const select_ch = (num:number) => {
     &.nt
         text-align: right
 
-.v-list-item
-    min-height: 30px  // TODO Vuetify density not working
-
 </style>

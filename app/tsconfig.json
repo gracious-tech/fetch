@@ -8,4 +8,9 @@
         "paths": {"@/*": ["src/*"]},
         "types": ["vite/client", "vite-svg-loader"],
     },
+    "vueCompilerOptions": {
+        "plugins": [
+            "@volar/vue-language-plugin-pug"
+        ]
+    }
 }

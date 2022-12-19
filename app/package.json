@@ -23,6 +23,7 @@
         "@material-symbols/svg-400": "^0.2.12",
         "@types/pug": "^2.0.6",
         "@vitejs/plugin-vue": "^2.3.3",
+        "@volar/vue-language-plugin-pug": "^1.0.14",
         "pug": "^3.0.2",
         "rollup-plugin-workbox": "^6.2.0",
         "sass": "^1.53.0",

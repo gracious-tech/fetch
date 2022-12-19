@@ -12,6 +12,7 @@ import {post_message} from '@/services/post'
 // Embed global styles
 import './styles.sass'
 import '@/client/client.css'
+import 'vuetify/styles'
 
 
 // Enable watches

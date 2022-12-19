@@ -54,6 +54,7 @@ const fetch_classes = computed(() => {
         'no-verses': !state.show_verses,
         'no-notes': !state.show_notes,
         'no-red-letter': !state.show_redletter,
+        [`size-${state.font_size}`]: true,
     }
 })
 
@@ -245,6 +246,20 @@ watch(() => state.target, target => {
 
 .content > *:last-child
     margin-bottom: 90vh  // So can scroll last verse to very top and trigger state for it
+
+.fetch-bible
+    &.size-small
+        font-size: 14px
+        @media (min-width: 800px)
+            font-size: 16px
+    &.size-large
+        font-size: 18px
+        @media (min-width: 800px)
+            font-size: 20px
+    &.size-very-large
+        font-size: 20px
+        @media (min-width: 800px)
+            font-size: 22px
 
 .single
     padding: 24px

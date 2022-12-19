@@ -18,6 +18,12 @@ v-dialog(v-model='state.show_style_dialog' :fullscreen='!state.wide')
                 v-switch.theme(v-model='state.dark' hide-details)
                 app-icon(name='dark_mode')
 
+            v-btn-toggle(v-model='state.font_size' mandatory class='my-1' color='primary')
+                v-btn(value='small' size='x-small') Small
+                v-btn(value='regular' size='x-small') Regular
+                v-btn(value='large' size='x-small') Large
+                v-btn(value='very-large' size='x-small') Very large
+
             v-switch(v-model='state.show_headings' hide-details color='primary'
                 label="Show headings")
 

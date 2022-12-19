@@ -87,6 +87,7 @@ export const state = reactive({
     show_verses: local_storage.getItem('show_verses') !== 'false',
     show_notes: local_storage.getItem('show_notes') !== 'false',
     show_redletter: local_storage.getItem('show_redletter') !== 'false',
+    font_size: local_storage.getItem('font_size') ?? 'regular',
 
     // State
     offline: false,
@@ -165,4 +166,7 @@ watch(() => state.show_notes, () => {
 })
 watch(() => state.show_redletter, () => {
     local_storage.setItem('show_redletter', String(state.show_redletter))
+})
+watch(() => state.font_size, () => {
+    local_storage.setItem('font_size', state.font_size)
 })

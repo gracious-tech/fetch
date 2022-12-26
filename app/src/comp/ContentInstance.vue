@@ -248,6 +248,7 @@ watch(() => state.target, target => {
     margin-bottom: 90vh  // So can scroll last verse to very top and trigger state for it
 
 .fetch-bible
+    // Custom font size settings
     &.size-small
         font-size: 14px
         @media (min-width: 800px)

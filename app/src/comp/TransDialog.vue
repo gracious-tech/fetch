@@ -2,7 +2,7 @@
 <template lang='pug'>
 
 v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide' :max-width='dialog_max_width'
-        max-height='1000px')
+        max-height='1000px' height='100%')
 
     v-card(height='100%')
 

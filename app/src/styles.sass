@@ -12,3 +12,10 @@ body
     height: 100%
     display: flex
     flex-direction: column  // Prevents margin (on wide screens) from pushing beyond viewport
+
+
+// Make chapter headings invisible rather than not present, so doesn't mess up navigation
+// WARN Changing this can break chapter navigation
+.fetch-bible.no-chapters h3[data-c]
+    display: block !important
+    visibility: hidden

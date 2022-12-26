@@ -1,7 +1,7 @@
 
 <template lang='pug'>
 
-v-dialog(v-model='state.show_style_dialog' :fullscreen='!state.wide')
+v-dialog(v-model='state.show_style_dialog' :fullscreen='!state.wide' :max-width='dialog_max_width')
 
     v-card
 
@@ -45,7 +45,7 @@ v-dialog(v-model='state.show_style_dialog' :fullscreen='!state.wide')
 
 <script lang='ts' setup>
 
-import {state, density} from '@/services/state'
+import {state, density, dialog_max_width} from '@/services/state'
 
 </script>
 

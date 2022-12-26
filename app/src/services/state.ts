@@ -126,6 +126,11 @@ export const density = computed(() => {
     return state.wide ? 'default' : 'compact'
 })
 
+// Max-width for dialogs, so they don't look silly taking up whole screen
+export const dialog_max_width = computed(() => {
+    return state.wide ? '800px' : ''
+})
+
 
 // METHODS
 

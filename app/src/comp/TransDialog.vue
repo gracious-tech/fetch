@@ -1,9 +1,10 @@
 
 <template lang='pug'>
 
-v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
+v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide' :max-width='dialog_max_width'
+        max-height='1000px')
 
-    v-card
+    v-card(height='100%')
 
         v-tabs(v-model='selected_trans_index' background-color='primary')
             //- eslint-disable-next-line vue/valid-v-for
@@ -23,7 +24,7 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
                     @click='remove_trans')
                 app-icon(name='delete')
 
-        v-list(v-if='show_languages')
+        v-list(v-if='show_languages' ref='lang_list_comp')
             v-list-item(v-for='lang of languages_filtered' :key='lang.code' density='compact'
                     @click='change_lang(lang.code)')
                 v-list-item-title
@@ -49,8 +50,9 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide')
 
 import {computed, ref, watch} from 'vue'
 
-import {state, langs} from '@/services/state'
+import {state, langs, dialog_max_width} from '@/services/state'
 import {content} from '@/services/content'
+import type {VList} from 'vuetify/lib/components/VList/index'
 
 
 // Contants
@@ -65,6 +67,7 @@ const show_languages = ref(false)
 const displayed_language = ref(langs.value[0])
 const languages_search = ref('')
 const languages_show_all = ref(false)
+const lang_list_comp = ref<InstanceType<typeof VList>>()
 
 
 // Computes
@@ -88,6 +91,10 @@ const languages_filtered = computed(() => {
 watch(selected_trans_index, () => {
     displayed_language.value = chosen_translations.value[selected_trans_index.value]!.language
     show_languages.value = false
+})
+watch(languages_show_all, () => {
+    // Scroll back to top of lang list when showing all, as new items will be added to top
+    lang_list_comp.value?.$el.scroll({top: 0})
 })
 
 

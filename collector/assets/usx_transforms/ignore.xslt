@@ -1,6 +1,7 @@
 <xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <!-- Tags to ignore
 
+WARN Update usx_to_txt.xslt if any of this changes (can't include non-biblical content)
 WARN Some tags allow an uspecified number range (usually assumed to not go larger than 4)
 
 -->

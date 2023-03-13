@@ -176,7 +176,7 @@ async function _update_dist_single(id:string){
 
     // Locate xslt3 executable and XSL template path
     const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
-    const xsl_template = join(PKG_PATH, 'assets', 'usx3_to_html', 'main.xslt')
+    const xsl_template = join(PKG_PATH, 'assets', 'usx_transforms', 'usx_to_html.xslt')
 
     // Convert USX to HTML
     for (const file of readdirSync(usx_dir)){

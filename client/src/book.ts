@@ -204,6 +204,48 @@ export class BibleBookUsx {
 }
 
 
+// Access to the USFM text of a Bible book
+export class BibleBookUsfm {
+
+    // @internal
+    _translation:RuntimeTranslation
+    // @internal
+    _usfm:string
+
+    // @internal
+    constructor(translation:RuntimeTranslation, usfm:string){
+        this._translation = translation
+        this._usfm = usfm
+    }
+
+    // Get the USFM for the entire book
+    get_whole(){
+        return this._usfm
+    }
+}
+
+
+// Access to the plain text of a Bible book
+export class BibleBookTxt {
+
+    // @internal
+    _translation:RuntimeTranslation
+    // @internal
+    _txt:string
+
+    // @internal
+    constructor(translation:RuntimeTranslation, txt:string){
+        this._translation = translation
+        this._txt = txt
+    }
+
+    // Get the plain text for the entire book
+    get_whole(){
+        return this._txt
+    }
+}
+
+
 function advance(current:number, target:string, string:string):number{
     // Advance index `current` up to the next detection of `target` or otherwise to the string's end
     const result = string.indexOf(target, current)

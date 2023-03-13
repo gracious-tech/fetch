@@ -53,10 +53,14 @@ export async function publish(translation?:string):Promise<void>{
             continue  // Only publishing a single translation
         }
         const usx_dir = join('dist', 'bibles', id, 'usx')
+        const usfm_dir = join('dist', 'bibles', id, 'usfm')
         const html_dir = join('dist', 'bibles', id, 'html')
+        const txt_dir = join('dist', 'bibles', id, 'txt')
         files.push(
             ...readdirSync(usx_dir).map(file => join(usx_dir, file)),
+            ...readdirSync(usfm_dir).map(file => join(usfm_dir, file)),
             ...readdirSync(html_dir).map(file => join(html_dir, file)),
+            ...readdirSync(txt_dir).map(file => join(txt_dir, file)),
         )
         invalidations.push(`/bibles/${id}/*`)
     }

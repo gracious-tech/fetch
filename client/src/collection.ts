@@ -1,5 +1,5 @@
 
-import {BibleBookHtml, BibleBookUsx} from './book'
+import {BibleBookHtml, BibleBookUsx, BibleBookUsfm, BibleBookTxt} from './book'
 import {filter_licenses} from './licenses'
 import {DistManifest} from './shared_types'
 import {UsageOptions, UsageConfig, RuntimeManifest, RuntimeLicense} from './types'
@@ -410,7 +410,7 @@ export class BibleCollection {
     }
 
     // Get the URL for a book's content (useful for caching and manual retrieval)
-    get_book_url(translation:string, book:string, format:'html'|'usx'='html'){
+    get_book_url(translation:string, book:string, format:'html'|'usx'|'usfm'|'txt'='html'){
         return `${this._endpoints[translation]!}bibles/${translation}/${format}/${book}.${format}`
     }
 
@@ -455,17 +455,22 @@ export class BibleCollection {
         return [...Array(last_verse[book]![chapter-1]).keys()].map(i => i + 1)
     }
 
-    // Make request for the HTML text for a book of a translation (returns object for accessing it)
+    // Make request for the text for a book of a translation (returns object for accessing it)
     async fetch_book(translation:string, book:string, format?:'html'):Promise<BibleBookHtml>
     async fetch_book(translation:string, book:string, format:'usx'):Promise<BibleBookUsx>
-    async fetch_book(translation:string, book:string, format:'html'|'usx'='html'):
-            Promise<BibleBookHtml|BibleBookUsx>{
+    async fetch_book(translation:string, book:string, format:'usfm'):Promise<BibleBookUsfm>
+    async fetch_book(translation:string, book:string, format:'txt'):Promise<BibleBookTxt>
+    async fetch_book(translation:string, book:string, format:'html'|'usx'|'usfm'|'txt'='html'):
+            Promise<BibleBookHtml|BibleBookUsx|BibleBookUsfm|BibleBookTxt>{
         this._ensure_book_exists(translation, book)
         const contents = await request(this.get_book_url(translation, book, format))
-        if (format === 'html'){
-            return new BibleBookHtml(this._manifest.translations[translation]!, contents)
-        }
-        return new BibleBookUsx(this._manifest.translations[translation]!, contents)
+        const format_class = {
+            html: BibleBookHtml,
+            usx: BibleBookUsx,
+            usfm: BibleBookUsfm,
+            txt: BibleBookTxt,
+        }[format]
+        return new format_class(this._manifest.translations[translation]!, contents)
     }
 
     // TODO async fetch_audio(){}

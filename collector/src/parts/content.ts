@@ -174,33 +174,36 @@ async function _update_dist_single(id:string){
     // Extract meta data from the USX files
     await _create_extracts(src_dir, usx_dir)
 
-    // Locate xslt3 executable and XSL template path
+    // Locate xslt3 executable and XSL template dir
     const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
-    const xsl_template = join(PKG_PATH, 'assets', 'usx_transforms', 'usx_to_html.xslt')
+    const xsl_template_html = join(PKG_PATH, 'assets', 'usx_transforms', 'usx_to_html.xslt')
+    const xsl_template_txt = join(PKG_PATH, 'assets', 'usx_transforms', 'usx_to_txt.xslt')
 
-    // Convert USX to HTML
+    // Convert USX to HTML and plain text
     for (const file of readdirSync(usx_dir)){
 
         // Determine paths
         const book = file.split('.')[0]!.toLowerCase()
         const src = join(usx_dir, `${book}.usx`)
-        const dst = join(dist_dir, 'html', `${book}.html`)
+        const dst_html = join(dist_dir, 'html', `${book}.html`)
+        const dst_txt = join(dist_dir, 'txt', `${book}.txt`)
 
-        // Skip if already exists
-        if (existsSync(dst)){
-            continue
+        // Convert to HTML if doesn't exist yet
+        if (!existsSync(dst_html)){
+            execSync(`${xslt3} -xsl:${xsl_template_html} -s:${src} -o:${dst_html}`)
+            // Minify the HTML (since HTML isn't as strict as XML/JSON can remove quotes etc)
+            writeFileSync(dst_html, await minify(readFileSync(dst_html, 'utf-8'), {
+                // Just enable relevent options since we create HTML ourself and many aren't issues
+                collapseWhitespace: true,  // Get rid of useless whitespace
+                conservativeCollapse: true,  // Leave gap between spans etc or words will join
+                removeAttributeQuotes: true,  // Allowed by spec and browsers can still parse
+                decodeEntities: true,  // Don't use &..; if can just use UTF-8 char (e.g. hun_kar)
+            }))
         }
 
-        // Do conversion to html
-        execSync(`${xslt3} -xsl:${xsl_template} -s:${src} -o:${dst}`)
-
-        // Minify the HTML (since HTML isn't as strict as XML/JSON can remove quotes etc)
-        writeFileSync(dst, await minify(readFileSync(dst, 'utf-8'), {
-            // Just enable relevent options since we create HTML ourself and many aren't an issue
-            collapseWhitespace: true,  // Get rid of useless whitespace
-            conservativeCollapse: true,  // Always leave gap between spans etc or words will join
-            removeAttributeQuotes: true,  // Allowed by spec and browsers can still parse
-            decodeEntities: true,  // Don't use &..; if can just use UTF-8 char (e.g. hun_kar)
-        }))
+        // Convert to plain text if doesn't exist yet
+        if (!existsSync(dst_txt)){
+            execSync(`${xslt3} -xsl:${xsl_template_txt} -s:${src} -o:${dst_txt}`)
+        }
     }
 }

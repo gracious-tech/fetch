@@ -159,8 +159,10 @@ async function _update_dist_single(id:string){
         return
     }
 
-    // Ensure dist dir exists
-    mkdirSync(dist_dir, {recursive: true})
+    // Ensure dist dirs exist
+    for (const format of ['usx', 'usfm', 'html', 'txt']){
+        mkdirSync(join(dist_dir, format), {recursive: true})
+    }
 
     // If already USX3+ just copy, otherwise convert
     if (meta.source.format === 'usx3+'){

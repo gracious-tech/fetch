@@ -165,10 +165,19 @@ async function _update_dist_single(id:string){
     // If already USX3+ just copy, otherwise convert
     if (meta.source.format === 'usx3+'){
         for (const file of readdirSync(format_dir)){
-            copyFileSync(join('sources', id, 'usx3+', file), join(usx_dir, file))
+            copyFileSync(join(format_dir, file), join(usx_dir, file))
         }
     } else {
         await _convert_to_usx(id, meta.source.format)
+    }
+
+    // If already USFM just copy, otherwise convert
+    if (meta.source.format === 'usfm'){
+        for (const file of readdirSync(format_dir)){
+            copyFileSync(join(format_dir, file), join(dist_dir, 'usfm', file))
+        }
+    } else {
+        throw new Error("Conversion to USFM is waiting on https://github.com/usfm-bible/tcdocs")
     }
 
     // Extract meta data from the USX files

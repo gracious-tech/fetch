@@ -3,8 +3,13 @@
 set -e
 cd "$(dirname "$(dirname "$0")")"
 
-npm install
+# Install modules for each component
+npm ci
 cd client
-npm install
+npm ci
 cd ../collector
-npm install
+npm ci
+cd ../app
+npm ci
+cd ../site
+npm ci

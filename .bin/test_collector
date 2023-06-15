@@ -12,8 +12,7 @@ mkdir collection
 
 # Build collection from scratch
 .bin/collector setup
-.bin/collector discover door43
-.bin/collector download eng_udb
-.bin/collector download eng_ulb
-.bin/collector download vie_udb
+.bin/collector discover ebible
+.bin/collector download eng_bsb
+.bin/collector download vie_vcb
 .bin/collector process

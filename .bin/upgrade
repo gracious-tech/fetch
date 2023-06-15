@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+# Upgrade modules to latest versions and remove lock files so deps also upgraded
+npx ncu -u
+rm -f package-lock.json
+rm -rf node_modules
+npm install
+
+cd client
+npx ncu -u
+rm -f package-lock.json
+rm -rf node_modules
+npm install
+
+cd ../collector
+npx ncu -u
+rm -f package-lock.json
+rm -rf node_modules
+npm install
+
+cd ../app
+npx ncu -u
+rm -f package-lock.json
+rm -rf node_modules
+npm install
+
+cd ../site
+npx ncu -u
+rm -f package-lock.json
+rm -rf node_modules
+npm install

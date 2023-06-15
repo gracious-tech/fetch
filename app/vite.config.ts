@@ -37,7 +37,7 @@ export default defineConfig(({mode}) => {
                         },
                     },
                 ],
-            }),
+            }, {}),
         ],
         resolve: {
             alias: [

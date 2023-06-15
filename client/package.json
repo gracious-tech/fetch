@@ -22,6 +22,6 @@
   },
   "homepage": "https://fetch.bible/",
   "devDependencies": {
-    "sass": "^1.53.0"
+    "sass": "^1.63.4"
   }
 }

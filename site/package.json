@@ -2,9 +2,9 @@
     "private": true,
     "devDependencies": {
         "pug": "^3.0.2",
-        "sass": "^1.52.3",
-        "typedoc": "^0.23.2",
-        "typedoc-plugin-markdown": "^3.13.2",
-        "vitepress": "^1.0.0-alpha.13"
+        "sass": "^1.63.4",
+        "typedoc": "^0.24.8",
+        "typedoc-plugin-markdown": "^3.15.3",
+        "vitepress": "^1.0.0-beta.2"
     }
 }

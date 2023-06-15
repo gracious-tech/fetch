@@ -75,9 +75,22 @@ function select_format(formats:Door43Format[]):Door43Format|null{
 
 export async function discover():Promise<void>{
     // Discover new translations
+    const stats_bible = await _discover('Bible')
+    const stats_aligned = await _discover('Aligned_Bible')
+
+    // Report stats
+    console.info(`New: ${stats_bible.added + stats_aligned.added}`)
+    console.info(`Existing: ${stats_bible.exists + stats_aligned.exists}`)
+}
+
+
+async function _discover(subject:'Bible'|'Aligned_Bible'):Promise<{added:number, exists:number}>{
+    // Discover new translations for a "subject"
+    // Door43 has two subjects for bibles and others for translation notes, stories, etc.
 
     // Fetch the catalog
-    const catalog = await request<Door43Language[]>('https://api.door43.org/v3/subjects/Bible.json')
+    const catalog =
+        await request<Door43Language[]>(`https://api.door43.org/v3/subjects/${subject}.json`)
 
     // Load language data for code conversion
     const languages = get_language_data()
@@ -170,9 +183,8 @@ export async function discover():Promise<void>{
         }
     }
 
-    // Report stats
-    console.info(`New: ${added.length}`)
-    console.info(`Existing: ${exists.length}`)
+    // Return stats
+    return {added: added.length, exists: exists.length}
 }
 
 

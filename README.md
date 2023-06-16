@@ -2,6 +2,17 @@
 
 All the source code for everything [fetch(bible)](https://fetch.bible).
 
+You should read all of the docs on the website before reading this, as they explain how the platform works. This is not a typical platform, as the hosted portion is simply static files and the "API" is really a client-side module that does things an API would usually do.
+
+
+## Components
+
+ * __collector:__ A node CLI for managing a private collection of Bible translations
+ * __collection:__ A test collection that `.bin/collector` will generate during development
+ * __client:__ A browser/Node module that can interact with a collection in an API-like way
+ * __app:__ A simple generic Bible reading app that can be embedded in another website/app
+ * __site:__ Website for fetch.bible that includes the documentation
+
 
 ## Development setup
 

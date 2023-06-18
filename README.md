@@ -30,7 +30,7 @@ If you want to use the platform for an app, check out the documentation on [how 
 # Build the client which other components rely on
 .bin/build_client
 
-# Serve the collection
+# Serve the collection (so app and site can use it)
 .bin/serve_collection
 
 # Serve the app and/or site (while collection is still being served)

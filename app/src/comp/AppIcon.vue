@@ -1,7 +1,7 @@
 
 <template lang='pug'>
 
-component.icon(:is='icons[name]' viewBox='0 0 48 48')
+component.icon(:is='icons[name]')
 
 </template>
 

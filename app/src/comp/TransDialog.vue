@@ -37,7 +37,7 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide' :max-width=
                 | &nbsp;
                 | More
         v-list(v-else)
-            v-list-item(v-for='trans of translations' :key='trans.id' active-color='primary'
+            v-list-item(v-for='trans of translations' :key='trans.id' color='primary'
                     :active='trans.id === selected_trans.id' density='compact'
                     @click='change_trans(trans.id)')
                 v-list-item-title

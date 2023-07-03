@@ -5,7 +5,7 @@ aside: false
 
 
 <script setup>
-import PageStats from '@/.comp/PageStats.vue'
+import PageStats from '@/_comp/PageStats.vue'
 </script>
 
 <ClientOnly>

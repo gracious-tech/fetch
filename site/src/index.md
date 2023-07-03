@@ -28,7 +28,7 @@ hero:
 
 import {onMounted} from 'vue'
 
-import {BibleClient} from './.comp/client.min.esm.js'
+import {BibleClient} from './_comp/client.min.esm.js'
 
 
 // Use localhost endpoint during dev

@@ -54,7 +54,7 @@ p
 
 import {computed, ref} from 'vue'
 
-import {BibleClient} from './client.min.esm.js'
+import {BibleClient} from './client/client.mjs'
 import population from './population.json'
 
 

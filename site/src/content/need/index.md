@@ -5,7 +5,7 @@ aside: false
 
 
 <script setup>
-import PageNeed from '@/.comp/PageNeed.vue'
+import PageNeed from '@/_comp/PageNeed.vue'
 </script>
 
 <ClientOnly>

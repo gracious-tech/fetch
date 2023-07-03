@@ -5,7 +5,7 @@ aside: false
 
 
 <script setup>
-import PageBibles from '@/.comp/PageBibles.vue'
+import PageBibles from '@/_comp/PageBibles.vue'
 </script>
 
 <ClientOnly>

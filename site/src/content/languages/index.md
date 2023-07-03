@@ -4,7 +4,7 @@ aside: false
 ---
 
 <script setup>
-import PageLanguages from '@/.comp/PageLanguages.vue'
+import PageLanguages from '@/_comp/PageLanguages.vue'
 </script>
 
 <ClientOnly>

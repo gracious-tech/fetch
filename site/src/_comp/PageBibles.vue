@@ -59,7 +59,7 @@ table
 
 import {ref, computed} from 'vue'
 
-import {BibleClient} from './client.min.esm.js'
+import {BibleClient} from './client/client.mjs'
 
 
 // Use localhost endpoint during dev

@@ -13,7 +13,5 @@ node_modules/
 
 /site/dist/
 /site/src/access/client/api/
-/site/src/public/client.*
-/site/src/.comp/client.min.esm.js
 /site/.deployments/
 /site/.vitepress/cache/

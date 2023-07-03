@@ -17,7 +17,7 @@ Signup to [Gracious Tech news](https://gracious.tech) to be notified when it off
 
 Together, it's a digital bible platform that lets anyone access scripture in thousands of translations, whether to display a single verse or power an entire bible app.
 
-<img src='@/.assets/decor_book.svg' style='max-width: 300px; margin: 0 auto'>
+<img src='@/_assets/decor_book.svg' style='max-width: 300px; margin: 0 auto'>
 
 
 ## What makes fetch(bible) special?
@@ -31,7 +31,7 @@ Together, it's a digital bible platform that lets anyone access scripture in tho
 While fetch(bible) has no restrictions itself, most Bible translations have terms you must still comply with, and fetch(bible) makes this easy by filtering translations based on your intended use.
 
 
-<img src='@/.assets/decor_world.svg' style='max-width: 300px; margin: 36px auto'>
+<img src='@/_assets/decor_world.svg' style='max-width: 300px; margin: 36px auto'>
 
 
 ## What currently uses fetch(bible)?
@@ -42,7 +42,7 @@ Prelaunch apps:
 
 More apps will be available after fetch(bible) officially launches.
 
-<img src='@/.assets/decor_apps.svg' style='max-width: 300px; margin: 36px auto'>
+<img src='@/_assets/decor_apps.svg' style='max-width: 300px; margin: 36px auto'>
 
 ## Who made fetch(bible)?
 
@@ -51,5 +51,5 @@ More apps will be available after fetch(bible) officially launches.
 Though our work was only possible thanks to the [extensive efforts of others](/legal/credits/) who have been translating, collecting, and working on tools that fetch(bible) makes use of.
 
 <a href='https://gracious.tech'>
-    <img src='@/.assets/decor_gt.jpg' style='border-radius: 12px; margin-top: 36px'>
+    <img src='@/_assets/decor_gt.jpg' style='border-radius: 12px; margin-top: 36px'>
 </a>

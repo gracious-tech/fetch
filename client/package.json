@@ -5,8 +5,9 @@
   "type": "module",
   "exports": {
     "import": "./dist/esm/index.js",
-    "require": "./dist/cjs/index.cjs"
+    "require": "./dist/bundled.cjs"
   },
+  "types": "./dist/esm/index.d.ts",
   "files": [
     "dist"
   ],

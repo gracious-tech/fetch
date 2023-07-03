@@ -1,5 +1,5 @@
 
-import {escape_html} from './utils'
+import {escape_html} from './utils.js'
 import type {RuntimeLicense, RuntimeTranslation} from './types'
 
 

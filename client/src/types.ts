@@ -1,8 +1,7 @@
 
 // General types specific to the client
 
-import {MetaCopyright, DistManifest, DistTranslation, MetaRestrictions}
-    from './shared_types'
+import type {MetaCopyright, DistManifest, DistTranslation, MetaRestrictions} from './shared_types'
 
 
 export interface UsageConfig {

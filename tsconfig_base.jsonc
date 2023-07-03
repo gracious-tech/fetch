@@ -11,7 +11,7 @@
 
         // Language expectations
         "module": "ESNext",  // Default to ESM and override manually when building for CJS
-        "target": "ESNext",  // Don't do any downgrading (leave that to esbuild)
+        "target": "ESNext",  // Manually specify target for each build type
         "moduleResolution": "Node",  // All should use node-like module resolution, not just node
 
         // Other compilation settings

@@ -3,5 +3,8 @@
 set -e
 cd "$(dirname "$(dirname "$0")")/app"
 
+# Do fresh build of client since app relies on it
+../.bin/build_client
+
 ../.bin/build_app
 node_modules/.bin/esbuild --platform=node ../.bin/publish.ts | node --input-type=module

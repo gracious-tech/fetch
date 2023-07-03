@@ -13,30 +13,19 @@ node_modules/.bin/sass --style=compressed src/css/index.sass dist/client.css
 
 
 # Common args
+# NOTE Target must be suitable for browsers as well as Node18+
 esbuild="../node_modules/.bin/esbuild --sourcemap --target=es6"
 
 
-# Build ESM and CJS versions
-$esbuild --format=esm  --platform=neutral --outdir=dist/esm ./src/*.ts
-$esbuild --format=cjs  --platform=node    --outdir=dist/cjs ./src/*.ts
-
-
-# Add typings for the ESM version
+# Build cross-platform ESM with typings (the main format recommended to be used)
+# NOTE Not bundling as apps should do themselves, and separate files easier for debugging and types
 ../node_modules/.bin/tsc --emitDeclarationOnly --outDir dist/esm
+$esbuild --format=esm --platform=neutral --outdir=dist/esm ./src/*.ts
 
 
-# Build bundled minified versions as ESM and IIFE
-$esbuild --format=esm  --platform=neutral --outfile=dist/client.min.esm.js  --bundle --minify src/index.ts
-$esbuild --format=iife --platform=browser --outfile=dist/client.min.iife.js --bundle --minify src/index.ts
-
-
-# Copy to site so example and users can use if they want
-cp dist/client.min.esm.js ../site/src/public/client.min.esm.js
-cp dist/client.min.esm.js ../site/src/public/client.min.esm.js.map
-cp dist/client.min.iife.js ../site/src/public/client.min.iife.js
-cp dist/client.min.iife.js ../site/src/public/client.min.iife.js.map
-cp dist/client.css ../site/src/public/client.css
-
-
-# Put in comp dir as well as Vitepress doesn't like importing from public
-cp dist/client.min.esm.js ../site/src/.comp/client.min.esm.js
+# Provide some other formats that may be useful for some people, but not recommended
+# NOTE These formats aren't recommended, so not providing types or hosting for them etc.
+# NOTE Since package type is "module" then need to use '.cjs' extension to force require syntax
+$esbuild --format=cjs  --platform=node    --outdir=dist/cjs --out-extension:.js=.cjs ./src/*.ts
+$esbuild --format=esm  --platform=neutral --outfile=dist/bundled.mjs       --bundle --minify src/index.ts
+$esbuild --format=iife --platform=browser --outfile=dist/bundled.global.js --bundle --minify src/index.ts

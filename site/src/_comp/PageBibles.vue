@@ -55,21 +55,15 @@ table
 </template>
 
 
-<script setup>
+<script lang='ts' setup>
 
 import {ref, computed} from 'vue'
 
-import {BibleClient} from './client/client.mjs'
+import {collection} from './collection'
 
 
 // Use localhost endpoint during dev
-const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 const app = import.meta.env.PROD ? 'https://app.fetch.bible/' : 'http://localhost:8431/'
-
-
-// Get collection
-const client = new BibleClient({endpoints: [endpoint]})
-const collection = await client.fetch_collection()
 
 
 // Expose total number of translations before filtering

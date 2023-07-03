@@ -4,6 +4,6 @@
     "exclude": ["**/node_modules"],
     "compilerOptions": {
         "lib": ["DOM", "DOM.Iterable", "ESNext"],
-        "types": ["mime-types"],
+        "types": ["mime-types", "vite/client"],
     },
 }

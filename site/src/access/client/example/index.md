@@ -1,3 +1,7 @@
+---
+aside: false
+---
+
 
 # Example app
 
@@ -7,4 +11,4 @@ To show how easy fetch(bible) is to use, here's a basic bible app created with a
 
 <iframe src='/example.html' style='width:100%;height:500px;border-style:none;'></iframe>
 
-<<< @/public/example.html
+<<< @/_public/example.html

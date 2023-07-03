@@ -4,7 +4,7 @@ aside: false
 ---
 
 
-<script setup>
+<script lang='ts' setup>
 import PageStats from '@/_comp/PageStats.vue'
 </script>
 

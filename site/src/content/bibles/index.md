@@ -4,7 +4,7 @@ aside: false
 ---
 
 
-<script setup>
+<script lang='ts' setup>
 import PageBibles from '@/_comp/PageBibles.vue'
 </script>
 

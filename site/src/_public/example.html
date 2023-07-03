@@ -6,8 +6,10 @@
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
 
-    <!-- Include client CSS -->
-    <link rel='stylesheet' href='https://fetch.bible/client.css'>
+    <!-- Include client CSS, normally done for bundled apps with:
+        import '@gracious.tech/fetch-client/client.css'
+    -->
+    <link rel='stylesheet' href='./client.css'>
 
     <style>
         body {
@@ -21,6 +23,7 @@
         }
         .toolbar {
             position: sticky;
+            z-index: 1;
             top: 0;
             background-color: purple;
             padding: 6px;
@@ -56,7 +59,8 @@
 
 
 // Import the fetch(bible) client
-import {BibleClient} from 'https://fetch.bible/client.min.esm.js'
+// Normally you would import from '@gracious.tech/fetch-client' rather than a static file
+import {BibleClient} from './client.mjs'
 
 
 // Locate UI elements

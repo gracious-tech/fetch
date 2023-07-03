@@ -4,7 +4,7 @@ aside: false
 ---
 
 
-<script setup>
+<script lang='ts' setup>
 import PageNeed from '@/_comp/PageNeed.vue'
 </script>
 

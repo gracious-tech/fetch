@@ -1,0 +1,6 @@
+#!/bin/bash
+# Run tests
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+node_modules/.bin/vitest "$@"

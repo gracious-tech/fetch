@@ -1,4 +1,7 @@
 
+import {readdirSync} from 'fs'
+
+
 export function generate_index_file(path:string):string{
     // Generate a HTML index file for given directory
     /* TODO Requirements:

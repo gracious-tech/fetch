@@ -93,6 +93,7 @@ let templatePart1 = /* html */ `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>body {font-family: monospace;}</style>
   <title>
 `.trim()
 
@@ -100,6 +101,7 @@ let templatePart2 = /* html */ `
   </title>
 </head>
 <body>
+<h2>Files</h2>
 `.trim()
 
 let templatePart3 = /* html */ `
@@ -116,9 +118,6 @@ async function main() {
       switch (req.method) {
         case 'GET': {
           let filename = decodeURIComponent(req.url).replace(/^\//, './')
-          if (filename === './'){
-            filename = './index.html'
-          }
           let file = path.join(root, filename)
           if (!fs.existsSync(file)) {
             end(res, 404, `File not found: ${file}`)
@@ -127,17 +126,23 @@ async function main() {
           let stat = fs.statSync(file)
           if (stat.isDirectory()) {
             let dir = file
-            let files = fs.readdirSync(dir)
+            let files = fs.readdirSync(dir).sort()
             res.setHeader('Content-Type', 'text/html')
             res.write(templatePart1)
             res.write(path.basename(filename))
             res.write(templatePart2)
+            let dir_html = '<h2>Folders</h2>'
             for (let file of files) {
               let href = `${req.url}/${file}`.replace(/^\/\//, '/')
               let stat = fs.statSync(path.join(dir, file))
-              let type = stat.isDirectory() ? 'D' : 'F'
-              res.write(`[${type}] <a href="${href}">${file}</a><br>`)
+              if (stat.isDirectory()){
+                dir_html += `<a href="${href}">${file}</a><br>`
+              } else {
+                res.write(`<a href="${href}">${file}</a><br>`)
+              }
             }
+            res.write(dir_html)
+
             if (files.length === 0) {
               res.write(`[empty directory]`)
             }

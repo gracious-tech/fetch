@@ -58,3 +58,20 @@ export function read_json<T>(path:string):T{
 // NOTE Since dealing with a URL, separator is always '/' and 'file:/' is prepended
 export const PKG_PATH =
     dirname(dirname(dirname(join('/', ...import.meta.url.slice('file:/'.length).split('/')))))
+
+
+export function type_from_path(path:string){
+    // Determine content type from path (supporting only types relevant to collections)
+    if (path.endsWith('.usx')){
+        return 'application/xml'
+    } else if (path.endsWith('.usfm')){
+        return 'text/plain'
+    } else if (path.endsWith('.html')){
+        return 'text/html'
+    } else if (path.endsWith('.txt')){
+        return 'text/plain'
+    } else if (path.endsWith('.json')){
+        return 'application/json'
+    }
+    throw new Error(`Couldn't detect content type for: ${path}`)
+}

@@ -22,7 +22,7 @@ interface UpdateIndexesReturn {
     remove:string[]
 }
 
-export function update_indexes(modified:string, removed:string[]):UpdateIndexesReturn{
+export function update_indexes(modified:string[], removed:string[]):UpdateIndexesReturn{
     // Determine what updates are needed for published dir index files
     /* TODO Requirements:
         This function takes a list of files in collection that have been modified or removed.

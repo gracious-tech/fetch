@@ -3,4 +3,4 @@
 set -e
 cd "$(dirname "$(dirname "$0")")"
 
-.bin/serve_dir 8430 collection/dist
+.bin/collector serve

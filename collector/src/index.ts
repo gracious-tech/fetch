@@ -5,6 +5,7 @@ import yargs from 'yargs'
 import {gen_language_data} from './parts/languages.js'
 import {report_items, report_unprocessed} from './parts/reporting.js'
 import {publish} from './parts/publish.js'
+import {serve} from './parts/serve.js'
 import {update_dist, update_source} from './parts/content.js'
 import {update_bmc} from './parts/bmc.js'
 import {init_config} from './parts/config.js'
@@ -35,6 +36,9 @@ await yargs(process.argv.slice(2))
         argv => update_dist(argv['id'] as string))
     .command('process-manifest', "Update manifest (without updating actual translations)", {},
         argv => update_manifest())
+
+    .command('serve [port]', "Serve the collection for testing", {},
+        argv => serve(argv['port'] ? parseInt(argv['port'] as string) : undefined))
 
     .command('publish [id]', "Publish translations to server", {},
         argv => publish(argv['id'] as string))

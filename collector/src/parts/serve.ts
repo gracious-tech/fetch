@@ -17,7 +17,7 @@ export async function serve(port=8430){
 
         // Log the request
         const time = new Date().toLocaleTimeString()
-        console.info(`[${time}]`, req.method, req.url)
+        console.info(`[${time}] ${req.method!} ${req.url!}`)
 
         // Util for sending response
         function send(status:number, contents:string):void{
@@ -35,20 +35,25 @@ export async function serve(port=8430){
         // Turn the URL into a file path relative to PWD
         const path = join('dist', normalize(decodeURIComponent(req.url.split('?')[0]!).slice(1)))
 
-        // Confirm existance
-        if (!fs.existsSync(path)){
-            return send(404, `Not found: ${path}`)
+        // Serve if path exists
+        if (fs.existsSync(path)){
+
+            // Serve as-is if a file
+            if (fs.statSync(path).isFile()){
+                res.setHeader('Content-Type', type_from_path(path))
+                fs.createReadStream(path).pipe(res)
+                return
+            }
+
+            // Generate an index for dirs, but only if path ends with '/' (to mimic S3 deployment)
+            if (path.endsWith('/')){
+                res.setHeader('Content-Type', 'text/html')
+                return send(200, generate_index_file(path))
+            }
         }
 
-        // If a dir, generate dir index
-        if (fs.statSync(path).isDirectory()){
-            res.setHeader('Content-Type', 'text/html')
-            return send(200, generate_index_file(path))
-        }
-
-        // Serve the file this path points to
-        res.setHeader('Content-Type', type_from_path(path))
-        fs.createReadStream(path).pipe(res)
+        // Couldn't find
+        return send(404, `Not found: ${req.url}`)
     })
 
     // Start listening

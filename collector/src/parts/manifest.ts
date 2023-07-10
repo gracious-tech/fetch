@@ -1,13 +1,13 @@
 
 import {join} from 'path'
-import {existsSync, readdirSync, writeFileSync} from 'fs'
+import {existsSync, writeFileSync} from 'fs'
 
 import {isEqual} from 'lodash-es'
 
 import {book_names_english, books_ordered, last_verse} from './bible.js'
 import {get_language_data} from './languages.js'
 import {LICENSES} from './license.js'
-import {read_json} from './utils.js'
+import {read_json, read_dir} from './utils.js'
 import type {DistManifest} from './shared_types'
 import type {BookExtracts, TranslationSourceMeta} from './types'
 import {_missing_meta} from './reporting.js'
@@ -32,7 +32,7 @@ export async function update_manifest(){
     const included_languages:Set<string> = new Set()
 
     // Loop through published translations in dist dir
-    for (const trans of readdirSync(join('dist', 'bibles'))){
+    for (const trans of read_dir(join('dist', 'bibles'))){
 
         if (trans === 'manifest.json'){
             continue  // Ignore self
@@ -51,7 +51,7 @@ export async function update_manifest(){
         // Detect what books are available
         const html_dir = join('dist', 'bibles', trans, 'html')
         const html_books = existsSync(html_dir) ?
-            readdirSync(html_dir).map(name => name.slice(0, 3)) : []
+            read_dir(html_dir).map(name => name.slice(0, 3)) : []
         if (html_books.length === 0){
             console.error(`IGNORING ${trans} (no books)`)
             continue

@@ -1,5 +1,5 @@
 
-import {readdirSync} from 'fs'
+import {read_dir} from './utils.js'
 
 
 export function generate_index_file(path:string):string{

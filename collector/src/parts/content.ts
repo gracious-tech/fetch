@@ -9,7 +9,7 @@ import * as door43 from '../integrations/door43.js'
 import * as ebible from '../integrations/ebible.js'
 import {extract_meta} from './usx.js'
 import {update_manifest} from './manifest.js'
-import {concurrent, PKG_PATH, read_json} from './utils.js'
+import {concurrent, PKG_PATH, read_json, read_dir} from './utils.js'
 import type {TranslationSourceMeta, BookExtracts} from './types'
 
 
@@ -21,7 +21,7 @@ export async function update_source(trans_id?:string){
     const door43_sourced:Record<string, TranslationSourceMeta> = {}
     const ebible_sourced:Record<string, TranslationSourceMeta> = {}
 
-    for (const id of fs.readdirSync('sources')){
+    for (const id of read_dir('sources')){
 
         if (trans_id && id !== trans_id){
             continue  // Only updating a single translation
@@ -65,14 +65,14 @@ async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
 
     // Skip if already converted
     if (fs.existsSync(dist_dir)
-            && fs.readdirSync(src_dir).length === fs.readdirSync(dist_dir).length){
+            && read_dir(src_dir).length === read_dir(dist_dir).length){
         return
     }
 
     // Work around BMC bug by removing any /fig tags
     // See https://github.com/schierlm/BibleMultiConverter/issues/68
     if (format === 'usfm'){
-        for (let usfm_file of fs.readdirSync(src_dir)){
+        for (let usfm_file of read_dir(src_dir)){
             usfm_file = join(src_dir, usfm_file)
             fs.writeFileSync(
                 usfm_file,
@@ -92,7 +92,7 @@ async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
     execSync(cmd, {stdio: 'ignore'})
 
     // Rename output files to lowercase
-    for (const file of fs.readdirSync(dist_dir)){
+    for (const file of read_dir(dist_dir)){
         fs.renameSync(join(dist_dir, file), join(dist_dir, file.toLowerCase()))
     }
 }
@@ -107,7 +107,7 @@ async function _create_extracts(src_dir:string, usx_dir:string):Promise<void>{
     }
 
     const extracts:Record<string, BookExtracts> = {}
-    for (const file of fs.readdirSync(usx_dir)){
+    for (const file of read_dir(usx_dir)){
         const book = file.split('.')[0]!
         extracts[book] = extract_meta(join(usx_dir, `${book}.usx`))
     }
@@ -120,7 +120,7 @@ export async function update_dist(trans_id?:string){
 
     // Process translations concurrently (only 4 since waiting on processor, not network)
     // NOTE While not multi-threaded itself, conversions done externally... so effectively so
-    await concurrent(fs.readdirSync('sources').map(id => async () => {
+    await concurrent(read_dir('sources').map(id => async () => {
 
         if (trans_id && id !== trans_id){
             return  // Only updating a single translation
@@ -171,7 +171,7 @@ async function _update_dist_single(id:string){
 
     // If already USX3+ just copy, otherwise convert
     if (meta.source.format === 'usx3+'){
-        for (const file of fs.readdirSync(format_dir)){
+        for (const file of read_dir(format_dir)){
             fs.copyFileSync(join(format_dir, file), join(usx_dir, file))
         }
     } else {
@@ -180,7 +180,7 @@ async function _update_dist_single(id:string){
 
     // If already USFM just copy, otherwise convert
     if (meta.source.format === 'usfm'){
-        for (const file of fs.readdirSync(format_dir)){
+        for (const file of read_dir(format_dir)){
             fs.copyFileSync(join(format_dir, file), join(dist_dir, 'usfm', file))
         }
     } else {
@@ -196,7 +196,7 @@ async function _update_dist_single(id:string){
     const xsl_template_txt = join(PKG_PATH, 'assets', 'usx_transforms', 'usx_to_txt.xslt')
 
     // Convert USX to HTML and plain text
-    for (const file of fs.readdirSync(usx_dir)){
+    for (const file of read_dir(usx_dir)){
 
         // Determine paths
         const book = file.split('.')[0]!.toLowerCase()

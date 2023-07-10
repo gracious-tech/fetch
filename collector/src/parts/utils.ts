@@ -1,5 +1,5 @@
 
-import {mkdirSync, readFileSync, rmSync} from 'fs'
+import {mkdirSync, readFileSync, readdirSync, rmSync} from 'fs'
 import {dirname, join} from 'path'
 
 
@@ -45,6 +45,13 @@ export function clean_dir(path:string):void{
     // Ensure dir exists and is empty
     rmSync(path, {force: true, recursive: true})
     mkdirSync(path, {recursive: true})
+}
+
+
+export function read_dir(path:string):string[]{
+    // Version of readdirSync that ignores system files like .DS_Store
+    const ignores = ['.DS_Store']
+    return readdirSync(path).filter(item => !ignores.includes(item))
 }
 
 

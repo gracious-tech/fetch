@@ -1,8 +1,8 @@
 
 import {join} from 'path'
-import {readdirSync, readFileSync} from 'fs'
+import {readFileSync} from 'fs'
 
-import {concurrent, read_json, type_from_path} from './utils.js'
+import {concurrent, read_json, type_from_path, read_dir} from './utils.js'
 import {PublisherAWS} from '../integrations/aws.js'
 import type {DistManifest} from './shared_types'
 
@@ -40,10 +40,10 @@ export async function publish(translation?:string):Promise<void>{
         const html_dir = join('dist', 'bibles', id, 'html')
         const txt_dir = join('dist', 'bibles', id, 'txt')
         files.push(
-            ...readdirSync(usx_dir).map(file => join(usx_dir, file)),
-            ...readdirSync(usfm_dir).map(file => join(usfm_dir, file)),
-            ...readdirSync(html_dir).map(file => join(html_dir, file)),
-            ...readdirSync(txt_dir).map(file => join(txt_dir, file)),
+            ...read_dir(usx_dir).map(file => join(usx_dir, file)),
+            ...read_dir(usfm_dir).map(file => join(usfm_dir, file)),
+            ...read_dir(html_dir).map(file => join(html_dir, file)),
+            ...read_dir(txt_dir).map(file => join(txt_dir, file)),
         )
         invalidations.push(`/bibles/${id}/*`)
     }

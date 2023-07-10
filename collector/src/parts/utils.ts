@@ -73,5 +73,5 @@ export function type_from_path(path:string){
     } else if (path.endsWith('.json')){
         return 'application/json'
     }
-    throw new Error(`Couldn't detect content type for: ${path}`)
+    return 'application/octet-stream'
 }

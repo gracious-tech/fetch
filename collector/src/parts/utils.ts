@@ -1,11 +1,25 @@
 
-import {Dirent, mkdirSync, readFileSync, readdirSync, rmSync} from 'fs'
+import {Dirent, mkdirSync, readFileSync, readdirSync, rmSync, statSync} from 'fs'
 import {dirname, join} from 'path'
 
 /**
  * Files to ignore when reading a directory
  */
 const IGNORE_FILES = ['.DS_Store']
+
+/**
+ * An interface for directory entries
+ */
+export interface DirectoryEntry {
+    // Is it a directory
+    isDirectory: boolean,
+    // The name of the file
+    name: string,
+    // If it is a file, the size of the file. (default: -1)
+    fileSize: number,
+    // If it is a directory, the number of files in the directory. (default: -1)
+    contentSize: number,
+}
 
 export async function request<T>(url:string, type?:'json'):Promise<T>
 export async function request(url:string, type:'text'):Promise<string>
@@ -66,16 +80,28 @@ export function read_dir(path:string):string[] {
 
 
 /**
- * Read the directory and pass back the directory entries.  This is a wrapper to ignore
- * specific files.
+ * Get directory entries for a given path
  *
  * @param path The path to read
  * 
  * @returns The directory entries
  */
-export function read_dir_with_types(path:string):Dirent[] {
+export function get_dir_entries(path:string):DirectoryEntry[] {
     return readdirSync(path, {withFileTypes: true})
-        .filter(item => !IGNORE_FILES.includes(item.name))
+        .filter((item: Dirent) => !IGNORE_FILES.includes(item.name))
+        .map((item: Dirent) => {
+            const name = item.name
+            const isDirectory = item.isDirectory()
+            const fileSize = (isDirectory) ? -1 : statSync(join(path, name)).size
+            const contentSize = (!isDirectory) ? -1 : readdirSync(join(path, name)).length
+            const entry: DirectoryEntry = {
+                isDirectory,
+                name,
+                fileSize,
+                contentSize,
+            }
+            return entry
+        })
 }
 
 

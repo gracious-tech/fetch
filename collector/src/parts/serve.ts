@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import {normalize, join} from 'node:path'
 
 import {type_from_path} from './utils.js'
-import {generate_index_file} from './indexes.js'
+import {generate_index_content} from './indexes.js'
 
 
 export async function serve(port=8430){
@@ -49,7 +49,7 @@ export async function serve(port=8430){
             // Generate an index for dirs, but only if path ends with '/' (to mimic S3 deployment)
             if (path.endsWith('/')){
                 res.setHeader('Content-Type', 'text/html')
-                return send(200, generate_index_file(path))
+                return send(200, generate_index_content(path))
             }
         }
 

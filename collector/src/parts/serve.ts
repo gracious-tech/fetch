@@ -33,7 +33,8 @@ export async function serve(port=8430){
         }
 
         // Turn the URL into a file path relative to PWD
-        const path = join('dist', normalize(decodeURIComponent(req.url.split('?')[0]!).slice(1)))
+        let path = decodeURIComponent(req.url.split('?')[0]!).slice(1)
+        path = path ? join('dist', path) : 'dist/'  // Ensure dist ends with slash if no subpath
 
         // Serve if path exists
         if (fs.existsSync(path)){

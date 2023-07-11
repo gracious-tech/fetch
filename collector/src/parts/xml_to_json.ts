@@ -45,7 +45,7 @@ export function convert_to_json(xmlString: string, filePath: string): void {
         const paragraphs = result.usx.para;
 
         const bookContext: { data: IJsonFormat; currentIndex: ICurrentIndex } = paragraphs.reduce((acc: { data: IJsonFormat; currentIndex: ICurrentIndex }, next: IRow): { data: IJsonFormat; currentIndex: ICurrentIndex } => {
-            // if is a verse
+            // if is a row with a verse tag, first or last in the verse
             if (next.verse) {
                 const nextIndex = getVerseIndex(next.verse, acc.currentIndex)
                 return handleVerseRow(acc, nextIndex, next)
@@ -57,7 +57,7 @@ export function convert_to_json(xmlString: string, filePath: string): void {
                 return acc;
             }
 
-            // 
+            // if is another line within the same verse
             const verseStyles = ["li1"];
             if (verseStyles.includes(next.$.style)) {
                 acc.currentIndex.text = `${acc.currentIndex.text}\n${getTextString(next)}`
@@ -76,7 +76,7 @@ export function convert_to_json(xmlString: string, filePath: string): void {
 
             }
                 
-            // ignore the line
+            // ignore the line, contains non verse elements
             return acc
         }, {
                 data: {
@@ -114,6 +114,7 @@ function getTextString(row: IRow): string {
     return row._
 }
 
+// this is needed because of the way chars are handled
 const removeXmlElements = (hay: string, elements: string[]) =>{
     let ret = hay    
     

@@ -11,6 +11,7 @@ import {extract_meta} from './usx.js'
 import {update_manifest} from './manifest.js'
 import {concurrent, PKG_PATH, read_json, read_dir} from './utils.js'
 import type {TranslationSourceMeta, BookExtracts} from './types'
+import { convert_to_json } from './xml_to_json.js'
 
 
 export async function update_source(trans_id?:string){
@@ -169,7 +170,7 @@ async function _update_dist_single(id:string){
     }
 
     // Ensure dist dirs exist
-    for (const format of ['usx', 'usfm', 'html', 'txt']){
+    for (const format of ['usx', 'usfm', 'html', 'txt', 'json']){
         fs.mkdirSync(join(dist_dir, format), {recursive: true})
     }
 
@@ -207,6 +208,7 @@ async function _update_dist_single(id:string){
         const src = join(usx_dir, `${book}.usx`)
         const dst_html = join(dist_dir, 'html', `${book}.html`)
         const dst_txt = join(dist_dir, 'txt', `${book}.txt`)
+        const dst_json = join(dist_dir, 'json', `${book}.json`)
 
         // Convert to HTML if doesn't exist yet
         if (!fs.existsSync(dst_html)){
@@ -224,6 +226,11 @@ async function _update_dist_single(id:string){
         // Convert to plain text if doesn't exist yet
         if (!fs.existsSync(dst_txt)){
             execSync(`${xslt3} -xsl:${xsl_template_txt} -s:${src} -o:${dst_txt}`)
+        }
+
+        // Convert to json if doesn't exist yet
+        if (!fs.existsSync(dst_json)){
+            convert_to_json(fs.readFileSync(src, 'utf-8'), dst_json)
         }
     }
 }

@@ -1,6 +1,8 @@
 #!/bin/bash
 # Run tests
+# NOTE CWD is set to collection for sake of collector tests
+# Changing CWD is complicated due to threading, and didn't work even without threading in OSX
 set -e
-cd "$(dirname "$(dirname "$0")")"
+cd "$(dirname "$(dirname "$0")")/collection"
 
-node_modules/.bin/vitest "$@"
+../node_modules/.bin/vitest --root ../ "$@"

@@ -1,21 +1,7 @@
 
-import {describe, it, beforeAll, afterAll} from 'vitest'
+import {describe, it} from 'vitest'
 
 import {generate_index_file, update_indexes} from './indexes'
-
-
-// Run tests within test collection
-
-let cwd:string
-
-beforeAll(() => {
-    cwd = process.cwd()
-    process.chdir('collection')
-})
-
-afterAll(() => {
-    process.chdir(cwd)
-})
 
 
 describe('generate_index_file', () => {

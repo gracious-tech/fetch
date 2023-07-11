@@ -1,7 +1,11 @@
 
-import {mkdirSync, readFileSync, readdirSync, rmSync} from 'fs'
+import {Dirent, mkdirSync, readFileSync, readdirSync, rmSync} from 'fs'
 import {dirname, join} from 'path'
 
+/**
+ * Files to ignore when reading a directory
+ */
+const IGNORE_FILES = ['.DS_Store']
 
 export async function request<T>(url:string, type?:'json'):Promise<T>
 export async function request(url:string, type:'text'):Promise<string>
@@ -48,10 +52,30 @@ export function clean_dir(path:string):void{
 }
 
 
-export function read_dir(path:string):string[]{
-    // Version of readdirSync that ignores system files like .DS_Store
-    const ignores = ['.DS_Store']
-    return readdirSync(path).filter(item => !ignores.includes(item))
+/**
+ * Read the directory and pass back the names of the entries. This is a wrapper to ignore
+ * specific files.
+ *
+ * @param path The path to read
+ * 
+ * @returns The entry names
+ */
+export function read_dir(path:string):string[] {
+    return readdirSync(path).filter(item => !IGNORE_FILES.includes(item))
+}
+
+
+/**
+ * Read the directory and pass back the directory entries.  This is a wrapper to ignore
+ * specific files.
+ *
+ * @param path The path to read
+ * 
+ * @returns The directory entries
+ */
+export function read_dir_with_types(path:string):Dirent[] {
+    return readdirSync(path, {withFileTypes: true})
+        .filter(item => !IGNORE_FILES.includes(item.name))
 }
 
 

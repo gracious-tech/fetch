@@ -4,8 +4,8 @@ aside: false
 ---
 
 
-<script setup>
-import PageStats from '@/.comp/PageStats.vue'
+<script lang='ts' setup>
+import PageStatistics from '@/_comp/PageStatistics.vue'
 </script>
 
 <ClientOnly>
@@ -15,6 +15,6 @@ import PageStats from '@/.comp/PageStats.vue'
                 <circle cx='50' cy='50' r='40' stroke-width='10' stroke-dasharray='190'></circle>
             </svg>
         </template>
-        <PageStats/>
+        <PageStatistics/>
     </suspense>
 </ClientOnly>

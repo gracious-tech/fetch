@@ -1,8 +1,8 @@
 
-import {BibleCollection} from './collection'
-import {DistManifest} from './shared_types'
-import {UsageOptions, UsageConfig} from './types'
-import {request} from './utils'
+import {request} from './utils.js'
+import {BibleCollection} from './collection.js'
+import type {UsageOptions, UsageConfig} from './types'
+import type {DistManifest} from './shared_types'
 
 
 // The options available for configuring a BibleClient

@@ -10,8 +10,8 @@
         "types": [],  // Disables auto-including types modules of '@types/*' (add "node" if Node)
 
         // Language expectations
-        "module": "ESNext",  // Always use ESM for browser and Node
-        "target": "ESNext",  // Don't do any downgrading (leave that to esbuild)
+        "module": "ESNext",  // Default to ESM and override manually when building for CJS
+        "target": "ESNext",  // Manually specify target for each build type
         "moduleResolution": "Node",  // All should use node-like module resolution, not just node
 
         // Other compilation settings

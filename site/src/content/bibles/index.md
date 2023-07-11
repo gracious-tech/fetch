@@ -4,8 +4,8 @@ aside: false
 ---
 
 
-<script setup>
-import PageBibles from '@/.comp/PageBibles.vue'
+<script lang='ts' setup>
+import PageBibles from '@/_comp/PageBibles.vue'
 </script>
 
 <ClientOnly>

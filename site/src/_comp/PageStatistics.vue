@@ -73,23 +73,17 @@ p
 </template>
 
 
-<script setup>
+<script lang='ts' setup>
 
-import {BibleClient} from './client.min.esm.js'
-
-
-// Use localhost endpoint during dev
-const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
+import {collection} from './collection'
 
 
 // Get translations
-const client = new BibleClient({endpoints: [endpoint]})
-const collection = await client.fetch_collection()
 const translations = collection.get_translations()
 
 
 // Util for getting count as a percentage string of total translations
-const per = count => Math.floor(count / translations.length * 100) + '%'
+const per = (count:number) => String(Math.floor(count / translations.length * 100)) + '%'
 
 
 // Generate list of periods
@@ -120,7 +114,6 @@ const licenses = Object.entries(collection._manifest.licenses).map(([id, props])
         count: translations.filter(t => t.licenses.some(l => l.id === id)).length,
     }
 }).filter(l => l.count)
-const license_codes = Object.keys(collection._manifest.licenses)
 licenses.push({
     display: "Custom license only",
     count: translations.filter(t => !t.licenses.some(l => l.id)).length,

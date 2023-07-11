@@ -1,5 +1,5 @@
 
-import {UsageConfig, RuntimeLicense} from './types'
+import {UsageConfig, RuntimeLicense} from './types.js'
 
 
 // @internal

@@ -1,8 +1,8 @@
 
 import {join} from 'path'
-import {existsSync, readdirSync} from 'fs'
+import {existsSync} from 'fs'
 
-import {read_json} from './utils.js'
+import {read_json, read_dir} from './utils.js'
 import type {TranslationSourceMeta} from './types'
 
 
@@ -14,7 +14,7 @@ export function _missing_meta(meta:TranslationSourceMeta){
 
 export function report_items(mode?:'missing'|'unreviewed'){
     // Output a list of all included translations
-    for (const id of readdirSync('sources')){
+    for (const id of read_dir('sources')){
         const meta = read_json<TranslationSourceMeta>(`sources/${id}/meta.json`)
 
         // Ignore depending on mode
@@ -42,12 +42,12 @@ export function report_items(mode?:'missing'|'unreviewed'){
 export function report_unprocessed(){
     // Report which translations haven't been processed to distributable forms yet
     // TODO Option to require all books or just any book
-    for (const trans of readdirSync(join('dist', 'bibles'))){
+    for (const trans of read_dir(join('dist', 'bibles'))){
         if (trans === 'manifest.json'){
             continue
         }
         const html_dir = join('dist', 'bibles', trans, 'html')
-        const html_books = existsSync(html_dir) ? readdirSync(html_dir) : []
+        const html_books = existsSync(html_dir) ? read_dir(html_dir) : []
         if (html_books.length === 0){
             console.error(`BOOKLESS ${trans}`)
         }

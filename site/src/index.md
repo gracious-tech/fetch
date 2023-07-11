@@ -28,18 +28,10 @@ hero:
 
 import {onMounted} from 'vue'
 
-import {BibleClient} from './.comp/client.min.esm.js'
-
-
-// Use localhost endpoint during dev
-const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
+import {collection} from '@/_comp/collection'
 
 
 onMounted(async () => {
-
-    // Get collection
-    const client = new BibleClient({endpoints: [endpoint]})
-    const collection = await client.fetch_collection()
 
     // Progressively count up to total translations available
     const total = collection.get_translations().length

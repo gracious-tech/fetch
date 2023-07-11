@@ -16,9 +16,29 @@ You can also use this client to access your own self-hosted collection if you ch
 
 You can use this client both client-side and server-side.
 
-__Browsers:__ ES2015/ES6+
-<br>
-__Node:__ 18+
+### Browsers (ES6+)
+
+It is recommended to use a bundler (like Vite or Webpack) and simply `import {BibleClient} from '@gracious.tech/fetch-client'`. This will use the published ESM form which supports tree-shaking.
+
+If you can't use a bundler for some reason, you can also:
+
+ * Deploy `dist/bundled.mjs` and import it in a `<script type='module'>`
+ * Deploy `dist/bundled.iife.js` and include it via a regular `<script src='...'>`
+    * It will create a `fetch_client` global variable, so you can access `fetch_client.BibleClient`
+
+### Node (18+)
+
+It is recommended to use ESM import/export syntax by setting `"type": "module"` in your `package.json`. You can then:
+
+`import {BibleClient} from '@gracious.tech/fetch-client'`
+
+If you need to still use the old `require()` syntax for other modules, you can still use the ESM form via a dynamic import:
+
+`import('@gracious.tech/fetch-client').then(({BibleClient}) => ...)`
+
+or you can require the bundled CJS form with:
+
+`const {BibleClient} = require('@gracious.tech/fetch-client')`
 
 
 ## Usage

@@ -3,8 +3,8 @@ title: Languages available
 aside: false
 ---
 
-<script setup>
-import PageLanguages from '@/.comp/PageLanguages.vue'
+<script lang='ts' setup>
+import PageLanguages from '@/_comp/PageLanguages.vue'
 </script>
 
 <ClientOnly>

@@ -1,27 +1,10 @@
 
 import {join} from 'path'
-import {readdirSync, readFileSync} from 'fs'
+import {readFileSync} from 'fs'
 
-import {concurrent, read_json} from './utils.js'
+import {concurrent, read_json, type_from_path, read_dir} from './utils.js'
 import {PublisherAWS} from '../integrations/aws.js'
 import type {DistManifest} from './shared_types'
-
-
-function _type_from_path(path:string){
-    // Determine content type from path
-    if (path.endsWith('.usx')){
-        return 'application/xml'
-    } else if (path.endsWith('.usfm')){
-        return 'text/plain'
-    } else if (path.endsWith('.html')){
-        return 'text/html'
-    } else if (path.endsWith('.json')){
-        return 'application/json'
-    } else if (path.endsWith('.js') || path.endsWith('.mjs')){
-        return 'text/javascript'
-    }
-    throw new Error(`Couldn't detect content type for: ${path}`)
-}
 
 
 export class Publisher extends PublisherAWS {
@@ -30,7 +13,7 @@ export class Publisher extends PublisherAWS {
     async upload_files(paths:string[]){
         // Upload multiple files concurrently
         await concurrent(paths.map(path => async () => {
-            await this.upload(path.slice('dist/'.length), readFileSync(path), _type_from_path(path))
+            await this.upload(path.slice('dist/'.length), readFileSync(path), type_from_path(path))
         }))
     }
 
@@ -57,10 +40,10 @@ export async function publish(translation?:string):Promise<void>{
         const html_dir = join('dist', 'bibles', id, 'html')
         const txt_dir = join('dist', 'bibles', id, 'txt')
         files.push(
-            ...readdirSync(usx_dir).map(file => join(usx_dir, file)),
-            ...readdirSync(usfm_dir).map(file => join(usfm_dir, file)),
-            ...readdirSync(html_dir).map(file => join(html_dir, file)),
-            ...readdirSync(txt_dir).map(file => join(txt_dir, file)),
+            ...read_dir(usx_dir).map(file => join(usx_dir, file)),
+            ...read_dir(usfm_dir).map(file => join(usfm_dir, file)),
+            ...read_dir(html_dir).map(file => join(html_dir, file)),
+            ...read_dir(txt_dir).map(file => join(txt_dir, file)),
         )
         invalidations.push(`/bibles/${id}/*`)
     }

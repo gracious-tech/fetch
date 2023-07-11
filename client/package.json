@@ -1,8 +1,13 @@
 {
   "name": "@gracious.tech/fetch-client",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "description": "Interact with a fetch(bible) collection in an API-like way",
-  "main": "dist/esm/index.js",
+  "type": "module",
+  "exports": {
+    "import": "./dist/esm/index.js",
+    "require": "./dist/bundled.cjs"
+  },
+  "types": "./dist/esm/index.d.ts",
   "files": [
     "dist"
   ],

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Serve test collection
+# Run tests
 set -e
 cd "$(dirname "$(dirname "$0")")"
 
-.bin/collector serve
+node_modules/.bin/vitest "$@"

@@ -47,18 +47,9 @@ p
 </template>
 
 
-<script setup lang="ts">
+<script lang='ts' setup>
 
-import {BibleClient} from './client.min.esm.js'
-
-
-// Use localhost endpoint during dev
-const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
-
-
-// Get collection
-const client = new BibleClient({endpoints: [endpoint]})
-const collection = await client.fetch_collection()
+import {collection} from './collection'
 
 
 // Generate list of languages

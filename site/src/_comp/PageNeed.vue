@@ -50,16 +50,12 @@ p
 </template>
 
 
-<script setup>
+<script lang='ts' setup>
 
 import {computed, ref} from 'vue'
 
-import {BibleClient} from './client.min.esm.js'
+import {collection} from './collection'
 import population from './population.json'
-
-
-// Use localhost endpoint during dev
-const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 
 
 // Languages that have the same written form as another language that does have a translation
@@ -68,8 +64,6 @@ const COVERED_BY_SHAREABLE_ALT = [...COVERED_BY_UNRESTRICTED_ALT]
 
 
 // Get translations
-const client = new BibleClient({endpoints: [endpoint]})
-const collection = await client.fetch_collection()
 const translations = collection.get_translations()
 
 

@@ -1,9 +1,9 @@
 
-import {BibleBookHtml, BibleBookUsx, BibleBookUsfm, BibleBookTxt} from './book'
-import {filter_licenses} from './licenses'
-import {DistManifest} from './shared_types'
-import {UsageOptions, UsageConfig, RuntimeManifest, RuntimeLicense} from './types'
-import {deep_copy, fuzzy_search, request} from './utils'
+import {BibleBookHtml, BibleBookUsx, BibleBookUsfm, BibleBookTxt} from './book.js'
+import {filter_licenses} from './licenses.js'
+import {deep_copy, fuzzy_search, request} from './utils.js'
+import type {DistManifest} from './shared_types'
+import type {UsageOptions, UsageConfig, RuntimeManifest, RuntimeLicense} from './types'
 
 
 // No browser types since may be running in Node, so define as possibly existing

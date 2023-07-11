@@ -1,5 +1,5 @@
 
-import {mkdirSync, readFileSync, rmSync} from 'fs'
+import {mkdirSync, readFileSync, readdirSync, rmSync} from 'fs'
 import {dirname, join} from 'path'
 
 
@@ -48,6 +48,13 @@ export function clean_dir(path:string):void{
 }
 
 
+export function read_dir(path:string):string[]{
+    // Version of readdirSync that ignores system files like .DS_Store
+    const ignores = ['.DS_Store']
+    return readdirSync(path).filter(item => !ignores.includes(item))
+}
+
+
 export function read_json<T>(path:string):T{
     // Read a JSON file and cast as given type
     return JSON.parse(readFileSync(path, 'utf-8')) as T
@@ -58,3 +65,20 @@ export function read_json<T>(path:string):T{
 // NOTE Since dealing with a URL, separator is always '/' and 'file:/' is prepended
 export const PKG_PATH =
     dirname(dirname(dirname(join('/', ...import.meta.url.slice('file:/'.length).split('/')))))
+
+
+export function type_from_path(path:string){
+    // Determine content type from path (supporting only types relevant to collections)
+    if (path.endsWith('.usx')){
+        return 'application/xml'
+    } else if (path.endsWith('.usfm')){
+        return 'text/plain'
+    } else if (path.endsWith('.html')){
+        return 'text/html'
+    } else if (path.endsWith('.txt')){
+        return 'text/plain'
+    } else if (path.endsWith('.json')){
+        return 'application/json'
+    }
+    return 'application/octet-stream'
+}

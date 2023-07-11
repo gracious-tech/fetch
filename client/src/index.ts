@@ -1,2 +1,2 @@
 
-export {BibleClient} from './client'
+export {BibleClient} from './client.js'

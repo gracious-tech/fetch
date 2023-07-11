@@ -1,22 +1,58 @@
 
 import { partition } from 'lodash-es'
+import * as path from 'path'
 import {DirectoryEntry, get_dir_entries} from './utils.js'
 
 
 /**
  * Generate the HTML content using the specific directory path content
  *
- * @param path The path to generate an index content for
+ * @param directory             The path to generate an index content for
+ * @param exclude_breadcrumbs   An array of folders in the directory that should not be included
+ *                              in the breadcrumbs
  *
  * @returns The html content
  */
-export function generate_index_content(path:string): string {
-    // List files and folders separately
+export function generate_index_content(
+        directory:string,
+        exclude_breadcrumbs: string[] = [],
+): string {
+    // Create the breadcrumbs
+    // Filter removes any empty values if the path.sep is at the end
+    // Also remove any paths passed in exclude_breadcrumbs
+    const pieces = directory
+        .split(path.sep)
+        .filter((n: string) => n)
+        .filter((n: string) => !exclude_breadcrumbs.includes(n))
+        .reverse()
+
+    let crumb_path = ''
+    const crumbs = []
+    for (let index = 0; index < pieces.length; index++) {
+        const crumb = pieces[index] ?? ''
+        let li = ''
+        if (index === 0) {
+            // We are in reverse, so 0 is the last item
+            li = `<li class="last">${crumb}</li>`
+        } else {
+            crumb_path += `../`
+            li = `<li><a href="${crumb_path}">${crumb}</a></li>`
+        }
+        crumbs.push(li)
+    }
+    // Attach the root directory
+    crumb_path += `../`
+    crumbs.push(`<li><a href="${crumb_path}">/</a></li>`)
+    const breadcrumbs = `<ul>${crumbs.reverse().join('')}</ul>`
+    // Collect the files and folders from the given path
     const sorter = (a: DirectoryEntry, b: DirectoryEntry) => a.name.localeCompare(b.name)
-    const contents = get_dir_entries(path)
+    const contents = get_dir_entries(directory)
+    // lodash partition seperates the array based on predicate
+    // @link https://lodash.com/docs/4.17.15#partition
     const results = partition(contents, (content: DirectoryEntry) => content.isDirectory)
     const dirs = results[0].sort(sorter)
     const files = results[1].sort(sorter)
+    // Now create a table with columns: folders | content size | files | file size
     const max = Math.max(dirs.length, files.length)
     const rows = []
     for (let index = 0; index < max; index++) {
@@ -52,15 +88,35 @@ export function generate_index_content(path:string): string {
         </thead>
         <tbody>${rows.join('')}</tbody>
     </table>`
-    /* TODO Requirements:
-        * Include breadcrumb links at top to step up to each parent, all the way to root
-    */
+    // Return the HTML
     return `<!DOCTYPE html>
         <html>
             <style>
                 body {
                     font-family: monospace, monospace;
                     font-size: 16px;
+                }
+                #breadcrumbs ul {
+                  padding: 10px 16px;
+                  list-style: none;
+                  background-color: #eee;
+                }
+                #breadcrumbs ul li {
+                  display: inline;
+                  font-size: 18px;
+                }
+                #breadcrumbs ul li+li:before {
+                  padding: 8px;
+                  color: black;
+                  content: '>';
+                }
+                #breadcrumbs ul li a {
+                  color: #0275d8;
+                  text-decoration: none;
+                }
+                #breadcrumbs ul li a:hover {
+                  color: #01447e;
+                  text-decoration: underline;
                 }
                 table, th, td {
                     border: 1px solid black;
@@ -79,7 +135,10 @@ export function generate_index_content(path:string): string {
                     text-align: end;
                 }
             </style>
-            <body>${table}</body>
+            <body>
+                <div id="breadcrumbs">${breadcrumbs}</div>
+                ${table}
+            </body>
         </html>`
 }
 

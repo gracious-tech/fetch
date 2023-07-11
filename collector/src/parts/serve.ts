@@ -49,7 +49,7 @@ export async function serve(port=8430){
             // Generate an index for dirs, but only if path ends with '/' (to mimic S3 deployment)
             if (path.endsWith('/')){
                 res.setHeader('Content-Type', 'text/html')
-                return send(200, generate_index_content(path))
+                return send(200, generate_index_content(path, ['dist']))
             }
         }
 

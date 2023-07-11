@@ -14,6 +14,15 @@ describe('generate_index_content', () => {
         expect(actual).toContain('</html>')
     })
 
+    it("Returns correct breadcrumbs", ({expect}) => {
+        const html = generate_index_content(join('dist', 'bibles', 'eng_bsb'), ['dist'])
+        const actual = html.toLowerCase()
+        expect(actual).not.toContain('<li><a href="../../../">/</a></li>')
+        expect(actual).not.toContain('<li><a href="../../">dist</a></li>')
+        expect(actual).toContain('<li><a href="../">bibles</a></li>')
+        expect(actual).toContain('<li class="last">eng_bsb</li>')
+    })
+
     describe("Handling directories", () => {
 
         const html = generate_index_content(join('dist', 'bibles', 'eng_bsb'))

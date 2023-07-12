@@ -77,6 +77,7 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes>{
 
 export interface TyndaleBibleReference {
     book: string,
+    usx: string,
     start_chapter: number,
     start_verse: number,
     end_chapter: number,
@@ -91,20 +92,23 @@ export interface TyndaleBibleReference {
  * @returns The extracted verse details
  */
 export function extract_reference(reference: string): TyndaleBibleReference|null {
-    const regex = /\b[\w-]+\b/g
+    const regex = /\b\w+\b/g
     const parts = reference.split('-')
     if (parts.length === 0) {
         return null
     }
+    // Handle the starting parts (before -)
     const matches = parts[0]!.match(regex) || []
     if (matches.length < 3) {
         return null
     }
     const book = matches[0] || ''
+    const usx = tyndale_to_usx_book[book] || ''
     const start_chapter = parseInt(matches[1]!, 10) || 0
     const start_verse = parseInt(matches[2]!, 10) || 0
     let end_chapter = 0
     let end_verse = 0
+    // handle the ending parts (after -)
     if (parts.length === 2) {
         const matches = parts[1]!.match(regex) || []
         if (matches.length === 2) {
@@ -124,6 +128,7 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
         start_verse,
         end_chapter,
         end_verse,
+        usx,
     }
     return result
 }

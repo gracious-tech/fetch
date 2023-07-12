@@ -1,7 +1,5 @@
-
-import {DOMParser, XMLSerializer} from '@xmldom/xmldom'
-
-
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom'
+import { select } from 'xpath'
 // Types
 
 interface MultiVerseNote {
@@ -17,7 +15,13 @@ interface StudyNotes {
     ranges:MultiVerseNote[]  // Notes that span multiple verses and/or chapters
 }
 
-
+/**
+ * Extract the study notes XML and prepare for JSON conversion
+ *
+ * @param xml The XML to parse
+ *
+ * @returns The data to be converted to JSON
+ */
 export function study_notes_to_json(xml:string):Record<string, StudyNotes>{
     // Parse Tyndale's study notes XML into a JSON object with HTML contents
     /* TODO Requirements:
@@ -43,10 +47,23 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes>{
     */
 
     // Parse the XML
-    const doc = new DOMParser().parseFromString(xml)
+    const doc = new DOMParser().parseFromString(xml, 'text/xml')
+    const elements = select('//item', doc) as Element[]
+    const items = elements.map((element: Element) => {
+        const body_element = select('body/p', element)[0] as Element
+        const serializer = new XMLSerializer()
+        const body = (body_element !== undefined) ? serializer.serializeToString(body_element) : ''
+        const name = element.getAttribute('name') ?? ''
+        const reference = extract_reference(name)
+        return {
+            reference,
+            text: body.replace(/^<p(?:\s+class="[^"]+")?>([\s\S]+)<\/p>$/, '$1'),
+        }
+    })
 
     // Organise by book
     const output:Record<string, StudyNotes> = {}
+    // tyndale_to_usx_book is defined at the bottom of the file
     for (const tyndale_book of Object.keys(tyndale_to_usx_book)){
         // Result is keyed by USX ids, not Tyndale's
         output[tyndale_to_usx_book[tyndale_book]!] = {
@@ -58,7 +75,58 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes>{
     return output
 }
 
+export interface TyndaleBibleReference {
+    book: string,
+    start_chapter: number,
+    start_verse: number,
+    end_chapter: number,
+    end_verse: number,
+}
 
+/**
+ * Extract the scripture reference based on Tyndale format
+ * 
+ * @param reference The reference string
+ *
+ * @returns The extracted verse details
+ */
+export function extract_reference(reference: string): TyndaleBibleReference|null {
+    const regex = /\b[\w-]+\b/g
+    const parts = reference.split('-')
+    if (parts.length === 0) {
+        return null
+    }
+    const matches = parts[0]!.match(regex) || []
+    if (matches.length < 3) {
+        return null
+    }
+    const book = matches[0] || ''
+    const start_chapter = parseInt(matches[1]!, 10) || 0
+    const start_verse = parseInt(matches[2]!, 10) || 0
+    let end_chapter = 0
+    let end_verse = 0
+    if (parts.length === 2) {
+        const matches = parts[1]!.match(regex) || []
+        if (matches.length === 2) {
+            end_chapter = parseInt(matches[0]!, 10) || 0
+            end_verse = parseInt(matches[1]!, 10) || 0
+        } else {
+            end_chapter = start_chapter
+            end_verse = parseInt(matches[0]!, 10) || 0
+        }
+    } else {
+        end_chapter = start_chapter
+        end_verse = start_verse
+    }
+    const result: TyndaleBibleReference = {
+        book,
+        start_chapter,
+        start_verse,
+        end_chapter,
+        end_verse,
+    }
+    return result
+}
 
 /* TODO Notes from Tyndle on what their classes are for
 
@@ -86,7 +154,6 @@ span.divine-name-ital Same as the divine name but set as italic
 span.era Marks BC/AD era designations, usually set as small caps
 span.bold-era Same as era but set as bold
 
-
 StudyNotes
 ==========
 p.sn-list-1 First level list indent within a study note
@@ -102,9 +169,7 @@ span.sn-hebrew-chars Hebrew language characters within a study note
 span.sn-ref Bible reference to which the study note is connected
 span.sn-ref-sc Small caps text within a study note reference
 span.sn-sc Small caps text within a study note
-
 */
-
 
 // Map Tyndale book ids to USX ids
 const tyndale_to_usx_book:Record<string, string> = {

@@ -1,7 +1,8 @@
 
 import { partition } from 'lodash-es'
 import * as path from 'path'
-import {DirectoryEntry, get_dir_entries} from './utils.js'
+import { readdirSync } from 'fs'
+import { DirectoryEntry, get_dir_entries, read_files_in_dir } from './utils.js'
 
 
 /**
@@ -148,22 +149,59 @@ interface UpdateIndexesReturn {
     remove:string[]
 }
 
+/**
+ * Using the provided values, we tell S3 with index files need to be updated.
+ *
+ * @param modified The files that have been modified
+ * @param removed The files that have been removed
+ *
+ * @returns The data needed to update S3
+ */
 export function update_indexes(modified:string[], removed:string[]): UpdateIndexesReturn {
-    // Determine what updates are needed for published dir index files
-    /* TODO Requirements:
-        This function takes a list of files in collection that have been modified or removed.
-        The files can be anywhere in the collection, in nested dirs.
-        If a file has been modified, need to update the index for its parent
-            e.g. bibles/eng_bsb/html/1ch.html -> Regenerating bibles/eng_bsb/html/
-        If a file has been removed, may need to remove its parent index
-            But should readDir the parent to see if other files still exist, and regenerate it if so
-        Dir paths should always end in a slash and shoudn't include 'index.html'
-    */
-
-    // Return list of indexes that need publishing and/or removing
-    // Will then update or remove them from S3
+    // This map stores the removed directory (key), and the first parent that has content (value).
+    // This is used to illiminate the need to readdirSync multiple times
+    const first_full_parents = new Map<string, string>()
+    // Build the removals
+    const removals: string[] = removed.flatMap((entry: string) => {
+        let parent = path.dirname(entry)
+        const removed = []
+        // Loop until we get to the top directory
+        while (parent !== '.') {
+            const total = read_files_in_dir(parent).length
+            first_full_parents.set(entry, parent)
+            if (total === 0) {
+                removed.push(`${parent}/`)
+            } else {
+                // If a directory has files, then it's parents will also have it
+                break
+            }
+            parent = path.dirname(parent)
+        }
+        return removed
+    })
+    const modified_handle_paths: string[] = modified.map((file: string) => `${path.dirname(file)}/`)
+    // All removed paths should include the parent and grandparent path
+    const removed_handle_paths: string[] = removed
+        .flatMap((file: string) => {
+            const full_parent = first_full_parents.get(file)
+            if (!full_parent) {
+                return []
+            }
+            return [`${full_parent}/`, `${path.dirname(full_parent)}/`]
+        })
+    // Create an array by merging the arrays, and keep only unique paths
+    const handle_paths = [...new Set([...modified_handle_paths, ...removed_handle_paths])]
+    // Build the updates
+    const updates: {path:string, html:string}[] = handle_paths
+        .map((directory: string) => {
+            // Path should use the standard /
+            return {
+                path: directory.replaceAll(path.sep, '/'),
+                html: generate_index_content(directory, ['dist']),
+            }
+        })
     return {
-        update: [],
-        remove: [],
+        update: updates,
+        remove: removals,
     }
 }

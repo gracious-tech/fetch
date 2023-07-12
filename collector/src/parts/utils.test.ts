@@ -1,6 +1,6 @@
 import {join} from 'path'
 import {describe, it} from 'vitest'
-import { read_dir, get_dir_entries, DirectoryEntry } from './utils'
+import { read_dir, get_dir_entries, DirectoryEntry, read_files_in_dir } from './utils'
 import { statSync } from 'fs'
 
 describe('read_dir', () => {
@@ -39,4 +39,12 @@ describe('get_dir_entries', () => {
         expect(manifest!.contentSize).toEqual(-1)
     })
 
+})
+describe('read_files_in_dir', () => {
+
+    it('should only get the files', ({expect}) => {
+        const files = read_files_in_dir(join('dist', 'bibles'))
+        expect(files).toHaveLength(1)
+        expect(files[0]).toEqual('manifest.json')
+    })
 })

@@ -104,6 +104,20 @@ export function get_dir_entries(path:string):DirectoryEntry[] {
         })
 }
 
+/**
+ * Read only the files in a directory
+ *
+ * @param directory The path of the directory
+ *
+ * @returns Only the files in the directory
+ */
+export function read_files_in_dir(directory:string): string[] {
+    return readdirSync(directory, {withFileTypes: true})
+        .filter((entity: Dirent) => !IGNORE_FILES.includes(entity.name))
+        .filter((entity: Dirent) => entity.isFile())
+        .map((entity: Dirent) => entity.name)
+}
+
 
 export function read_json<T>(path:string):T{
     // Read a JSON file and cast as given type

@@ -11,6 +11,13 @@ const test_xml = `
 </body>
 </item>
 
+<item name="Gen.2.8-14" typename="StudyNote" product="TyndaleOpenStudyNotes">
+<refs>Gen.2.8-14</refs>
+<body>
+<p class="sn-text"><span class="sn-ref"><a href="?bref=Gen.2.8-14">2:8-14</a></span> Analogous to the sacred time marked out on the seventh day of creation (<a href="?bref=Gen.2.2-3">2:2-3</a>), the sacred space of the <span class="sn-excerpt">garden in Eden</span> was separate from the surrounding world. It functioned as a garden-temple or sanctuary because the Lord manifested his presence there in a special way.</p>
+</body>
+</item>
+
 <item name="Gen.1.3-13" typename="StudyNote" product="TyndaleOpenStudyNotes">
 <refs>Gen.1.3-13</refs>
 <body>
@@ -59,19 +66,30 @@ describe('study_notes_to_json', () => {
 
     it("Parses multi-verse ref (no pun intended)", ({expect}) => {
         expect(JSON.stringify(notes['gen']!.verses)).toBe('{}')
-        expect(notes['gen']!.ranges).toHaveLength(1)
+        expect(notes['gen']!.ranges).toHaveLength(2)
         expect(notes['gen']!.ranges.find(note => {
             return note.start_c === 1 && note.start_v === 3 && note.end_c === 1 && note.end_v === 13
+        })).toBeDefined()
+        expect(notes['gen']!.ranges.find(note => {
+            return note.start_c === 2 && note.start_v === 8 && note.end_c === 2 && note.end_v === 14
         })).toBeDefined()
     })
 
     it("Parses multi-chapter ref", ({expect}) => {
-        expect(JSON.stringify(notes['gen']!.verses)).toBe('{}')
-        expect(notes['gen']!.ranges).toHaveLength(1)
+        expect(JSON.stringify(notes['1co']!.verses)).toBe('{}')
+        expect(notes['1co']!.ranges).toHaveLength(1)
         expect(notes['1co']!.ranges.find(note => {
             return note.start_c === 1 && note.start_v === 10
                 && note.end_c === 15 && note.end_v === 58
         })).toBeDefined()
+    })
+
+    it('should sort the ranges by start_c and start_v', ({expect}) => {
+        expect(notes['gen']!.ranges).toHaveLength(2)
+        expect(notes['gen']!.ranges[0]!.start_c).toEqual(1)
+        expect(notes['gen']!.ranges[0]!.start_v).toEqual(3)
+        expect(notes['gen']!.ranges[1]!.start_c).toEqual(2)
+        expect(notes['gen']!.ranges[1]!.start_v).toEqual(8)
     })
 
     it("Contents should be trimmed", ({expect}) => {

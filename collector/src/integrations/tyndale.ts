@@ -30,7 +30,7 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
         // Result is keyed by USX ids, not Tyndale's
         output[tyndale_to_usx_book[tyndale_book]!] = {
             verses: {},
-            ranges: [],  // Sorted by start_c/start_v
+            ranges: [],
         }
     }
     // Parse Tyndale's study notes XML into a JSON object with HTML contents
@@ -88,6 +88,12 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
         }
     })
 
+    // Sort our ranges
+    for (const key in output) {
+        output[key]!.ranges.sort((a: MultiVerseNote, b: MultiVerseNote) => {
+            return ((a.start_c - b.start_c) || (a.start_v - b.start_v))
+        })
+    }
     return output
 }
 

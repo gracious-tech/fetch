@@ -1,9 +1,9 @@
 
 import { partition } from 'lodash-es'
 import * as path from 'path'
-import { readdirSync } from 'fs'
-import { DirectoryEntry, get_dir_entries, read_files_in_dir } from './utils.js'
-
+import {
+    DirectoryEntry, FirstFullParent, find_first_full_parent_dir, get_dir_entries,
+} from './utils.js'
 
 /**
  * Generate the HTML content using the specific directory path content
@@ -163,21 +163,12 @@ export function update_indexes(modified:string[], removed:string[]): UpdateIndex
     const first_full_parents = new Map<string, string>()
     // Build the removals
     const removals: string[] = removed.flatMap((entry: string) => {
-        let parent = path.dirname(entry)
-        const removed = []
-        // Loop until we get to the top directory
-        while (parent !== '.') {
-            const total = read_files_in_dir(parent).length
-            first_full_parents.set(entry, parent)
-            if (total === 0) {
-                removed.push(`${parent}/`)
-            } else {
-                // If a directory has files, then it's parents will also have it
-                break
-            }
-            parent = path.dirname(parent)
-        }
-        return removed
+        // The entry was removed so check it's parent
+        const results: FirstFullParent = find_first_full_parent_dir(path.dirname(entry))
+        first_full_parents.set(entry, results.directory)
+        // We need to make the path S3 friendly
+        return results.emptyDirectories
+            .map((dir: string) => `${dir.replaceAll(path.sep, '/')}/`)
     })
     const modified_handle_paths: string[] = modified.map((file: string) => `${path.dirname(file)}/`)
     // All removed paths should include the parent and grandparent path

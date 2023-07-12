@@ -21,6 +21,17 @@ export interface DirectoryEntry {
     contentSize: number,
 }
 
+/**
+ * An interface containing information about the first parent directory with
+ * content.
+ */
+export interface FirstFullParent {
+    // The first parent with content
+    directory: string,
+    // All the directories up the chain that were empty
+    emptyDirectories: string[],
+}
+
 export async function request<T>(url:string, type?:'json'):Promise<T>
 export async function request(url:string, type:'text'):Promise<string>
 export async function request(url:string, type:'blob'):Promise<Blob>
@@ -102,6 +113,34 @@ export function get_dir_entries(path:string):DirectoryEntry[] {
             }
             return entry
         })
+}
+
+/**
+ * Find the first parent directory that has content and all it's empty children
+ *
+ * @param directory The directory to start on
+ *
+ * @returns The parent that has content, and all the empty children
+ */
+export function find_first_full_parent_dir(directory: string): FirstFullParent {
+    const result: FirstFullParent = {
+        directory: '',
+        emptyDirectories: [],
+    }
+    let parent = directory
+    // Loop until we get to the top directory
+    while (parent !== '.') {
+        const total = read_files_in_dir(parent).length
+        if (total === 0) {
+            result.emptyDirectories.push(parent)
+        } else {
+            // If a directory has files, then it's parents will also have it
+            result.directory = parent
+            break
+        }
+        parent = dirname(parent)
+    }
+    return result
 }
 
 /**

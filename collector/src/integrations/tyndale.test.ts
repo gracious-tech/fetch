@@ -1,5 +1,5 @@
 import {describe, it} from 'vitest'
-import {TyndaleBibleReference, extract_reference, study_notes_to_json} from './tyndale'
+import {TyndaleBibleReference, extract_reference, study_notes_to_json, tyndale_to_usx_book} from './tyndale'
 
 const test_xml = `
 <items release="1.25">
@@ -42,62 +42,66 @@ const test_xml = `
 </items>
 `
 
-// describe('study_notes_to_json', () => {
+describe('study_notes_to_json', () => {
 
-//     const notes = study_notes_to_json(test_xml)
+    const notes = study_notes_to_json(test_xml)
 
-//     it("Organises notes by USX book id", ({expect}) => {
-//         expect(Object.keys(notes).sort()).toEqual(['1co', 'gen', 'mat', '2th'].sort())
-//     })
+    it("Organises notes by USX book id", ({expect}) => {
+        expect(Object.keys(notes)).toEqual(Object.values(tyndale_to_usx_book))
+    })
 
-//     it("Parses singe verse ref", ({expect}) => {
-//         expect(JSON.stringify(notes['mat']!.verses)).not.toBe('{}')
-//         expect(notes['mat']!.ranges).toHaveLength(0)
-//         expect(notes['mat']!.verses[17]![9]).toBeDefined()
-//         expect(notes['mat']!.verses[17]![9]).toContain('Jesus could not be fully understood')
-//     })
+    it("Parses singe verse ref", ({expect}) => {
+        expect(JSON.stringify(notes['mat']!.verses)).not.toBe('{}')
+        expect(notes['mat']!.ranges).toHaveLength(0)
+        expect(notes['mat']!.verses[17]![9]).toBeDefined()
+        expect(notes['mat']!.verses[17]![9]).toContain('Jesus could not be fully understood')
+    })
 
-//     it("Parses multi-verse ref (no pun intended)", ({expect}) => {
-//         expect(notes['gen']!.ranges.find(note => {
-//             return note.start_c === 1 && note.start_v === 3 && note.end_c === 1 && note.end_v === 13
-//         })).toBeDefined()
-//     })
+    it("Parses multi-verse ref (no pun intended)", ({expect}) => {
+        expect(JSON.stringify(notes['gen']!.verses)).toBe('{}')
+        expect(notes['gen']!.ranges).toHaveLength(1)
+        expect(notes['gen']!.ranges.find(note => {
+            return note.start_c === 1 && note.start_v === 3 && note.end_c === 1 && note.end_v === 13
+        })).toBeDefined()
+    })
 
-//     it("Parses multi-chapter ref", ({expect}) => {
-//         expect(notes['1co']!.ranges.find(note => {
-//             return note.start_c === 1 && note.start_v === 10
-//                 && note.end_c === 15 && note.end_v === 58
-//         })).toBeDefined()
-//     })
+    it("Parses multi-chapter ref", ({expect}) => {
+        expect(JSON.stringify(notes['gen']!.verses)).toBe('{}')
+        expect(notes['gen']!.ranges).toHaveLength(1)
+        expect(notes['1co']!.ranges.find(note => {
+            return note.start_c === 1 && note.start_v === 10
+                && note.end_c === 15 && note.end_v === 58
+        })).toBeDefined()
+    })
 
-//     it("Contents should be trimmed", ({expect}) => {
-//         expect(notes['mat']!.verses[17]![9]).toMatch(/^[^ \n].*[^ \n]$/)
-//     })
+    it("Contents should be trimmed", ({expect}) => {
+        expect(notes['mat']!.verses[17]![9]).toMatch(/^[^ \n].*[^ \n]$/)
+    })
 
-//     it("Contents shouldn't start with a container or verse ref", ({expect}) => {
-//         expect(notes['mat']!.verses[17]![9]).toMatch(/^Jesus/)
-//     })
+    // it("Contents shouldn't start with a container or verse ref", ({expect}) => {
+    //     expect(notes['mat']!.verses[17]![9]).toMatch(/^Jesus/)
+    // })
 
-//     it("Some elements should be converted to standard HTML", ({expect}) => {
-//         expect(notes['mat']!.verses[12]![24]).toContain('<em>Beelzeboul;</em>')
-//     })
+    // it("Some elements should be converted to standard HTML", ({expect}) => {
+    //     expect(notes['mat']!.verses[12]![24]).toContain('<em>Beelzeboul;</em>')
+    // })
 
-//     it("Links to outside resources should be stripped", ({expect}) => {
-//         expect(notes['2th']!.verses[1]![10])
-//             .not.toContain('href="?item=TheDayOfTheLord_ThemeNote_Filament"')
-//     })
+    // it("Links to outside resources should be stripped", ({expect}) => {
+    //     expect(notes['2th']!.verses[1]![10])
+    //         .not.toContain('href="?item=TheDayOfTheLord_ThemeNote_Filament"')
+    // })
 
-//     it("Links to other verses should be spans with data-ref attribute", ({expect}) => {
-//         expect(notes['2th']!.verses[1]![10])
-//             .toContain('<span data-ref="2th,2,2">2:2</span>')
-//     })
+    // it("Links to other verses should be spans with data-ref attribute", ({expect}) => {
+    //     expect(notes['2th']!.verses[1]![10])
+    //         .toContain('<span data-ref="2th,2,2">2:2</span>')
+    // })
 
-//     it("Links to multi-verse passages should include end chapter & verse", ({expect}) => {
-//         expect(notes['2th']!.verses[1]![10])
-//             .toContain('<span data-ref="1th,5,2,5,4">1 Thes 5:2-4</span>')
-//     })
+    // it("Links to multi-verse passages should include end chapter & verse", ({expect}) => {
+    //     expect(notes['2th']!.verses[1]![10])
+    //         .toContain('<span data-ref="1th,5,2,5,4">1 Thes 5:2-4</span>')
+    // })
 
-// })
+})
 describe('extract_reference', () => {
 
     it('should return a single verse correctly', ({expect})  => {
@@ -109,6 +113,7 @@ describe('extract_reference', () => {
         expect(reference!.start_verse).toEqual(24)
         expect(reference!.end_chapter).toEqual(12)
         expect(reference!.end_verse).toEqual(24)
+        expect(reference!.is_range).toBe(false)
     })
 
     it('should return a few verses in the same chapter', ({expect}) => {
@@ -120,6 +125,7 @@ describe('extract_reference', () => {
         expect(reference!.start_verse).toEqual(3)
         expect(reference!.end_chapter).toEqual(1)
         expect(reference!.end_verse).toEqual(13)
+        expect(reference!.is_range).toBe(true)
     })
 
     it('should handle multiple passages', ({expect}) => {
@@ -131,6 +137,7 @@ describe('extract_reference', () => {
         expect(reference!.start_verse).toEqual(10)
         expect(reference!.end_chapter).toEqual(15)
         expect(reference!.end_verse).toEqual(58)
+        expect(reference!.is_range).toBe(true)
     })
 
 })

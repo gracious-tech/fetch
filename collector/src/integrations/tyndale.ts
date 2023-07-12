@@ -22,7 +22,17 @@ interface StudyNotes {
  *
  * @returns The data to be converted to JSON
  */
-export function study_notes_to_json(xml:string):Record<string, StudyNotes>{
+export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
+    // Set up the intial data with empty values. We want to be in book order
+    const output:Record<string, StudyNotes> = {}
+    // tyndale_to_usx_book is defined at the bottom of the file
+    for (const tyndale_book of Object.keys(tyndale_to_usx_book)) {
+        // Result is keyed by USX ids, not Tyndale's
+        output[tyndale_to_usx_book[tyndale_book]!] = {
+            verses: {},
+            ranges: [],  // Sorted by start_c/start_v
+        }
+    }
     // Parse Tyndale's study notes XML into a JSON object with HTML contents
     /* TODO Requirements:
         Parse <item name="..."> to get the verse range
@@ -49,28 +59,34 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes>{
     // Parse the XML
     const doc = new DOMParser().parseFromString(xml, 'text/xml')
     const elements = select('//item', doc) as Element[]
-    const items = elements.map((element: Element) => {
-        const body_element = select('body/p', element)[0] as Element
-        const serializer = new XMLSerializer()
-        const body = (body_element !== undefined) ? serializer.serializeToString(body_element) : ''
+    const serializer = new XMLSerializer()
+    elements.forEach((element: Element) => {
         const name = element.getAttribute('name') ?? ''
         const reference = extract_reference(name)
-        return {
-            reference,
-            text: body.replace(/^<p(?:\s+class="[^"]+")?>([\s\S]+)<\/p>$/, '$1'),
+        if ((!reference) || (reference.usx === '')) {
+            // Move on. Unable to determine reference
+            return
+        }
+        const body_element = select('body/p', element)[0] as Element
+        let body = (body_element !== undefined) ? serializer.serializeToString(body_element) : ''
+        body = body.replace(/^<p(?:\s+class="[^"]+")?>([\s\S]+)<\/p>$/, '$1')
+        if (!reference.is_range) {
+            // Handle single verse
+            const note: Record<number, string> = {}
+            note[reference.start_verse] = body
+            output[reference.usx]!.verses[reference.start_chapter] = note
+        } else {
+            // Range of verses
+            const note: MultiVerseNote = {
+                start_c: reference.start_chapter,
+                start_v: reference.start_verse,
+                end_c: reference.end_chapter,
+                end_v: reference.end_verse,
+                contents: body,
+            }
+            output[reference.usx]!.ranges.push(note)
         }
     })
-
-    // Organise by book
-    const output:Record<string, StudyNotes> = {}
-    // tyndale_to_usx_book is defined at the bottom of the file
-    for (const tyndale_book of Object.keys(tyndale_to_usx_book)){
-        // Result is keyed by USX ids, not Tyndale's
-        output[tyndale_to_usx_book[tyndale_book]!] = {
-            verses: {},
-            ranges: [],  // Sorted by start_c/start_v
-        }
-    }
 
     return output
 }
@@ -82,6 +98,8 @@ export interface TyndaleBibleReference {
     start_verse: number,
     end_chapter: number,
     end_verse: number,
+    // Does it cover multiple verses?
+    is_range: boolean,
 }
 
 /**
@@ -122,6 +140,7 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
         end_chapter = start_chapter
         end_verse = start_verse
     }
+    const is_range = ((start_chapter !== end_chapter) || (start_verse !== end_verse))
     const result: TyndaleBibleReference = {
         book,
         start_chapter,
@@ -129,6 +148,7 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
         end_chapter,
         end_verse,
         usx,
+        is_range,
     }
     return result
 }
@@ -177,7 +197,7 @@ span.sn-sc Small caps text within a study note
 */
 
 // Map Tyndale book ids to USX ids
-const tyndale_to_usx_book:Record<string, string> = {
+export const tyndale_to_usx_book:Record<string, string> = {
     'Gen': 'gen',
     'Exod': 'exo',
     'Lev': 'lev',

@@ -54,10 +54,65 @@ export function cross_references_to_json(tsv:string):CrossReferences{
     }
 }
 
+/**
+ * An interface for describing an extracted reference
+ */
+export interface OBBibleReference {
+    book: string,
+    usx: string,
+    start_chapter: number,
+    start_verse: number,
+    end_chapter: number,
+    end_verse: number,
+    // Does it cover multiple verses?
+    is_range: boolean,
+}
+
+/**
+ * Extract the Bible reference
+ *
+ * @param reference The bible reference
+ *
+ * @returns Details about the passage
+ */
+export function extract_reference(reference: string): OBBibleReference|null {
+    const pattern = /\b\w+\b/g
+    const parts = reference.split('-')
+    if (parts.length === 0) {
+        return null
+    }
+    const matches = parts[0]!.match(pattern) || []
+    if (matches.length < 3) {
+        return null
+    }
+    const book = matches[0] || ''
+    const usx = openbible_to_usx_book[book] || ''
+    const start_chapter = parseInt(matches[1]!, 10) || 0
+    const start_verse = parseInt(matches[2]!, 10) || 0
+    let end_chapter = start_chapter
+    let end_verse = start_verse
+    if (parts.length === 2) {
+        const second_matches = parts[1]!.match(pattern) || []
+        if (second_matches.length === 3) {
+            end_chapter = parseInt(second_matches[1]!, 10) || 0
+            end_verse = parseInt(second_matches[2]!, 10) || 0
+        }
+    }
+    const is_range = ((start_chapter !== end_chapter) || (start_verse !== end_verse))
+    const result: OBBibleReference = {
+        book,
+        usx,
+        start_chapter,
+        start_verse,
+        end_chapter,
+        end_verse,
+        is_range,
+    }
+    return result
+}
 
 // Map openbible book ids to USX ids
-const openbible_to_usx_book:Record<string, string> = {
-    // TODO These have not been checked (left-side need updating to match openbible's form)
+const openbible_to_usx_book: Record<string, string> = {
     'Gen': 'gen',
     'Exod': 'exo',
     'Lev': 'lev',

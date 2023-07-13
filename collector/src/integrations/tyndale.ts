@@ -223,6 +223,20 @@ export function clean_note(body: string): string {
         const pattern = new RegExp(`<span class="${klass}">(.*?)<\/span>`, 'g')
         cleaned = cleaned.replace(pattern, replacement)
     })
+    // convert reference links to data tags
+    const pattern = /<a href="\?bref=([^"]*)">([^<]*)<\/a>/g
+    cleaned = cleaned.replace(pattern, (match: string, reference: string, text: string) => {
+        const scripture = extract_reference(reference)
+        if (!scripture) {
+            return ''
+        }
+        let format = `${scripture.usx},${scripture.start_chapter},${scripture.start_verse}`
+        if (scripture.is_range) {
+            format += `,${scripture.end_chapter},${scripture.end_verse}`
+        }
+        return `<span data-ref="${format}">${text}</span>`
+    })
+    // strip remaining links
     // trim the result
     return cleaned.trim()
 }

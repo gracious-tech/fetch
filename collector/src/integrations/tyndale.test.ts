@@ -222,4 +222,14 @@ describe('clean_note', () => {
         expect(result).toEqual('<span class="excerpt sc">Mene, Mene, Tekel,</span> and')
     })
 
+    it('should convert scripture links to data tags with correct format', ({expect}) => {
+        let result = clean_note('and righteousness (cp. <a href="?bref=Dan.4.27">4:27</a>).')
+        expect(result).toEqual('and righteousness (cp. <span data-ref="dan,4,27">4:27</span>).')
+        result = clean_note('Another <a href="?bref=Dan.5.22-24">5:22-24</a> here.')
+        expect(result).toEqual('Another <span data-ref="dan,5,22,5,24">5:22-24</span> here.')
+        // make sure we are using usx
+        result = clean_note('Check out <a href="?bref=Ezra.7.12">Ezra 7:12</a>.')
+        expect(result).toEqual('Check out <span data-ref="ezr,7,12">Ezra 7:12</span>.')
+    })
+
 })

@@ -64,7 +64,6 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
             output[reference.usx]!.ranges.push(note)
         }
     })
-
     // Sort our ranges
     for (const key in output) {
         output[key]!.ranges.sort((a: MultiVerseNote, b: MultiVerseNote) => {
@@ -74,6 +73,9 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
     return output
 }
 
+/**
+ * An interface describing the extracted Bible reference
+ */
 export interface TyndaleBibleReference {
     book: string,
     usx: string,
@@ -220,7 +222,7 @@ export function clean_note(body: string): string {
         'sup': '<sup>$1</sup>',
     }
     Object.entries(elements).forEach(([klass, replacement]) => {
-        const pattern = new RegExp(`<span class="${klass}">(.*?)<\/span>`, 'g')
+        const pattern = new RegExp(`<span class="${klass}">(.*?)</span>`, 'g')
         cleaned = cleaned.replace(pattern, replacement)
     })
     // convert reference links to data tags

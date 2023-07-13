@@ -1,6 +1,6 @@
 import {describe, it} from 'vitest'
 import {
-    TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json, tyndale_to_usx_book
+    TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json, tyndale_to_usx_book,
 } from './tyndale'
 
 const test_xml = `
@@ -9,7 +9,7 @@ const test_xml = `
 <item name="ICor.1.10-15.58" typename="StudyNote" product="TyndaleOpenStudyNotes">
 <refs>1Cor.1.10</refs>
 <body>
-<p class="sn-text"><span class="sn-ref"><a href="?bref=1Cor.1.10-15.58">1:10–15:58</a></span> The body of the letter is devoted to Paul’s advice on specific problems and questions that had arisen in the Corinthian church.</p>
+<p class="sn-text"><span class="sn-ref"><a href="?bref=1Cor.1.10-15.58">1:10-15:58</a></span> The body of the letter is devoted to Paul’s advice on specific problems and questions that had arisen in the Corinthian church.</p>
 </body>
 </item>
 
@@ -44,7 +44,7 @@ const test_xml = `
 <item name="IIThes.1.10" typename="StudyNote" product="TyndaleOpenStudyNotes">
 <refs>2Thes.1.10</refs>
 <body>
-<p class="sn-text"><span class="sn-ref"><a href="?bref=2Thes.1.10">1:10</a></span> <span class="sn-excerpt">that day:</span> The day of the Lord (<a href="?bref=2Thes.2.2">2:2</a>; <a href="?bref=1Thes.5.2-4">1 Thes 5:2-4</a>; see “<a href="?item=TheDayOfTheLord_ThemeNote_Filament">The Day of the Lord</a>” Theme Note).</p>
+<p class="sn-text"><span class="sn-ref"><a href="?bref=2Thes.1.10">1:10</a></span> <span class="sn-excerpt">that day:</span> The day of the Lord (<a href="?bref=2Thes.2.2">2:2</a>; <a href="?bref=1Thes.5.2-4">1 Thes 5:2-4</a>; see “<a href="?item=TheDayOfTheLord_ThemeNote_Filament">The Day of the Lord</a>” Theme Note).</p>
 </body>
 </item>
 
@@ -116,10 +116,10 @@ describe('study_notes_to_json', () => {
             .toContain('<span data-ref="2th,2,2">2:2</span>')
     })
 
-    // it("Links to multi-verse passages should include end chapter & verse", ({expect}) => {
-    //     expect(notes['2th']!.verses[1]![10])
-    //         .toContain('<span data-ref="1th,5,2,5,4">1 Thes 5:2-4</span>')
-    // })
+    it("Links to multi-verse passages should include end chapter & verse", ({expect}) => {
+        expect(notes['2th']!.verses[1]![10])
+            .toContain('<span data-ref="1th,5,2,5,4">1 Thes 5:2-4</span>')
+    })
 
 })
 describe('extract_reference', () => {

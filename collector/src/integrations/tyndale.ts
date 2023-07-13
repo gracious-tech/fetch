@@ -136,6 +136,45 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
     return result
 }
 
+/*
+Common Span Classes
+===================
+span.ital Italic text (converted)
+span.ital-bold Italic bold text (converted)
+span.sc Small caps text (keep)
+span.sc-ital Small caps italic text (converted to span.sc with em)
+span.sup Superscript text (converted)
+span.bold Bold text (converted)
+span.bold-sc Bold small caps text (converted to span.sc with strong)
+span.greek Greek language text (keep)
+span.hebrew Hebrew language text (keep)
+span.aramaic Aramaic text (keep)
+span.latin Latin language text (keep)
+span.sub Subscript text (converted)
+span.divine-name The divine name, usually set as small caps (keep)
+span.divine-name-ital divine name but set as italic (converted divine-name wrapped in em)
+span.sn-excerpt-divine-name The divine name, usually set as small caps and excerpt (convert to 
+    .excerpt.divine-name)
+span.era Marks BC/AD era designations, usually set as small caps (keep)
+span.bold-era Same as era but set as bold (converted to era wrapped in strong)
+
+StudyNotes
+==========
+p.sn-list-1 First level list indent within a study note (converted to .list-1)
+p.sn-list-2 Second level list indent within a study note (converted to .list-2)
+p.sn-list-3 Third level list indent within a study note (converted to .list-3)
+p.sn-text Normal study note text (removed)
+
+span.sn-excerpt Bible text excerpt within a study note (converted to .excerpt)
+span.sn-excerpt-roman Text within a study note excerpt set off as roman when study note 
+    excerpts are set as italic by default. Otherwise set as italic. (converted to .excerpt.roman)
+span.sn-excerpt-sc Small cap text within a study note excerpt (converted to .excerpt.sc)
+span.sn-hebrew-chars Hebrew language characters within a study note (converted to span.hebrew)
+span.sn-ref Bible reference to which the study note is connected (removed)
+span.sn-ref-sc Small caps text within a study note reference (converted to .sc)
+span.sn-sc Small caps text within a study note (converted to .sc)
+*/
+
 /**
  * Extract the body of the note and transform it to align with our requirements.
  *
@@ -152,8 +191,6 @@ export function clean_note(body: string): string {
                 <a href="?bref=Matt.12.20-21">12:20-21</a>  ->  <span data-ref='mat,12,20,12,21'>12:20-21</span>
             Remove <a> if no verse ref
                 e.g. <a href="?item=TheDayOfTheLord_ThemeNote_Filament">
-            Transform non-standard markup to standard HTML
-                See below for notes on Tyndale's classes
     */
     let cleaned = body
     // Remove wrapper
@@ -163,8 +200,23 @@ export function clean_note(body: string): string {
     // Transform non-standard markup into HTML
     const elements = {
         'bold': '<strong>$1</strong>',
+        'bold-era': '<span class="era"><strong>$1</strong></span>',
+        'bold-sc': '<span class="sc"><strong>$1</strong></span>',
+        'sn-excerpt': '<span class="excerpt">$1</span>',
+        'sn-excerpt-divine-name': '<span class="excerpt divine-name">$1</span>',
+        'sn-excerpt-roman': '<span class="excerpt roman">$1</span>',
+        'sn-excerpt-sc': '<span class="excerpt sc">$1</span>',
+        'sn-hebrew-chars': '<span class="hebrew">$1</span>',
+        'sn-list-1': '<span class="list-1">$1</span>',
+        'sn-list-2': '<span class="list-2">$1</span>',
+        'sn-list-3': '<span class="list-3">$1</span>',
+        'sn-ref-sc': '<span class="sc">$1</span>',
+        'sn-sc': '<span class="sc">$1</span>',
+        'divine-name-ital': '<span class="divine-name"><em>$1</em></span>',
         'ital': '<em>$1</em>',
         'ital-bold': '<em><strong>$1</strong></em>',
+        'sc-ital': '<span class="sc"><em>$1</em></span>',
+        'sub': '<sub>$1</sub>',
         'sup': '<sup>$1</sup>',
     }
     Object.entries(elements).forEach(([klass, replacement]) => {
@@ -174,49 +226,6 @@ export function clean_note(body: string): string {
     // trim the result
     return cleaned.trim()
 }
-
-/* TODO Notes from Tyndle on what their classes are for
-
-For each, decide whether to:
-    1. Convert to HTML element (e.g. <span class="sup"> -> <sup>)
-    2. Keep as is (e.g. <span class="greek">)
-    3. Strip if not useful at all
-
-Common Span Classes
-===================
-span.ital Italic text
-span.ital-bold Italic bold text
-span.sc Small caps text
-span.sc-ital Small caps italic text
-span.sup Superscript text
-span.bold Bold text
-span.bold-sc Bold small caps text
-span.greek Greek language text
-span.hebrew Hebrew language text
-span.aramaic Aramaic text
-span.latin Latin language text
-span.sub Subscript text
-span.divine-name The divine name, usually set as small caps
-span.divine-name-ital Same as the divine name but set as italic
-span.era Marks BC/AD era designations, usually set as small caps
-span.bold-era Same as era but set as bold
-
-StudyNotes
-==========
-p.sn-list-1 First level list indent within a study note
-p.sn-list-2 Second level list indent within a study note
-p.sn-list-3 Third level list indent within a study note
-p.sn-text Normal study note text
-
-span.sn-excerpt Bible text excerpt within a study note
-span.sn-excerpt-roman Text within a study note excerpt set off as roman when study note excerpts are set as italic by default. Otherwise set as italic.
-span.sn-excerpt-sc Small cap text within a study note excerpt
-span.sn-excerpt-divine-name The divine name within a study note excerpt, usually set as small caps
-span.sn-hebrew-chars Hebrew language characters within a study note
-span.sn-ref Bible reference to which the study note is connected
-span.sn-ref-sc Small caps text within a study note reference
-span.sn-sc Small caps text within a study note
-*/
 
 // Map Tyndale book ids to USX ids
 export const tyndale_to_usx_book:Record<string, string> = {

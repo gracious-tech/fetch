@@ -10,6 +10,8 @@ Exod.28.3\tEph.1.17\t30
 Gen.1.1\tIsa.42.5\t109
 Exod.28.2\tZech.3.3-Zech.3.4\t2
 Exod.28.3\tDeut.34.9\t103
+Exod.28.3\tDeut.33.3\t10
+Exod.28.3\tDeut.33.1\t1
 Exod.28.3\tProv.2.6\t0
 Exod.28.4\tEph.1.17\t-1
 Exod.28.3\tExod.35.35-Exod.36.2\t32
@@ -33,12 +35,19 @@ describe('cross_references_to_json', () => {
     })
 
     it("Parses multiple references per verse", ({expect}) => {
-        expect(refs['exo']![28]![3]).toHaveLength(4)
+        expect(refs['exo']![28]![3]).toHaveLength(6)
     })
 
-    // it("Sorts references by traditional book ordering", ({expect}) => {
-    //     expect(refs['exo']![28]![3]!.map(r => r[1])).toEqual(['exo', 'deu', 'pro', 'eph'])
-    // })
+    it("Sorts references by traditional book ordering, chapter, and verse", ({expect}) => {
+        expect(refs['exo']![28]![3]!.map(r => r[1]))
+            .toEqual(['exo', 'deu', 'deu', 'deu', 'pro', 'eph'])
+        const duet = refs['exo']![28]![3]!.filter(r => r[1] === 'deu')
+        // Chapters in correct order
+        expect(duet.map(r => r[2])).toEqual([33, 33, 34])
+        // Verses in order
+        const chap_33 = duet.filter(r => r[2] === 33)
+        expect(chap_33.map(r => r[3])).toEqual([1, 3])
+    })
 
     // it("Excludes references with a negative vote count", ({expect}) => {
     //     expect(refs['exo']![28]![4]).not.toBeDefined()

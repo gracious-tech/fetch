@@ -12,6 +12,14 @@ type CrossReferences =
     Record<string, Record<number, Record<number, (CrossRefSingle|CrossRefRange)[]>>>
 
 /**
+ * An interface used for our hash table to enable sorting
+ */
+interface CrossRefItem {
+    from: OBBibleReference,
+    cross_references: (CrossRefSingle|CrossRefRange)[],
+}
+
+/**
  * Prepare the OB cross reference data to be converted to JSON
  *
  * @param content The Open Bible cross reference content to parse
@@ -46,7 +54,6 @@ export function cross_references_to_json(content:string): CrossReferences {
 
         Once organised, the array of references per verse should be sorted by book/chapter/verse
             You can use `books_ordered` to get the traditional ordering of books
-
     */
 
     // return {
@@ -60,6 +67,9 @@ export function cross_references_to_json(content:string): CrossReferences {
     //         }
     //     },
     // }
+    // We will store the cross references in this table, so we can sort them.
+    // Then we will add them to the output. The key is [book_start_chapter_start_verse]
+    const cross_ref_table = new Map<string, CrossRefItem>()
     const lines = content.split('\n')
     for (let index = 0; index < lines.length; index++) {
         const line = lines[index]
@@ -78,19 +88,54 @@ export function cross_references_to_json(content:string): CrossReferences {
         const votes = parseInt(votes_string, 10)
         // Fix relevance
         let cross_ref: CrossRefSingle|CrossRefRange = [
-            1, to.usx, to.start_chapter, to.start_verse,
+            -1, to.usx, to.start_chapter, to.start_verse,
         ]
         if (to.is_range) {
             cross_ref = [...cross_ref, to.end_chapter, to.end_verse]
         }
+        const key = `${from.usx}_${from.start_chapter}_${from.start_verse}`
+        if (cross_ref_table.has(key)) {
+            const existing = cross_ref_table.get(key)
+            existing!.cross_references.push(cross_ref)
+            cross_ref_table.set(key, existing!)
+            continue
+        }
+        const item: CrossRefItem = {
+            from,
+            cross_references: [cross_ref],
+        }
+        cross_ref_table.set(key, item)
+    }
+    // Set up the results
+    cross_ref_table.forEach((item: CrossRefItem) => {
+        // Sort the results
+        item.cross_references.sort(
+            (a: CrossRefSingle|CrossRefRange, b: CrossRefSingle|CrossRefRange) => {
+                const a_index = books_ordered.indexOf(a[1])
+                const b_index = books_ordered.indexOf(b[1])
+                const a_chapter = a[2]
+                const b_chapter = b[2]
+                const a_verse = a[3]
+                const b_verse = b[3]
+                if (a_index === b_index) {
+                    if (a_chapter === b_chapter) {
+                        return a_verse - b_verse
+                    }
+                    return a_chapter - b_chapter
+                }
+                // Sort by book
+                return a_index - b_index
+            })
+        const from = item.from
         if (!(from.start_chapter in output[from.usx]!)) {
             output[from.usx]![from.start_chapter] = {}
         }
         if (!(from.start_verse in output[from.usx]![from.start_chapter]!)) {
             output[from.usx]![from.start_chapter]![from.start_verse] = []
         }
-        output[from.usx]![from.start_chapter]![from.start_verse]!.push(cross_ref)
-    }
+        output[from.usx]![from.start_chapter]![from.start_verse] = item.cross_references
+    })
+
     return output
 }
 

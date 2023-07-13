@@ -4,7 +4,7 @@ import * as ebible from '../integrations/ebible.js'
 import * as dbl from '../integrations/dbl.js'
 
 
-export async function discover_translations(service:string){
+export async function discover_translations(service:string, discover_specific_id?:string){
     // Discover translations and save their meta data
 
     // Warn if service arg invalid
@@ -17,12 +17,12 @@ export async function discover_translations(service:string){
     // Consult one or more services
     // NOTE Order is from most->least likely to have original sources
     if (!service || service === 'door43'){
-        await door43.discover()
+        await door43.discover(discover_specific_id)
     }
     if (!service || service === 'ebible'){
-        await ebible.discover()
+        await ebible.discover(discover_specific_id)
     }
     if (!service || service === 'dbl'){
-        await dbl.discover()
+        await dbl.discover(discover_specific_id)
     }
 }

@@ -26,8 +26,8 @@ await yargs(process.argv.slice(2))
     .command('setup-bmc [version]', "Update Bible Multi Converter", {},
         argv => update_bmc(argv['version'] as string))
 
-    .command('discover [service]', "Discover what translations are available", {},
-        argv => discover_translations(argv['service'] as string))
+    .command('discover [service] [id]', "Discover what translations are available", {},
+        argv => discover_translations(argv['service'] as string, argv['id'] as string))
 
     .command('download [id]', "Download source files for translations", {},
         argv => update_source(argv['id'] as string))

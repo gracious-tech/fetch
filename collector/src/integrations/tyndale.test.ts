@@ -106,15 +106,15 @@ describe('study_notes_to_json', () => {
         expect(notes['mat']!.verses[12]![24]).toContain('<em>Beelzeboul;</em>')
     })
 
-    // it("Links to outside resources should be stripped", ({expect}) => {
-    //     expect(notes['2th']!.verses[1]![10])
-    //         .not.toContain('href="?item=TheDayOfTheLord_ThemeNote_Filament"')
-    // })
+    it("Links to outside resources should be stripped", ({expect}) => {
+        expect(notes['2th']!.verses[1]![10])
+            .not.toContain('href="?item=TheDayOfTheLord_ThemeNote_Filament"')
+    })
 
-    // it("Links to other verses should be spans with data-ref attribute", ({expect}) => {
-    //     expect(notes['2th']!.verses[1]![10])
-    //         .toContain('<span data-ref="2th,2,2">2:2</span>')
-    // })
+    it("Links to other verses should be spans with data-ref attribute", ({expect}) => {
+        expect(notes['2th']!.verses[1]![10])
+            .toContain('<span data-ref="2th,2,2">2:2</span>')
+    })
 
     // it("Links to multi-verse passages should include end chapter & verse", ({expect}) => {
     //     expect(notes['2th']!.verses[1]![10])
@@ -157,6 +157,18 @@ describe('extract_reference', () => {
         expect(reference!.start_verse).toEqual(10)
         expect(reference!.end_chapter).toEqual(15)
         expect(reference!.end_verse).toEqual(58)
+        expect(reference!.is_range).toBe(true)
+    })
+
+    it('should fallback to checking the alternatives if usx is not found', ({expect}) => {
+        const reference: TyndaleBibleReference|null = extract_reference('2Thes.3.14-15')
+        expect(reference).not.toBeNull()
+        expect(reference!.book).toEqual('IIThes')
+        expect(reference!.usx).toEqual('2th')
+        expect(reference!.start_chapter).toEqual(3)
+        expect(reference!.start_verse).toEqual(14)
+        expect(reference!.end_chapter).toEqual(3)
+        expect(reference!.end_verse).toEqual(15)
         expect(reference!.is_range).toBe(true)
     })
 
@@ -223,13 +235,21 @@ describe('clean_note', () => {
     })
 
     it('should convert scripture links to data tags with correct format', ({expect}) => {
-        let result = clean_note('and righteousness (cp. <a href="?bref=Dan.4.27">4:27</a>).')
-        expect(result).toEqual('and righteousness (cp. <span data-ref="dan,4,27">4:27</span>).')
+        let result = clean_note('and righteousness (cp. <a href="?bref=Dan.4.27">4:27</a>.)')
+        expect(result).toEqual('and righteousness (cp. <span data-ref="dan,4,27">4:27</span>.)')
         result = clean_note('Another <a href="?bref=Dan.5.22-24">5:22-24</a> here.')
         expect(result).toEqual('Another <span data-ref="dan,5,22,5,24">5:22-24</span> here.')
         // make sure we are using usx
         result = clean_note('Check out <a href="?bref=Ezra.7.12">Ezra 7:12</a>.')
         expect(result).toEqual('Check out <span data-ref="ezr,7,12">Ezra 7:12</span>.')
+    })
+
+    it('should remove any additional links', ({expect}) => {
+        let result = clean_note('(see <a href="?item=Dan.5.31_StudyNote">study note on 5:31</a>)')
+        expect(result).toEqual('(see study note on 5:31)')
+        // Make sure bref stay intact
+        result = clean_note(`<a href="?item=Dan.5.31_StudyNote">study note on 5:31</a> and <a href="?bref=Dan.4.27">4:27</a>.`)
+        expect(result).toEqual('study note on 5:31 and <span data-ref="dan,4,27">4:27</span>.')
     })
 
 })

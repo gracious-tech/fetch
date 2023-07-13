@@ -103,8 +103,13 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
     if (matches.length < 3) {
         return null
     }
-    const book = matches[0] || ''
-    const usx = tyndale_to_usx_book[book] || ''
+    let book = matches[0] || ''
+    let usx = tyndale_to_usx_book[book] || ''
+    if (usx === '') {
+        // Check the alternatives
+        book = refs_to_tyndale[book] || ''
+        usx = tyndale_to_usx_book[book] || ''
+    }
     const start_chapter = parseInt(matches[1]!, 10) || 0
     const start_verse = parseInt(matches[2]!, 10) || 0
     let end_chapter = 0
@@ -184,11 +189,6 @@ span.sn-sc Small caps text within a study note (converted to .sc)
  */
 export function clean_note(body: string): string {
     /* TODO Requirements:
-            Keep references to other verses though
-                Transform them to a <span> so users can customise if clickable or not
-                Transform the ref to own format: book,start_c,start_v[,end_c,end_v]
-                <a href="?bref=Matt.12.20">12:20</a>  ->  <span data-ref='mat,12,20'>12:20</span>
-                <a href="?bref=Matt.12.20-21">12:20-21</a>  ->  <span data-ref='mat,12,20,12,21'>12:20-21</span>
             Remove <a> if no verse ref
                 e.g. <a href="?item=TheDayOfTheLord_ThemeNote_Filament">
     */
@@ -224,7 +224,7 @@ export function clean_note(body: string): string {
         cleaned = cleaned.replace(pattern, replacement)
     })
     // convert reference links to data tags
-    const pattern = /<a href="\?bref=([^"]*)">([^<]*)<\/a>/g
+    let pattern = /<a href="\?bref=([^"]*)">([^<]*)<\/a>/g
     cleaned = cleaned.replace(pattern, (match: string, reference: string, text: string) => {
         const scripture = extract_reference(reference)
         if (!scripture) {
@@ -237,10 +237,35 @@ export function clean_note(body: string): string {
         return `<span data-ref="${format}">${text}</span>`
     })
     // strip remaining links
+    pattern = /<a\b[^>]*>(.*?)<\/a>/gi
+    cleaned = cleaned.replace(pattern, '$1')
     // trim the result
     return cleaned.trim()
 }
-
+/**
+ * Some times Tyndale uses an alternative book name for books.
+ * (ie. 1Kgs instead of IKgs).  This list allows us to look up
+ * the tyndale based on the alternative.
+ */
+export const refs_to_tyndale: Record<string, string> = {
+    '1Sam': 'ISam',
+    '2Sam': 'IISam',
+    '1Kgs': 'IKgs',
+    '2Kgs': 'IIKgs',
+    '1Chr': 'IChr',
+    '2Chr': 'IIChr',
+    '1Cor': 'ICor',
+    '2Cor': 'IICor',
+    '1Thes': 'IThes',
+    '2Thes': 'IIThes',
+    '1Tim': 'ITim',
+    '2Tim': 'IITim',
+    '1Pet': 'IPet',
+    '2Pet': 'IIPet',
+    '1Jn': 'IJn',
+    '2Jn': 'IIJn',
+    '3Jn': 'IIIJn',
+}
 // Map Tyndale book ids to USX ids
 export const tyndale_to_usx_book:Record<string, string> = {
     'Gen': 'gen',

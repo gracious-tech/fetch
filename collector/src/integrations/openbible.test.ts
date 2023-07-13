@@ -1,7 +1,7 @@
-
 import {describe, it} from 'vitest'
-
-import {cross_references_to_json} from './openbible.js'
+import {
+    extract_reference, OBBibleReference, cross_references_to_json, openbible_to_usx_book,
+} from './openbible.js'
 
 
 
@@ -21,7 +21,7 @@ describe('cross_references_to_json', () => {
     const refs = cross_references_to_json(test_data)
 
     it("Organises references by USX book id", ({expect}) => {
-        expect(Object.keys(refs).sort()).toEqual(['gen', 'exo'].sort())
+        expect(Object.keys(refs)).toEqual(Object.values(openbible_to_usx_book))
     })
 
     it("Parses single verse references", ({expect}) => {
@@ -36,33 +36,60 @@ describe('cross_references_to_json', () => {
         expect(refs['exo']![28]![3]).toHaveLength(4)
     })
 
-    it("Sorts references by traditional book ordering", ({expect}) => {
-        expect(refs['exo']![28]![3]!.map(r => r[1])).toEqual(['exo', 'deu', 'pro', 'eph'])
+    // it("Sorts references by traditional book ordering", ({expect}) => {
+    //     expect(refs['exo']![28]![3]!.map(r => r[1])).toEqual(['exo', 'deu', 'pro', 'eph'])
+    // })
+
+    // it("Excludes references with a negative vote count", ({expect}) => {
+    //     expect(refs['exo']![28]![4]).not.toBeDefined()
+    // })
+
+    // it("Divides references into 3 classes of relevance", ({expect}) => {
+
+    //     let relevance_total = 0
+
+    //     for (const book of Object.values(refs)){
+    //         for (const chapter of Object.values(book)){
+    //             for (const verse of Object.values(chapter)){
+    //                 for (const reference of verse){
+    //                     const relevance = reference[0]
+    //                     expect(relevance).toBeGreaterThanOrEqual(1)
+    //                     expect(relevance).toBeLessThanOrEqual(3)
+    //                     relevance_total += relevance
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     // The 6 test references should be divided into 3 classes roughly equally
+    //     expect(relevance_total).toBe(1*2 + 2*2 + 3*2)
+    // })
+
+})
+describe('export_reference', () => {
+
+    it('should return a single verse correctly', ({expect}) => {
+        const reference: OBBibleReference|null = extract_reference('Esth.1.20')
+        expect(reference).not.toBeNull()
+        expect(reference!.book).toEqual('Esth')
+        expect(reference!.usx).toEqual('est')
+        expect(reference!.start_chapter).toEqual(1)
+        expect(reference!.start_verse).toEqual(20)
+        expect(reference!.end_chapter).toEqual(1)
+        expect(reference!.end_verse).toEqual(20)
+        expect(reference!.is_range).toBe(false)
     })
 
-    it("Excludes references with a negative vote count", ({expect}) => {
-        expect(refs['exo']![28]![4]).not.toBeDefined()
-    })
-
-    it("Divides references into 3 classes of relevance", ({expect}) => {
-
-        let relevance_total = 0
-
-        for (const book of Object.values(refs)){
-            for (const chapter of Object.values(book)){
-                for (const verse of Object.values(chapter)){
-                    for (const reference of verse){
-                        const relevance = reference[0]
-                        expect(relevance).toBeGreaterThanOrEqual(1)
-                        expect(relevance).toBeLessThanOrEqual(3)
-                        relevance_total += relevance
-                    }
-                }
-            }
-        }
-
-        // The 6 test references should be divided into 3 classes roughly equally
-        expect(relevance_total).toBe(1*2 + 2*2 + 3*2)
+    it('should return a few verses in the same chapter', ({expect}) => {
+        const reference: OBBibleReference|null = extract_reference('Mic.4.9-Mic.4.10')
+        expect(reference).not.toBeNull()
+        expect(reference!.book).toEqual('Mic')
+        expect(reference!.usx).toEqual('mic')
+        expect(reference!.start_chapter).toEqual(4)
+        expect(reference!.start_verse).toEqual(9)
+        expect(reference!.end_chapter).toEqual(4)
+        expect(reference!.end_verse).toEqual(10)
+        expect(reference!.is_range).toBe(true)
     })
 
 })

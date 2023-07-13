@@ -11,16 +11,24 @@ type CrossRefRange = [...CrossRefSingle, number, number]  // ..., end_c, end_v
 type CrossReferences =
     Record<string, Record<number, Record<number, (CrossRefSingle|CrossRefRange)[]>>>
 
-
-export function cross_references_to_json(tsv:string):CrossReferences{
-    // Parse cross-references data from openbible.info and output JSON data
-
+/**
+ * Prepare the OB cross reference data to be converted to JSON
+ *
+ * @param content The Open Bible cross reference content to parse
+ *
+ * @returns The data prepared for JSON conversion
+ */
+export function cross_references_to_json(content:string): CrossReferences {
+    const output: CrossReferences = {}
+    // tyndale_to_usx_book is defined at the bottom of the file
+    for (const book of Object.keys(openbible_to_usx_book)) {
+        // Result is keyed by USX ids, not Tyndale's
+        output[openbible_to_usx_book[book]!] = {}
+    }
     /* TODO Requirements:
         See raw data at: https://a.openbible.info/data/cross-references.zip
             This should take the data as a string, not read a file
             But you can set it up to read the file during development if wanting to test on all data
-
-        Convert book codes to our format (USX), see below
 
         Collect references per verse, nested in objects for book+chapter+verse
 
@@ -41,17 +49,49 @@ export function cross_references_to_json(tsv:string):CrossReferences{
 
     */
 
-    return {
-        // TODO Example output:
-        "exo": {
-            "28": {
-                "2": [
-                    [1, "exo", 35, 35, 36, 2],  // Exod.28.2  Exod.35.35-Exod.36.2  50
-                    [2, "gal", 3, 27],  // Exod.28.2  Gal.3.27  10
-                ],
-            }
-        },
+    // return {
+    //     // TODO Example output:
+    //     "exo": {
+    //         "28": {
+    //             "2": [
+    //                 [1, "exo", 35, 35, 36, 2],  // Exod.28.2  Exod.35.35-Exod.36.2  50
+    //                 [2, "gal", 3, 27],  // Exod.28.2  Gal.3.27  10
+    //             ],
+    //         }
+    //     },
+    // }
+    const lines = content.split('\n')
+    for (let index = 0; index < lines.length; index++) {
+        const line = lines[index]
+        if ((index === 0) || (!line)) {
+            // Skip the header or empty lines
+            continue
+        }
+        const parts = line.split('\t')
+        const from = extract_reference(parts[0]!)
+        const to = extract_reference(parts[1]!)
+        if ((!from) || (!to)) {
+            // Scripture is missing
+            continue
+        }
+        const votes_string = parts[2] || '0'
+        const votes = parseInt(votes_string, 10)
+        // Fix relevance
+        let cross_ref: CrossRefSingle|CrossRefRange = [
+            1, to.usx, to.start_chapter, to.start_verse,
+        ]
+        if (to.is_range) {
+            cross_ref = [...cross_ref, to.end_chapter, to.end_verse]
+        }
+        if (!(from.start_chapter in output[from.usx]!)) {
+            output[from.usx]![from.start_chapter] = {}
+        }
+        if (!(from.start_verse in output[from.usx]![from.start_chapter]!)) {
+            output[from.usx]![from.start_chapter]![from.start_verse] = []
+        }
+        output[from.usx]![from.start_chapter]![from.start_verse]!.push(cross_ref)
     }
+    return output
 }
 
 /**
@@ -112,7 +152,7 @@ export function extract_reference(reference: string): OBBibleReference|null {
 }
 
 // Map openbible book ids to USX ids
-const openbible_to_usx_book: Record<string, string> = {
+export const openbible_to_usx_book: Record<string, string> = {
     'Gen': 'gen',
     'Exod': 'exo',
     'Lev': 'lev',

@@ -33,29 +33,6 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
             ranges: [],
         }
     }
-    // Parse Tyndale's study notes XML into a JSON object with HTML contents
-    /* TODO Requirements:
-        Parse <item name="..."> to get the verse range
-            Single verse notes go into `verses` object; notes that cover ranges go into `ranges`
-            Account for following forms: ICor.1.10-15.58, Gen.1.3-13, Matt.17.9
-            WARN <refs> is incorrect for some notes so don't use (e.g. 1Cor.3.1-9)
-        Extract html contents from <p class="sn-text">
-            Contents should be html with no container element
-                e.g. "Some <span>uncontained</span> text"
-                So users can wrap in their own <div> or <p>
-            Remove leading verse reference since users can reconstruct that from the range data
-                e.g. Remove `<span class="sn-ref"><a href="?bref=Matt.17.9">17:9</a></span> `
-            Keep references to other verses though
-                Transform them to a <span> so users can customise if clickable or not
-                Transform the ref to own format: book,start_c,start_v[,end_c,end_v]
-                <a href="?bref=Matt.12.20">12:20</a>  ->  <span data-ref='mat,12,20'>12:20</span>
-                <a href="?bref=Matt.12.20-21">12:20-21</a>  ->  <span data-ref='mat,12,20,12,21'>12:20-21</span>
-            Remove <a> if no verse ref
-                e.g. <a href="?item=TheDayOfTheLord_ThemeNote_Filament">
-            Transform non-standard markup to standard HTML
-                See below for notes on Tyndale's classes
-    */
-
     // Parse the XML
     const doc = new DOMParser().parseFromString(xml, 'text/xml')
     const elements = select('//item', doc) as Element[]
@@ -69,7 +46,7 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
         }
         const body_element = select('body/p', element)[0] as Element
         let body = (body_element !== undefined) ? serializer.serializeToString(body_element) : ''
-        body = body.replace(/^<p(?:\s+class="[^"]+")?>([\s\S]+)<\/p>$/, '$1')
+        body = clean_note(body)
         if (!reference.is_range) {
             // Handle single verse
             const note: Record<number, string> = {}
@@ -157,6 +134,45 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
         is_range,
     }
     return result
+}
+
+/**
+ * Extract the body of the note and transform it to align with our requirements.
+ *
+ * @param body The body of the note
+ *
+ * @returns The transformed text
+ */
+export function clean_note(body: string): string {
+    /* TODO Requirements:
+            Keep references to other verses though
+                Transform them to a <span> so users can customise if clickable or not
+                Transform the ref to own format: book,start_c,start_v[,end_c,end_v]
+                <a href="?bref=Matt.12.20">12:20</a>  ->  <span data-ref='mat,12,20'>12:20</span>
+                <a href="?bref=Matt.12.20-21">12:20-21</a>  ->  <span data-ref='mat,12,20,12,21'>12:20-21</span>
+            Remove <a> if no verse ref
+                e.g. <a href="?item=TheDayOfTheLord_ThemeNote_Filament">
+            Transform non-standard markup to standard HTML
+                See below for notes on Tyndale's classes
+    */
+    let cleaned = body
+    // Remove wrapper
+    cleaned = cleaned.replace(/^<p(?:\s+class="[^"]+")?>([\s\S]+)<\/p>$/, '$1')
+    // Remove links that refer this verse
+    cleaned = cleaned.replace(/<span class="sn-ref">.*?<\/span>/g, '')
+    // Transform non-standard markup into HTML
+    const elements = {
+        'bold': '<strong>$1</strong>',
+        'ital': '<em>$1</em>',
+        'ital-bold': '<em><strong>$1</strong></em>',
+        'sup': '<sup>$1</sup>',
+    }
+    Object.entries(elements).forEach(([klass, replacement]) => {
+        const pattern = new RegExp(`<span class="${klass}">(.*?)<\/span>`, 'g')
+        cleaned = cleaned.replace(pattern, replacement)
+    })
+    // trim the result
+    return cleaned.trim()
 }
 
 /* TODO Notes from Tyndle on what their classes are for

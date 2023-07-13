@@ -1,5 +1,7 @@
 import {describe, it} from 'vitest'
-import {TyndaleBibleReference, extract_reference, study_notes_to_json, tyndale_to_usx_book} from './tyndale'
+import {
+    TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json, tyndale_to_usx_book
+} from './tyndale'
 
 const test_xml = `
 <items release="1.25">
@@ -96,13 +98,13 @@ describe('study_notes_to_json', () => {
         expect(notes['mat']!.verses[17]![9]).toMatch(/^[^ \n].*[^ \n]$/)
     })
 
-    // it("Contents shouldn't start with a container or verse ref", ({expect}) => {
-    //     expect(notes['mat']!.verses[17]![9]).toMatch(/^Jesus/)
-    // })
+    it("Contents shouldn't start with a container or verse ref", ({expect}) => {
+        expect(notes['mat']!.verses[17]![9]).toMatch(/^Jesus/)
+    })
 
-    // it("Some elements should be converted to standard HTML", ({expect}) => {
-    //     expect(notes['mat']!.verses[12]![24]).toContain('<em>Beelzeboul;</em>')
-    // })
+    it("Some elements should be converted to standard HTML", ({expect}) => {
+        expect(notes['mat']!.verses[12]![24]).toContain('<em>Beelzeboul;</em>')
+    })
 
     // it("Links to outside resources should be stripped", ({expect}) => {
     //     expect(notes['2th']!.verses[1]![10])
@@ -156,6 +158,38 @@ describe('extract_reference', () => {
         expect(reference!.end_chapter).toEqual(15)
         expect(reference!.end_verse).toEqual(58)
         expect(reference!.is_range).toBe(true)
+    })
+
+})
+describe('clean_note', () => {
+    // eslint-disable-next-line max-len
+    const note = '<p class="sn-text"><span class="sn-ref"><a href="?bref=2Thes.1.10">1:10</a></span> <span class="sn-excerpt">that day:</span> The day of the Lord (<a href="?bref=2Thes.2.2">2:2</a>; <a href="?bref=1Thes.5.2-4">1 Thes 5:2-4</a>; see “<a href="?item=TheDayOfTheLord_ThemeNote_Filament">The Day of the Lord</a>” Theme Note).</p>'
+    
+    const cleaned = clean_note(note)
+
+    it('should strip the wrapping element', ({expect}) => {
+        expect(cleaned).not.toContain('<p class="sn-text">')
+    })
+
+    it('should remove any references to the current verse', ({expect}) => {
+        expect(cleaned)
+            .not
+            .toContain('<span class="sn-ref"><a href="?bref=2Thes.1.10">1:10</a></span>')
+    })
+
+    it('should trim the results', ({expect}) => {
+        expect(cleaned).toMatch(/^[^ \n].*[^ \n]$/)
+    })
+
+    it('should transform non standard markup as HTML', ({expect}) => {
+        let result = clean_note('<span class="ital">Beelzeboul;</span>')
+        expect(result).toEqual('<em>Beelzeboul;</em>')
+        result = clean_note('<span class="ital-bold">Peace</span>')
+        expect(result).toEqual('<em><strong>Peace</strong></em>')
+        result = clean_note('The <span class="bold">title</span> of')
+        expect(result).toEqual('The <strong>title</strong> of')
+        result = clean_note('On another note <span class="sup">look at this</span>')
+        expect(result).toEqual('On another note <sup>look at this</sup>')
     })
 
 })

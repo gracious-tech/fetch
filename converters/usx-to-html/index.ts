@@ -14,6 +14,7 @@ export interface BibleHtmlJson {
     First read README.md in this dir
 
     Study how HTML conversion has been done in `collector/assets/usx_transforms/usx_to_html.xslt`
+        Also checkout HTML files in `collection/dist` (though they have been minified)
         Can skip `control_chars.xslt` but `ignore.xslt` is important
         Generally follow the same rules, unless stated otherwise below
 

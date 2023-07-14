@@ -19,6 +19,7 @@ describe("usx_to_html", () => {
     })
 
     it("Includes missing verses as blank strings", async ({expect}) => {
+        // The examples below don't, but some may need opening/closing tags if within a paragraph
         expect(output.contents[1][3]).toEqual(['', '', ''])
         expect(output.contents[1][15]).toEqual(['', '', ''])
     })

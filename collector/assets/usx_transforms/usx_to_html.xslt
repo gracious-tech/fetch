@@ -60,7 +60,7 @@
             <xsl:apply-templates />
         </h2>
     </xsl:template>
-    <xsl:template match="para[@style='s']|para[@style='s1']|para[@style='s2']|para[@style='s3']|para[@style='s4']|para[@style='sr']|para[@style='r']">
+    <xsl:template match="para[@style='s']|para[@style='s1']|para[@style='s2']|para[@style='s3']|para[@style='s4']|para[@style='sr']">
         <h4 class="fb-{@style}">
             <xsl:apply-templates />
         </h4>

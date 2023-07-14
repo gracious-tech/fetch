@@ -1,8 +1,7 @@
 import {number_of_verses} from './stats.js'
 
 export interface BibleHtmlJson {
-    // chapter -> verse -> [opening_tags, verse, closing_tags]
-    contents:Record<number, Record<number, [string, string, string]>>
+    contents: (string[][])[]
 }
 
 // Convert USX to HTML organised by verse in a JSON structure
@@ -47,14 +46,14 @@ export function usx_to_html(xml:string): BibleHtmlJson {
     }
     // Build out the object
     const output: BibleHtmlJson = {
-        contents: {
-            0: {},
-        },
+        contents: [
+            [],
+        ],
     }
     number_of_verses[usx_code]!.forEach((total_verses: number, index: number) => {
-        const chapter: Record<number, [string, string, string]> = {}
+        const chapter = []
         const chapter_number = index + 1
-        for (let i = 1; i <= total_verses; i++) {
+        for (let i = 0; i <= total_verses; i++) {
             chapter[i] = ['', '', '']
         }
         output.contents[chapter_number] = chapter

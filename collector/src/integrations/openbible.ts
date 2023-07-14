@@ -1,10 +1,8 @@
-
 import {books_ordered} from '../parts/bible.js'
 
-
 // Types
-
-type CrossRefSingle = [number, string, number, number]  // relevance, book, start_c, start_v
+// I initially store the votes in position 0, and replace it with relevance when I buuild the output
+type CrossRefSingle = [number, string, number, number]  // relevance/votes, book, start_c, start_v
 type CrossRefRange = [...CrossRefSingle, number, number]  // ..., end_c, end_v
 
 // book -> chapter -> verse -> references
@@ -28,48 +26,17 @@ interface CrossRefItem {
  */
 export function cross_references_to_json(content:string): CrossReferences {
     const output: CrossReferences = {}
-    // tyndale_to_usx_book is defined at the bottom of the file
+    // openbible_to_usx_book is defined at the bottom of the file
     for (const book of Object.keys(openbible_to_usx_book)) {
-        // Result is keyed by USX ids, not Tyndale's
+        // Result is keyed by USX ids, not OpenBible's
         output[openbible_to_usx_book[book]!] = {}
     }
-    /* TODO Requirements:
-        See raw data at: https://a.openbible.info/data/cross-references.zip
-            This should take the data as a string, not read a file
-            But you can set it up to read the file during development if wanting to test on all data
-
-        Collect references per verse, nested in objects for book+chapter+verse
-
-        The data also includes votes for how relevant a reference is
-            We'll use this data to:
-                #1 Ignore references with negative votes
-                #2 Create 3 classes of references, represented by a number:
-                    1: Very relevant
-                    2: Quite relevant
-                    3: Somewhat relevant
-            You should use a statistical method to rank the references before categorising them
-                After removing ones with negative votes, each class should have around 1/3 of total
-                    e.g. If 300 references, ~100 classed as very relevant, ~100 quite, ~100 somewhat
-            Users will be able to use this to select only the most relevant references, if they wish
-
-        Once organised, the array of references per verse should be sorted by book/chapter/verse
-            You can use `books_ordered` to get the traditional ordering of books
-    */
-
-    // return {
-    //     // TODO Example output:
-    //     "exo": {
-    //         "28": {
-    //             "2": [
-    //                 [1, "exo", 35, 35, 36, 2],  // Exod.28.2  Exod.35.35-Exod.36.2  50
-    //                 [2, "gal", 3, 27],  // Exod.28.2  Gal.3.27  10
-    //             ],
-    //         }
-    //     },
-    // }
-    // We will store the cross references in this table, so we can sort them.
-    // Then we will add them to the output. The key is [book_start_chapter_start_verse]
+    /**
+     * We will store the cross references in this table, so we can sort them.
+     * Then we will add them to the output. The key is [book_start_chapter_start_verse].
+     */
     const cross_ref_table = new Map<string, CrossRefItem>()
+    const total_votes: number[] = []
     const lines = content.split('\n')
     for (let index = 0; index < lines.length; index++) {
         const line = lines[index]
@@ -86,9 +53,14 @@ export function cross_references_to_json(content:string): CrossReferences {
         }
         const votes_string = parts[2] || '0'
         const votes = parseInt(votes_string, 10)
-        // Fix relevance
+        if (votes < 0) {
+            // ignore negative voted references
+            continue
+        }
+        total_votes.push(votes)
+        // We hold votes in relevance position for now
         let cross_ref: CrossRefSingle|CrossRefRange = [
-            -1, to.usx, to.start_chapter, to.start_verse,
+            votes, to.usx, to.start_chapter, to.start_verse,
         ]
         if (to.is_range) {
             cross_ref = [...cross_ref, to.end_chapter, to.end_verse]
@@ -107,25 +79,32 @@ export function cross_references_to_json(content:string): CrossReferences {
         cross_ref_table.set(key, item)
     }
     // Set up the results
+    total_votes.sort((a: number, b: number) => a - b)
     cross_ref_table.forEach((item: CrossRefItem) => {
         // Sort the results
-        item.cross_references.sort(
-            (a: CrossRefSingle|CrossRefRange, b: CrossRefSingle|CrossRefRange) => {
-                const a_index = books_ordered.indexOf(a[1])
-                const b_index = books_ordered.indexOf(b[1])
-                const a_chapter = a[2]
-                const b_chapter = b[2]
-                const a_verse = a[3]
-                const b_verse = b[3]
-                if (a_index === b_index) {
-                    if (a_chapter === b_chapter) {
-                        return a_verse - b_verse
-                    }
-                    return a_chapter - b_chapter
-                }
-                // Sort by book
-                return a_index - b_index
+        item.cross_references = item.cross_references
+            .map((ref: CrossRefSingle|CrossRefRange) => {
+                // Calculate relevance
+                ref[0] = calculate_relevance(total_votes, ref[0], false)
+                return ref
             })
+            .sort(
+                (a: CrossRefSingle|CrossRefRange, b: CrossRefSingle|CrossRefRange) => {
+                    const a_index = books_ordered.indexOf(a[1])
+                    const b_index = books_ordered.indexOf(b[1])
+                    const a_chapter = a[2]
+                    const b_chapter = b[2]
+                    const a_verse = a[3]
+                    const b_verse = b[3]
+                    if (a_index === b_index) {
+                        if (a_chapter === b_chapter) {
+                            return a_verse - b_verse
+                        }
+                        return a_chapter - b_chapter
+                    }
+                    // Sort by book
+                    return a_index - b_index
+                })
         const from = item.from
         if (!(from.start_chapter in output[from.usx]!)) {
             output[from.usx]![from.start_chapter] = {}
@@ -151,6 +130,40 @@ export interface OBBibleReference {
     end_verse: number,
     // Does it cover multiple verses?
     is_range: boolean,
+}
+
+/**
+ * Calculate the relevance score of the cross reference
+ *
+ * 1: Very relevant
+ * 2: Quite relevant
+ * 3: Somewhat relevant
+ *
+ * @param votes All the votes for all the cross references
+ * @param vote The actual vote for the current cross reference
+ * @param needs_sorting Do we need to sort the votes? (preferably no.
+ * You do not want to sort on every check)
+ *
+ * @returns A score of 1, 2, or 3
+ */
+export function calculate_relevance(votes: number[], vote: number, needs_sorting = false): number {
+    if (needs_sorting) {
+        votes.sort((a: number, b: number) => a-b)
+    }
+    const group_size = Math.ceil(votes.length / 3)
+    const groups = Array.from({ length: 3 }, (_, index) => {
+        return votes.slice(index * group_size, (index + 1) * group_size)
+    })
+    if (groups[0]!.includes(vote)) {
+        // Somewhat relevant
+        return 3
+    }
+    if (groups[1]!.includes(vote)) {
+        // Quite relevant
+        return 2
+    }
+    // Very relevant
+    return 1
 }
 
 /**

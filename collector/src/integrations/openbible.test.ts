@@ -1,6 +1,7 @@
 import {describe, it} from 'vitest'
 import {
     extract_reference, OBBibleReference, cross_references_to_json, openbible_to_usx_book,
+    calculate_relevance,
 } from './openbible.js'
 
 
@@ -49,30 +50,37 @@ describe('cross_references_to_json', () => {
         expect(chap_33.map(r => r[3])).toEqual([1, 3])
     })
 
-    // it("Excludes references with a negative vote count", ({expect}) => {
-    //     expect(refs['exo']![28]![4]).not.toBeDefined()
-    // })
+    it("Excludes references with a negative vote count", ({expect}) => {
+        expect(refs['exo']![28]![4]).not.toBeDefined()
+    })
 
-    // it("Divides references into 3 classes of relevance", ({expect}) => {
+    it("Divides references into 3 classes of relevance", ({expect}) => {
+        let relevance_total = 0
+        for (const book of Object.values(refs)){
+            for (const chapter of Object.values(book)){
+                for (const verse of Object.values(chapter)){
+                    for (const reference of verse){
+                        const relevance = reference[0]
+                        expect(relevance).toBeGreaterThanOrEqual(1)
+                        expect(relevance).toBeLessThanOrEqual(3)
+                        relevance_total += relevance
+                    }
+                }
+            }
+        }
+        // The 6 test references should be divided into 3 classes roughly equally
+        expect(relevance_total).toBe(1*2 + 2*3 + 3*3)
+    })
 
-    //     let relevance_total = 0
+})
+describe('calculate_relevance', () => {
 
-    //     for (const book of Object.values(refs)){
-    //         for (const chapter of Object.values(book)){
-    //             for (const verse of Object.values(chapter)){
-    //                 for (const reference of verse){
-    //                     const relevance = reference[0]
-    //                     expect(relevance).toBeGreaterThanOrEqual(1)
-    //                     expect(relevance).toBeLessThanOrEqual(3)
-    //                     relevance_total += relevance
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     // The 6 test references should be divided into 3 classes roughly equally
-    //     expect(relevance_total).toBe(1*2 + 2*2 + 3*2)
-    // })
+    it('should calculate the relevance', ({expect}) => {
+        const votes = [0, 1, 10, 30, 32, 103]
+        expect(calculate_relevance(votes, 1, false)).toEqual(3)
+        expect(calculate_relevance(votes, 30, false)).toEqual(2)
+        expect(calculate_relevance(votes, 32, false)).toEqual(1)
+    })
 
 })
 describe('export_reference', () => {

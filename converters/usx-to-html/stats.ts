@@ -1,9 +1,14 @@
-
+/**
+ * Define the type of object
+ */
+type NumberOfVerses = {
+    [key: string]: number[]
+}
 
 // The number of verses for every chapter of the Bible
 // WARN Chapters are zero-indexed (i.e chapter 1 is at index 0)
 // TODO This data needs verification
-export const number_of_verses = {
+export const number_of_verses: NumberOfVerses = {
     '1ch': [54, 55, 24, 43, 26, 81, 40, 40, 44, 14, 47, 40, 14, 17, 29, 43, 27, 17, 19, 8, 30, 19,
         32, 31, 31, 32, 34, 21, 30],
     '1co': [31, 16, 23, 21, 13, 20, 40, 13, 27, 33, 34, 31, 13, 40, 58, 24],

@@ -15,6 +15,7 @@ This module returns a JSON structure that organises the text by verse, but the c
     "contents": [
         [],  // Chapter 0 has 0 verses
         [  // Chapter 1
+            ["", "", ""],  // Verse 0
             ["", "<p>First verse starts a new paragraph but doesn't end it. ", "</p>"],
             ["<p>", "Second verse occurs within an existing paragraph and ends it.</p>", ""]
         ]

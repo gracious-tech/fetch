@@ -91,7 +91,8 @@ export function usx_to_html(xml:string): BibleHtmlJson {
             const childNodes = Array.from(child.childNodes)
             // Build up the paragraph HTML
             let para_html = `${content_between_paras}<p class=fb-${style}>`
-            for (const para_child of childNodes) {
+            for (let index = 0; index < childNodes.length; index++) {
+                const para_child = childNodes[index]!
                 if (
                     (para_child.nodeName === 'verse') &&
                     (para_child.nodeType === Node.ELEMENT_NODE)
@@ -101,8 +102,15 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                     if ((!verse_attr)) {
                         if (eid_attr) {
                             // We are at the end of the verse
-                            verse_html += `${para_html}</p>`.replace('\n', '')
+                            verse_html += para_html.replace('\n', '')
                             output.contents[current_chapter]![current_verse]![1] = verse_html
+                            if ((index + 1) === childNodes.length) {
+                                // We have no more children so close the tag here.
+                                output.contents[current_chapter]![current_verse]![1] += '</p>'
+                            } else {
+                                // We are in the middle of a verse
+                                output.contents[current_chapter]![current_verse]![2] = '</p>'
+                            }
                             para_html = ''
                             verse_html = ''
                         }
@@ -112,6 +120,10 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                     current_verse = parseInt(verse_attr, 10)
                     para_html += `<sup data-v=${current_chapter}:${current_verse}>${current_verse}</sup>`
                     content_between_paras = ''
+                    if (index > 0) {
+                        // Our verse starts in the middle of a paragraph
+                        output.contents[current_chapter]![current_verse]![0] = `<p class=fb-${style}>`
+                    }
                     // Add the starting tag
                 }
                 if (
@@ -125,6 +137,28 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                     } else {
                         para_html += char_text
                     }
+                }
+                if (
+                    (para_child.nodeName === 'note') &&
+                    (para_child.nodeType === Node.ELEMENT_NODE)
+                ) {
+                    para_html += '<span class=fb-note>* <span>'
+                    for (const noteChild of Array.from(para_child.childNodes)) {
+                        const ele = noteChild as Element
+                        if (
+                            (ele.nodeName === 'char') &&
+                            (ele.nodeType === Node.ELEMENT_NODE)
+                        ) {
+                            const style = ele.getAttribute('style')
+                            const char_text = ele.textContent || ''
+                            if (style) {
+                                para_html += `<span class=fb-${style}>${char_text}</span>`
+                            } else {
+                                para_html += char_text
+                            }
+                        }
+                    }
+                    para_html += '</span></span>'
                 }
                 if (para_child.nodeType === Node.TEXT_NODE) {
                     const text_node = para_child as Text

@@ -64,7 +64,7 @@ describe("usx_to_html", () => {
     })
 
     it("should get a verse that completes a paragraph", ({expect}) => {
-        const verse  = output.contents[1][7]
+        const verse = output.contents[1][7]
         expect(verse).not.toBeUndefined()
         expect(verse).not.toBeNull()
         expect(verse).not.toEqual(['', '', ''])
@@ -79,6 +79,36 @@ describe("usx_to_html", () => {
         expect(output.contents[1][1][0]).toEqual('')
         expect(output.contents[1][4][0]).toEqual('')
         expect(output.contents[1][5][0]).toEqual('')
+    })
+
+    it("Has no closing tags when verse ends a paragraph", async ({expect}) => {
+        expect(output.contents[1][2][2]).toEqual('')
+        expect(output.contents[1][4][2]).toEqual('')
+        expect(output.contents[1][5][2]).toEqual('')
+    })
+
+    it('should correctly handle a verse that ends mid-paragraph', ({expect}) => {
+        const verse  = output.contents[2][2]
+        expect(verse).not.toBeUndefined()
+        expect(verse).not.toBeNull()
+        expect(verse).not.toEqual(['', '', ''])
+        // eslint-disable-next-line max-len
+        const html = ' <sup data-v=2:2>2</sup>“<span data-s=H1696>Speak</span> <span data-s=H1121>to</span> <span data-s=H2216>Zerubbabel</span> <span data-s=H1121>son</span> <span data-s=H1121>of</span> <span data-s=H7597>Shealtiel</span>, <span data-s=H6346>governor</span> <span data-s=H1121>of</span> <span data-s=H3063>Judah</span>, <span data-s=H1121>and</span> <span data-s=H1121>to</span> <span data-s=H3091>Joshua</span> <span data-s=H1121>son</span> <span data-s=H1121>of</span> <span data-s=H3087>Jehozadak</span>,<span class=fb-note>* <span><span class=fb-fr></span><span class=fb-ft>2:2 </span><span class=fb-ft>Jehozadak is a variant of Jozadak; also in verse 4; see Ezra 3:2.</span></span></span> <span data-s=H3091>the</span> <span data-s=H1419>high</span> <span data-s=H3548>priest</span>, <span data-s=H1121>and</span> <span data-s=H1121>also</span> <span data-s=H1121>to</span> <span data-s=H3091>the</span> <span data-s=H7611>remnant</span> <span data-s=H1121>of</span> <span data-s=H3091>the</span> <span data-s=H5971>people</span>. <span data-s=H7592>Ask</span> <span data-s=H1121>them</span>,'
+        expect(verse[1]).toEqual(html)
+        expect(verse[0]).toEqual('<p class=fb-m>')
+        expect(verse[2]).toEqual('</p>')
+    })
+
+    it("Has closing tags when verse ends mid-paragraph", async ({expect}) => {
+        expect(output.contents[1][1][2]).toEqual('</p>')
+        expect(output.contents[2][1][2]).toEqual('</p>')
+        expect(output.contents[2][2][2]).toEqual('</p>')
+    })
+
+    it("Has opening tags when verse is mid-paragraph", async ({expect}) => {
+        expect(output.contents[1][2][0]).toEqual('<p class=fb-m>')
+        expect(output.contents[2][2][0]).toEqual('<p class=fb-m>')
+        expect(output.contents[2][3][0]).toEqual('<p class=fb-m>')
     })
 
     it("Includes missing verses as blank strings", async ({expect}) => {
@@ -114,23 +144,5 @@ describe("usx_to_html", () => {
     it("Includes verse markers as a <sup> element", async ({expect}) => {
         expect(output.contents[1][1][1]).toContain('<sup data-v=1:1>1</sup>')
     })
-
-    // it("Has opening tags when verse is mid-paragraph", async ({expect}) => {
-    //     expect(output.contents[1][2][0]).toEqual('<p class="fb-m">')
-    //     expect(output.contents[2][2][0]).toEqual('<p class="fb-m">')
-    //     expect(output.contents[2][3][0]).toEqual('<p class="fb-m">')
-    // })
-
-    it("Has no closing tags when verse ends a paragraph", async ({expect}) => {
-        expect(output.contents[1][2][2]).toEqual('')
-        expect(output.contents[1][4][2]).toEqual('')
-        expect(output.contents[1][5][2]).toEqual('')
-    })
-
-    // it("Has closing tags when verse ends mid-paragraph", async ({expect}) => {
-    //     expect(output.contents[1][1][2]).toEqual('</p>')
-    //     expect(output.contents[2][1][2]).toEqual('</p>')
-    //     expect(output.contents[2][2][2]).toEqual('</p>')
-    // })
 
 })

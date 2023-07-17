@@ -4,27 +4,18 @@ export interface BibleHtmlJson {
     contents: (string[][])[]
 }
 
-// Convert USX to HTML organised by verse in a JSON structure
-/* TODO Requirements:
+const IGNORE_STYLES = [
+    'h', 'ide', 'imt', 'imt1', 'imt2', 'mt', 'mt1', 'mt2', 'mt3', 'mt4',
+    'r', 'rem', 'toc1', 'toc2', 'toc3',
+]
 
-    First read README.md in this dir
-
-    Study how HTML conversion has been done in `collector/assets/usx_transforms/usx_to_html.xslt`
-        Also checkout HTML files in `collection/dist` (though they have been minified)
-        Can skip `control_chars.xslt` but `ignore.xslt` is important
-        Generally follow the same rules, unless stated otherwise below
-
-    Verse markers -- <verse number="..." sid="...">
-        See https://ubsicap.github.io/usx/elements.html#verse
-        Only parse `number` since `sid` only exists for USX3+
-        Number may be a range (e.g. 1-2), in which case put under verse 1 and leave verse 2 empty
-        <verse eid="..."> should be listened to when present (USX3+)
-            Any extra-biblical content between that and the next verse should be ignored
-                UNLESS They are headings, in which case keep
-
-    All verses should exist
-        Use `number_of_verses` to ensure every verse exists, and leave as empty string if it doesn't
-*/
+/**
+ * Convert a USX document to valid HTML
+ *
+ * @param xml The USX XML to be converted to HTML
+ *
+ * @returns A JSON ready object
+ */
 export function usx_to_html(xml:string): BibleHtmlJson {
     const doc = new DOMParser().parseFromString(xml, 'application/xml')
     const usx_tag = doc.documentElement
@@ -79,7 +70,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
             // Open a new paragraph
             const style_attr = child.getAttribute('style')
             const style = style_attr || ''
-            if (['h', 'mt1', 'r', 'toc1', 'toc2'].includes(style)) {
+            if (IGNORE_STYLES.includes(style)) {
                 // skip these styles
                 continue
             }

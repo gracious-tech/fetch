@@ -73,7 +73,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                 continue
             }
             current_chapter = parseInt(chapter_attr, 10)
-            content_between_paras += `<h3 data-c="${current_chapter}">${current_chapter}</h3>`
+            content_between_paras += `<h3 data-c=${current_chapter}>${current_chapter}</h3>`
         }
         if (child.nodeName === 'para') {
             // Open a new paragraph
@@ -131,7 +131,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                     para_html += text_node.textContent
                 }
             }
-            if (para_html !== '') {
+            if (para_html.trim() !== '') {
                 verse_html += `${para_html}</p>`.replace('\n', '')
                 para_html = ''
             }

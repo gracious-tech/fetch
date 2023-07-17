@@ -69,7 +69,7 @@ describe("usx_to_html", () => {
         expect(verse).not.toBeNull()
         expect(verse).not.toEqual(['', '', ''])
         // eslint-disable-next-line max-len
-        const html = '<p class=fb-b></p><p class=fb-m><sup data-v=1:7>7</sup><span data-s=H3541>This</span> <span data-s=H3068>is</span> <span data-s=H3541>what</span> <span data-s=H5921>the</span> <span data-s=H3068>LORD</span> <span data-s=H3068>of</span> <span data-s=H6635>Hosts</span> <span data-s=H3541>says</span>:</p><p class=fb-b></p><p class=fb-q1>“<span data-s=H7760>Consider</span> <span data-s=H3824>carefully</span> <span data-s=H3068>your</span> <span data-s=H1870>ways</span>.</p>'
+        const html = '<p class="fb-b"></p><p class="fb-m"><sup data-v="1:7">7</sup><span data-s="H3541">This</span> <span data-s="H3068">is</span> <span data-s="H3541">what</span> <span data-s="H5921">the</span> <span data-s="H3068">LORD</span> <span data-s="H3068">of</span> <span data-s="H6635">Hosts</span> <span data-s="H3541">says</span>:</p><p class="fb-b"></p><p class="fb-q1">“<span data-s="H7760">Consider</span> <span data-s="H3824">carefully</span> <span data-s="H3068">your</span> <span data-s="H1870">ways</span>.</p>'
         expect(verse[0]).toEqual('')
         expect(verse[1]).toEqual(html)
         expect(verse[2]).toEqual('')
@@ -93,9 +93,9 @@ describe("usx_to_html", () => {
         expect(verse).not.toBeNull()
         expect(verse).not.toEqual(['', '', ''])
         // eslint-disable-next-line max-len
-        const html = ' <sup data-v=2:2>2</sup>“<span data-s=H1696>Speak</span> <span data-s=H1121>to</span> <span data-s=H2216>Zerubbabel</span> <span data-s=H1121>son</span> <span data-s=H1121>of</span> <span data-s=H7597>Shealtiel</span>, <span data-s=H6346>governor</span> <span data-s=H1121>of</span> <span data-s=H3063>Judah</span>, <span data-s=H1121>and</span> <span data-s=H1121>to</span> <span data-s=H3091>Joshua</span> <span data-s=H1121>son</span> <span data-s=H1121>of</span> <span data-s=H3087>Jehozadak</span>,<span class=fb-note>* <span><span class=fb-fr></span><span class=fb-ft>2:2 </span><span class=fb-ft>Jehozadak is a variant of Jozadak; also in verse 4; see Ezra 3:2.</span></span></span> <span data-s=H3091>the</span> <span data-s=H1419>high</span> <span data-s=H3548>priest</span>, <span data-s=H1121>and</span> <span data-s=H1121>also</span> <span data-s=H1121>to</span> <span data-s=H3091>the</span> <span data-s=H7611>remnant</span> <span data-s=H1121>of</span> <span data-s=H3091>the</span> <span data-s=H5971>people</span>. <span data-s=H7592>Ask</span> <span data-s=H1121>them</span>,'
+        const html = ' <sup data-v="2:2">2</sup>“<span data-s="H1696">Speak</span> <span data-s="H1121">to</span> <span data-s="H2216">Zerubbabel</span> <span data-s="H1121">son</span> <span data-s="H1121">of</span> <span data-s="H7597">Shealtiel</span>, <span data-s="H6346">governor</span> <span data-s="H1121">of</span> <span data-s="H3063">Judah</span>, <span data-s="H1121">and</span> <span data-s="H1121">to</span> <span data-s="H3091">Joshua</span> <span data-s="H1121">son</span> <span data-s="H1121">of</span> <span data-s="H3087">Jehozadak</span>,<span class="fb-note">* <span><span class="fb-fr"></span><span class="fb-ft">2:2 </span><span class="fb-ft">Jehozadak is a variant of Jozadak; also in verse 4; see Ezra 3:2.</span></span></span> <span data-s="H3091">the</span> <span data-s="H1419">high</span> <span data-s="H3548">priest</span>, <span data-s="H1121">and</span> <span data-s="H1121">also</span> <span data-s="H1121">to</span> <span data-s="H3091">the</span> <span data-s="H7611">remnant</span> <span data-s="H1121">of</span> <span data-s="H3091">the</span> <span data-s="H5971">people</span>. <span data-s="H7592">Ask</span> <span data-s="H1121">them</span>,'
         expect(verse[1]).toEqual(html)
-        expect(verse[0]).toEqual('<p class=fb-m>')
+        expect(verse[0]).toEqual('<p class="fb-m">')
         expect(verse[2]).toEqual('</p>')
     })
 
@@ -106,9 +106,9 @@ describe("usx_to_html", () => {
     })
 
     it("Has opening tags when verse is mid-paragraph", async ({expect}) => {
-        expect(output.contents[1][2][0]).toEqual('<p class=fb-m>')
-        expect(output.contents[2][2][0]).toEqual('<p class=fb-m>')
-        expect(output.contents[2][3][0]).toEqual('<p class=fb-m>')
+        expect(output.contents[1][2][0]).toEqual('<p class="fb-m">')
+        expect(output.contents[2][2][0]).toEqual('<p class="fb-m">')
+        expect(output.contents[2][3][0]).toEqual('<p class="fb-m">')
     })
 
     it("Includes missing verses as blank strings", async ({expect}) => {
@@ -123,26 +123,26 @@ describe("usx_to_html", () => {
     })
 
     it("Includes chapter headings at start of first verses", async ({expect}) => {
-        expect(output.contents[1][1][1].startsWith('<h3 data-c=1>1</h3>')).toBe(true)
-        expect(output.contents[2][1][1].startsWith('<h3 data-c=2>2</h3>')).toBe(true)
+        expect(output.contents[1][1][1].startsWith('<h3 data-c="1">1</h3>')).toBe(true)
+        expect(output.contents[2][1][1].startsWith('<h3 data-c="2">2</h3>')).toBe(true)
     })
 
     it("Includes section headings at start of verse that follows", async ({expect}) => {
         // Only when not occuring within a verse that is
         expect(output.contents[1][1][1])
-            .toContain('<h4 class=fb-s1>A Call to Rebuild the Temple</h4>')
+            .toContain('<h4 class="fb-s1">A Call to Rebuild the Temple</h4>')
         expect(output.contents[1][12][1])
-            .toContain('<h4 class=fb-s1>The People Obey</h4>')
+            .toContain('<h4 class="fb-s1">The People Obey</h4>')
         expect(output.contents[2][1][1])
-            .toContain('<h4 class=fb-s1>The Coming Glory of God’s House</h4>')
+            .toContain('<h4 class="fb-s1">The Coming Glory of God’s House</h4>')
         expect(output.contents[2][10][1])
-            .toContain('<h4 class=fb-s1>Blessings for a Defiled People</h4>')
+            .toContain('<h4 class="fb-s1">Blessings for a Defiled People</h4>')
         expect(output.contents[2][20][1])
-            .toContain('<h4 class=fb-s1>Zerubbabel the LORD’s Signet Ring</h4>')
+            .toContain('<h4 class="fb-s1">Zerubbabel the LORD’s Signet Ring</h4>')
     })
 
     it("Includes verse markers as a <sup> element", async ({expect}) => {
-        expect(output.contents[1][1][1]).toContain('<sup data-v=1:1>1</sup>')
+        expect(output.contents[1][1][1]).toContain('<sup data-v="1:1">1</sup>')
     })
 
 })

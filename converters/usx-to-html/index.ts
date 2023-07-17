@@ -61,7 +61,10 @@ export function usx_to_html(xml:string): BibleHtmlJson {
     // Fill in the object
     const children = Array.from(usx_tag.children)
     let current_chapter = -1
+    // It will be -1 when we are between verses
     let current_verse = -1
+    let content_between_paras = ''
+    let verse_html = ''
     for (const child of children) {
         if (child.nodeName === 'chapter') {
             const chapter_attr = child.getAttribute('number')
@@ -70,30 +73,46 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                 continue
             }
             current_chapter = parseInt(chapter_attr, 10)
+            content_between_paras += `<h3 data-c="${current_chapter}">${current_chapter}</h3>`
         }
         if (child.nodeName === 'para') {
+            // Open a new paragraph
             const style_attr = child.getAttribute('style')
             const style = style_attr || ''
-            if (['h', 'mt1', 'toc1', 'toc2'].includes(style)) {
+            if (['h', 'mt1', 'r', 'toc1', 'toc2'].includes(style)) {
                 // skip these styles
                 continue
             }
+            if (['s1', 's2', 's3', 's4'].includes(style)) {
+                const header_text = child.textContent || ''
+                content_between_paras += `<h4 class=fb-${style}>${header_text}</h4>`
+                continue
+            }
             const childNodes = Array.from(child.childNodes)
-            let para_html = `<p class="fb-${style}">`
+            // Build up the paragraph HTML
+            let para_html = `${content_between_paras}<p class=fb-${style}>`
             for (const para_child of childNodes) {
                 if (
                     (para_child.nodeName === 'verse') &&
                     (para_child.nodeType === Node.ELEMENT_NODE)
                 ) {
                     const verse_attr = (para_child as Element).getAttribute('number')
-                    if (!verse_attr) {
-                        // We are at the end of the verse
+                    const eid_attr = (para_child as Element).getAttribute('eid')
+                    if ((!verse_attr)) {
+                        if (eid_attr) {
+                            // We are at the end of the verse
+                            verse_html += `${para_html}</p>`.replace('\n', '')
+                            output.contents[current_chapter]![current_verse]![1] = verse_html
+                            para_html = ''
+                            verse_html = ''
+                        }
                         continue
                     }
-                    const current_verse = parseInt(verse_attr, 10)
-                    para_html += `<sup>${current_verse}</sup>`
+                    // Start a new verse
+                    current_verse = parseInt(verse_attr, 10)
+                    para_html += `<sup data-v=${current_chapter}:${current_verse}>${current_verse}</sup>`
+                    content_between_paras = ''
                     // Add the starting tag
-
                 }
                 if (
                     (para_child.nodeName === 'char') &&
@@ -102,7 +121,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                     const strong_attr = (para_child as Element).getAttribute('strong')
                     const char_text = (para_child as Element).textContent || ''
                     if (strong_attr) {
-                        para_html += `<span data-s="${strong_attr}">${char_text}</span>`
+                        para_html += `<span data-s=${strong_attr}>${char_text}</span>`
                     } else {
                         para_html += char_text
                     }
@@ -112,7 +131,10 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                     para_html += text_node.textContent
                 }
             }
-            para_html += '</p>'
+            if (para_html !== '') {
+                verse_html += `${para_html}</p>`.replace('\n', '')
+                para_html = ''
+            }
         }
     }
     return output

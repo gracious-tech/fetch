@@ -63,27 +63,28 @@ describe("usx_to_html", () => {
         expect(() => usx_to_html(html)).toThrow('Invalid book. The book code does not exist.')
     })
 
-    // it("should get a verse that completes a paragraph", ({expect}) => {
-    //     const verse  = output.contents[1][7]
-    //     expect(verse).not.toBeUndefined()
-    //     expect(verse).not.toBeNull()
-    //     expect(verse).not.toEqual(['', '', ''])
-    //     // eslint-disable-next-line max-len
-    //     const html = '<p class="fb-m"><sup>7</sup><span data-s="H3541">This</span><span data-s="H3068">is</span> <span data-s="H3541">what</span><span data-s="H5921">the</span> <span data-s="H3068">LORD</span><span data-s="H3068">of</span> <span data-s="H6635">Hosts</span><span data-s="H3541">says</span>:</p><p class="fb-b"></p><p class="fb-q1">“<span data-s="H7760">Consider</span> <span data-s="H3824">carefully</span><span data-s="H3068">your</span> <span data-s="H1870">ways</span>.</p>'
-    //     const expected = ['', html, '']
-    //     expect(verse).toEqual(expected)
-    // })
+    it("should get a verse that completes a paragraph", ({expect}) => {
+        const verse  = output.contents[1][7]
+        expect(verse).not.toBeUndefined()
+        expect(verse).not.toBeNull()
+        expect(verse).not.toEqual(['', '', ''])
+        // eslint-disable-next-line max-len
+        const html = '<p class=fb-b></p><p class=fb-m><sup data-v=1:7>7</sup><span data-s=H3541>This</span> <span data-s=H3068>is</span> <span data-s=H3541>what</span> <span data-s=H5921>the</span> <span data-s=H3068>LORD</span> <span data-s=H3068>of</span> <span data-s=H6635>Hosts</span> <span data-s=H3541>says</span>:</p><p class=fb-b></p><p class=fb-q1>“<span data-s=H7760>Consider</span> <span data-s=H3824>carefully</span> <span data-s=H3068>your</span> <span data-s=H1870>ways</span>.</p>'
+        expect(verse[0]).toEqual('')
+        expect(verse[1]).toEqual(html)
+        expect(verse[2]).toEqual('')
+    })
 
-    // it("Includes missing verses as blank strings", async ({expect}) => {
-    //     // The examples below don't, but some may need opening/closing tags if within a paragraph
-    //     expect(output.contents[1][3]).toEqual(['', '', ''])
-    //     expect(output.contents[1][15]).toEqual(['', '', ''])
-    // })
+    it("Includes missing verses as blank strings", async ({expect}) => {
+        // The examples below don't, but some may need opening/closing tags if within a paragraph
+        expect(output.contents[1][3]).toEqual(['', '', ''])
+        expect(output.contents[1][15]).toEqual(['', '', ''])
+    })
 
-    // it("Includes the expected number of verses", async ({expect}) => {
-    //     expect(output.contents[1]).toHaveLength(15+1)  // +1 for empty verse at 0 index
-    //     expect(output.contents[2]).toHaveLength(23+1)
-    // })
+    it("Includes the expected number of verses", async ({expect}) => {
+        expect(output.contents[1]).toHaveLength(15+1)  // +1 for empty verse at 0 index
+        expect(output.contents[2]).toHaveLength(23+1)
+    })
 
     // it("Includes chapter headings at start of first verses", async ({expect}) => {
     //     expect(output.contents[1][1][1]).toMatch(/^<h3 data-c="1">1<\/h3>/)

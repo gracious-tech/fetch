@@ -107,13 +107,33 @@ export function cross_references_to_json(content:string): Record<string, BookCro
 
     // Set up the results
     total_votes.sort((a: number, b: number) => a - b)
+    // Determine the groupings so we can calculate relevance
+    const group_size = Math.ceil(total_votes.length / 3)
+    const vote_groups = Array.from({ length: 3 }, (_, index) => {
+        return total_votes.slice(index * group_size, (index + 1) * group_size)
+    })
     cross_ref_table.forEach((item: CrossRefItem) => {
 
         // Sort the results
         item.cross_references = item.cross_references
             .map((ref: CrossRefSingle|CrossRefRange) => {
-                // Calculate relevance
-                ref[0] = calculate_relevance(total_votes, ref[0], false)
+                /**
+                 * Calculate the relevance score of the cross reference
+                 *
+                 * 1: Very relevant
+                 * 2: Quite relevant
+                 * 3: Somewhat relevant
+                 */
+                const vote = ref[0]
+                if (vote_groups[0]!.includes(vote)) {
+                    // Somewhat relevant
+                    ref[0] = 3
+                }else if (vote_groups[1]!.includes(vote)) {
+                    // Quite relevant
+                    ref[0] = 2
+                } else {
+                    ref[0] = 1
+                }
                 return ref
             })
             .sort(
@@ -143,7 +163,6 @@ export function cross_references_to_json(content:string): Record<string, BookCro
         }
         output[from.usx]![from.start_chapter]![from.start_verse] = item.cross_references
     })
-
     return output
 }
 
@@ -159,40 +178,6 @@ export interface OBBibleReference {
     end_verse: number,
     // Does it cover multiple verses?
     is_range: boolean,
-}
-
-/**
- * Calculate the relevance score of the cross reference
- *
- * 1: Very relevant
- * 2: Quite relevant
- * 3: Somewhat relevant
- *
- * @param votes All the votes for all the cross references
- * @param vote The actual vote for the current cross reference
- * @param needs_sorting Do we need to sort the votes? (preferably no.
- * You do not want to sort on every check)
- *
- * @returns A score of 1, 2, or 3
- */
-export function calculate_relevance(votes: number[], vote: number, needs_sorting = false): number {
-    if (needs_sorting) {
-        votes.sort((a: number, b: number) => a-b)
-    }
-    const group_size = Math.ceil(votes.length / 3)
-    const groups = Array.from({ length: 3 }, (_, index) => {
-        return votes.slice(index * group_size, (index + 1) * group_size)
-    })
-    if (groups[0]!.includes(vote)) {
-        // Somewhat relevant
-        return 3
-    }
-    if (groups[1]!.includes(vote)) {
-        // Quite relevant
-        return 2
-    }
-    // Very relevant
-    return 1
 }
 
 /**

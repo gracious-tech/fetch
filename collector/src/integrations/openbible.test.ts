@@ -73,16 +73,6 @@ describe('cross_references_to_json', () => {
     })
 
 })
-describe('calculate_relevance', () => {
-
-    it('should calculate the relevance', ({expect}) => {
-        const votes = [0, 1, 10, 30, 32, 103]
-        expect(calculate_relevance(votes, 1, false)).toEqual(3)
-        expect(calculate_relevance(votes, 30, false)).toEqual(2)
-        expect(calculate_relevance(votes, 32, false)).toEqual(1)
-    })
-
-})
 describe('export_reference', () => {
 
     it('should return a single verse correctly', ({expect}) => {

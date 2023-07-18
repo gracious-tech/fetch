@@ -1,6 +1,9 @@
 
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom'
-import { select } from 'xpath'
+import {join} from 'node:path'
+import {existsSync, readFileSync} from 'node:fs'
+
+import {DOMParser, XMLSerializer} from '@xmldom/xmldom'
+import {select} from 'xpath'
 
 
 // Types
@@ -16,6 +19,16 @@ interface MultiVerseNote {
 interface StudyNotes {
     verses:Record<number, Record<number, string>>  // Single verses organised by chapter and verse
     ranges:MultiVerseNote[]  // Notes that span multiple verses and/or chapters
+}
+
+
+// Get notes if determined to be in Tyndale format
+export function get_notes(id:string){
+    const notes_path = join('sources', 'notes', id, 'StudyNotes.xml')
+    if (!existsSync(notes_path)){
+        return null  // Not a Tyndale format
+    }
+    return study_notes_to_json(readFileSync(notes_path, {encoding: 'utf8'}))
 }
 
 

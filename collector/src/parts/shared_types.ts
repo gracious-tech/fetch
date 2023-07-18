@@ -92,14 +92,19 @@ export interface MetaBookSection {
 // DIST
 
 
-export interface DistTranslation {
+// Common to bibles/notes/etc
+export interface DistManifestItem {
     language:string
     name:MetaTranslationName
     year:number
     direction:'ltr'|'rtl'
+    copyright:MetaCopyright
+}
+
+
+export interface DistTranslation extends DistManifestItem {
     audio:unknown[]
     video:unknown[]
-    copyright:MetaCopyright
     recommended:boolean|null
     books:Record<string, string>  // Books that are available and their names
     last_verse:Record<string, number[]>|null  // Null if same as most common system
@@ -120,4 +125,14 @@ export interface DistManifest {
 export interface DistTranslationExtra {
     sections:Record<string, MetaBookSection[]>
     chapter_headings:Record<string, Record<number, string>>
+}
+
+
+export interface DistNotes extends DistManifestItem {
+    books:string[]
+}
+
+
+export interface DistNotesManifest {
+    notes:Record<string, DistNotes>
 }

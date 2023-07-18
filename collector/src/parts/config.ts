@@ -31,5 +31,5 @@ export async function init_config(){
     mkdir_exist('sources')
     mkdir_exist(join('sources', 'bibles'))
     mkdir_exist(join('sources', 'data'))
-    mkdir_exist(join('sources', 'commentaries'))
+    mkdir_exist(join('sources', 'notes'))
 }

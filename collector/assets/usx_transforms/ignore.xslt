@@ -51,12 +51,13 @@ Which might be helpful in a printed book, but intro material in apps is usually 
 
 
 <!-- <para> Headings [exclude some] - Exclude book & chapter headings but keep section headings
-    Not excluded: ms# | mr | s# | sr | r | d | sp | sd#
+    Not excluded: ms# | mr | s# | sr | d | sp | sd#
 -->
 <xsl:template match="para[@style='mt']|para[@style='mt1']|para[@style='mt2']|para[@style='mt3']|para[@style='mt4']" />
 <xsl:template match="para[@style='mte']|para[@style='mte1']|para[@style='mte2']|para[@style='mte3']|para[@style='mte4']" />
 <xsl:template match="para[@style='cl']" />
 <xsl:template match="para[@style='cd']" /><!-- Non-biblical chapter summary, more than heading -->
+<xsl:template match="para[@style='r']" /><!-- Parallels to be provided by external data -->
 
 
 <!-- <char> excludes -->

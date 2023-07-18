@@ -1,6 +1,7 @@
 #!/bin/bash
 # Wipe and rebuild test collection
 set -e
+set -x
 cd "$(dirname "$(dirname "$0")")"
 
 # Wipe collection
@@ -12,7 +13,8 @@ mkdir collection
 
 # Build collection from scratch
 .bin/collector setup
-.bin/collector discover ebible
+.bin/collector discover ebible eng_bsb
+.bin/collector discover ebible vie_vcb
 .bin/collector download eng_bsb
 .bin/collector download vie_vcb
 .bin/collector process

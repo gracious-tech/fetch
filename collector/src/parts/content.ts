@@ -21,14 +21,14 @@ export async function update_source(trans_id?:string){
     const door43_sourced:Record<string, TranslationSourceMeta> = {}
     const ebible_sourced:Record<string, TranslationSourceMeta> = {}
 
-    for (const id of read_dir('sources')){
+    for (const id of read_dir(join('sources', 'bibles'))){
 
         if (trans_id && id !== trans_id){
             continue  // Only updating a single translation
         }
 
         // Get translation's meta data and allocate to correct service
-        const meta = read_json<TranslationSourceMeta>(`sources/${id}/meta.json`)
+        const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
         if (meta.source.service === 'door43'){
             door43_sourced[id] = meta
         } else if (meta.source.service === 'ebible'){
@@ -53,7 +53,7 @@ async function _convert_to_usx(trans:string, format:'usx1-2'|'usfm'){
     // Convert translation's source files to USX3 using Bible Multi Converter
 
     // Determine parts of cmd
-    const src_dir = join('sources', trans, format)
+    const src_dir = join('sources', 'bibles', trans, format)
     const dist_dir = join('dist', 'bibles', trans, 'usx')
     const bmc_format = {
         'usx1-2': 'USX',
@@ -124,7 +124,7 @@ export async function update_dist(trans_id?:string){
 
     // Process translations concurrently (only 4 since waiting on processor, not network)
     // NOTE While not multi-threaded itself, conversions done externally... so effectively so
-    await concurrent(read_dir('sources').map(id => async () => {
+    await concurrent(read_dir(join('sources', 'bibles')).map(id => async () => {
 
         if (trans_id && id !== trans_id){
             return  // Only updating a single translation
@@ -149,7 +149,7 @@ async function _update_dist_single(id:string){
     // NOTE This should only have one external process running (concurrency done at higher level)
 
     // Determine paths
-    const src_dir = join('sources', id)
+    const src_dir = join('sources', 'bibles', id)
     const dist_dir = join('dist', 'bibles', id)
     const usx_dir = join(dist_dir, 'usx')
 

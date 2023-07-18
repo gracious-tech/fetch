@@ -1,5 +1,5 @@
 
-export async function discover():Promise<void>{
+export async function discover(discover_specific_id?:string):Promise<void>{
     // TODO
 }
 

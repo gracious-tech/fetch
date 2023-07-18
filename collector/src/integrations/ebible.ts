@@ -24,7 +24,7 @@ interface EbibleRow {
 }
 
 
-export async function discover():Promise<void>{
+export async function discover(discover_specific_id?:string):Promise<void>{
     // Discover translations that are available
 
     // Parse eBible CSV to get translations list and useful metadata
@@ -61,8 +61,13 @@ export async function discover():Promise<void>{
         const trans_id = `${lang_code}_${trans_abbr}`
         const log_ids = `${trans_id}/${ebible_id}`
 
+        // Skip if only want to discover a single translation
+        if (discover_specific_id && trans_id !== discover_specific_id){
+            return
+        }
+
         // Skip if already discovered
-        const trans_dir = join('sources', trans_id)
+        const trans_dir = join('sources', 'bibles', trans_id)
         const meta_file = join(trans_dir, 'meta.json')
         if (existsSync(meta_file)){
             exists.push(ebible_id)

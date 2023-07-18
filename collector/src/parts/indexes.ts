@@ -74,6 +74,7 @@ export function generate_index_content(
         rows.push(`<tr>
             <td>${folder_text}</td>
             <td>${folder_size}</td>
+            <td></td>
             <td>${file_text}</td>
             <td>${file_size}</td>
         </tr>`)
@@ -82,7 +83,8 @@ export function generate_index_content(
         <thead>
             <tr>
                 <th>Folders</th>
-                <th>Total Files</th>
+                <th>Items</th>
+                <th></th>
                 <th>Files</th>
                 <th>Size</th>
             </tr>
@@ -92,6 +94,8 @@ export function generate_index_content(
     // Return the HTML
     return `<!DOCTYPE html>
         <html>
+        <head>
+            <meta charset='utf-8'>
             <style>
                 body {
                     font-family: monospace, monospace;
@@ -109,7 +113,7 @@ export function generate_index_content(
                 #breadcrumbs ul li+li:before {
                   padding: 8px;
                   color: black;
-                  content: '>';
+                  content: '⟩';
                 }
                 #breadcrumbs ul li a {
                   color: #0275d8;
@@ -119,27 +123,31 @@ export function generate_index_content(
                   color: #01447e;
                   text-decoration: underline;
                 }
-                table, th, td {
-                    border: 1px solid black;
+                th, td {
+                    border-bottom: 1px solid #0003;
+                }
+                th:nth-child(3), td:nth-child(3) {
+                    border-bottom-style: none;
                 }
                 th, td {
                     padding: .5rem;
                 }
                 table {
                     border-collapse: collapse;
-                    width: 100%;
                 }
-                td {
-                    width: 25%;
+                td:nth-child(1), td:nth-child(4) {
+                    width: 300px;
                 }
-                td:nth-child(2), td:nth-child(4) {
+                td:nth-child(2), td:nth-child(5) {
+                    width: 200px;
                     text-align: end;
                 }
             </style>
-            <body>
-                <div id="breadcrumbs">${breadcrumbs}</div>
-                ${table}
-            </body>
+        </head>
+        <body>
+            <div id="breadcrumbs">${breadcrumbs}</div>
+            ${table}
+        </body>
         </html>`
 }
 

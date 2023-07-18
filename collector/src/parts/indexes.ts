@@ -71,12 +71,13 @@ export function generate_index_content(
         if (dirs[index] !== undefined) {
             const name = dirs[index]!.name
             folder_text = `<a href="./${name}/">${name}</a>`
-            folder_size = `<span data-entry-name="${name}">${dirs[index]!.contentSize}</span>`
+            folder_size = `<span data-entry-name="${name}">${dirs[index]!.dirSize!}</span>`
         }
         if (files[index] !== undefined) {
             const name = files[index]!.name
             file_text = `<a href="./${name}">${name}</a>`
-            file_size = `<span data-entry-name="${name}">${files[index]!.fileSize.toLocaleString()} bytes</span>`
+            file_size = `<span data-entry-name="${name}">`
+                + files[index]!.fileSize!.toLocaleString() + ` bytes</span>`
         }
         rows.push(`<tr>
             <td>${folder_text}</td>

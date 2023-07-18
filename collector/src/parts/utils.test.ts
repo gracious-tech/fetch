@@ -31,8 +31,8 @@ describe('get_dir_entries', () => {
         expect(bsb).not.toEqual(undefined)
         expect(bsb!.name).toEqual('eng_bsb')
         expect(bsb!.isDirectory).toBe(true)
-        expect(bsb!.fileSize).toEqual(-1)
-        expect(bsb!.contentSize).toEqual(4)
+        expect(bsb!.fileSize).toEqual(undefined)
+        expect(bsb!.dirSize).toEqual(4)
     })
 
     it('should return a correct file entry', ({expect}) => {
@@ -43,7 +43,7 @@ describe('get_dir_entries', () => {
         expect(manifest!.name).toEqual('manifest.json')
         expect(manifest!.isDirectory).toBe(false)
         expect(manifest!.fileSize).toEqual(expected_size)
-        expect(manifest!.contentSize).toEqual(-1)
+        expect(manifest!.dirSize).toEqual(undefined)
     })
 
 })

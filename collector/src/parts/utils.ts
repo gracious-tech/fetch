@@ -15,10 +15,10 @@ export interface DirectoryEntry {
     isDirectory: boolean,
     // The name of the file
     name: string,
-    // If it is a file, the size of the file. (default: -1)
-    fileSize: number,
-    // If it is a directory, the number of files in the directory. (default: -1)
-    contentSize: number,
+    // If it is a file, the size of the file.
+    fileSize: number|undefined,
+    // If it is a directory, the number of files in the directory.
+    dirSize: number|undefined,
 }
 
 /**
@@ -82,7 +82,7 @@ export function clean_dir(path:string):void{
  * specific files.
  *
  * @param path The path to read
- * 
+ *
  * @returns The entry names
  */
 export function read_dir(path:string):string[] {
@@ -94,7 +94,7 @@ export function read_dir(path:string):string[] {
  * Get directory entries for a given path
  *
  * @param path The path to read
- * 
+ *
  * @returns The directory entries
  */
 export function get_dir_entries(path:string):DirectoryEntry[] {
@@ -103,13 +103,13 @@ export function get_dir_entries(path:string):DirectoryEntry[] {
         .map((item: Dirent) => {
             const name = item.name
             const isDirectory = item.isDirectory()
-            const fileSize = (isDirectory) ? -1 : statSync(join(path, name)).size
-            const contentSize = (!isDirectory) ? -1 : readdirSync(join(path, name)).length
+            const fileSize = (isDirectory) ? undefined : statSync(join(path, name)).size
+            const dirSize = (!isDirectory) ? undefined : readdirSync(join(path, name)).length
             const entry: DirectoryEntry = {
                 isDirectory,
                 name,
                 fileSize,
-                contentSize,
+                dirSize,
             }
             return entry
         })

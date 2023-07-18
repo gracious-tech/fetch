@@ -1,7 +1,10 @@
+
 import {describe, it} from 'vitest'
+
 import {
     TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json, tyndale_to_usx_book,
 } from './tyndale'
+
 
 /* eslint-disable no-irregular-whitespace*/
 const test_xml = `
@@ -59,6 +62,7 @@ const test_xml = `
 </items>
 `
 /* eslint-enable no-irregular-whitespace*/
+
 
 describe('study_notes_to_json', () => {
 
@@ -135,6 +139,8 @@ describe('study_notes_to_json', () => {
     })
 
 })
+
+
 describe('extract_reference', () => {
 
     it('should return a single verse correctly', ({expect})  => {
@@ -186,10 +192,12 @@ describe('extract_reference', () => {
     })
 
 })
+
+
 describe('clean_note', () => {
     // eslint-disable-next-line max-len
     const note = '<p class="sn-text"><span class="sn-ref"><a href="?bref=2Thes.1.10">1:10</a></span> <span class="sn-excerpt">that day:</span> The day of the Lord (<a href="?bref=2Thes.2.2">2:2</a>; <a href="?bref=1Thes.5.2-4">1 Thes 5:2-4</a>; see “<a href="?item=TheDayOfTheLord_ThemeNote_Filament">The Day of the Lord</a>” Theme Note).</p>'
-    
+
     const cleaned = clean_note(note)
 
     it('should strip the wrapping element', ({expect}) => {

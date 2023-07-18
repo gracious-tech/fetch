@@ -42,13 +42,11 @@ export function get_notes(id:string){
  */
 export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
 
-    // Set up the intial data with empty values. We want to be in book order
+    // Set up the intial data with empty values
     const output:Record<string, StudyNotes> = {}
-
-    // tyndale_to_usx_book is defined at the bottom of the file
-    for (const tyndale_book of Object.keys(tyndale_to_usx_book)) {
-        // Result is keyed by USX ids, not Tyndale's
-        output[tyndale_to_usx_book[tyndale_book]!] = {
+    for (const usx_book of Object.values(tyndale_to_usx_book)) {
+        // Result is keyed by USX book ids, not Tyndale's
+        output[usx_book] = {
             verses: {},
             ranges: [],
         }

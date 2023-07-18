@@ -68,10 +68,6 @@ describe('study_notes_to_json', () => {
 
     const notes = study_notes_to_json(test_xml)
 
-    it("Organises notes by USX book id", ({expect}) => {
-        expect(Object.keys(notes)).toEqual(Object.values(tyndale_to_usx_book))
-    })
-
     it("Parses singe verse ref", ({expect}) => {
         expect(JSON.stringify(notes['mat']!.verses)).not.toBe('{}')
         expect(notes['mat']!.ranges).toHaveLength(0)
@@ -109,6 +105,10 @@ describe('study_notes_to_json', () => {
 
     it("Should store multiple notes per chapter", ({expect}) => {
         expect(Object.keys(notes['mat']!.verses[17]!)).toHaveLength(2)
+    })
+
+    it("Should not include books with no notes", ({expect}) => {
+        expect(notes['rev']).not.toBeDefined()
     })
 
     it("Contents should be trimmed", ({expect}) => {

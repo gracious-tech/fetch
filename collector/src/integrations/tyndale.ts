@@ -86,6 +86,13 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
         }
     })
 
+    // Remove books with no notes
+    for (const book in output){
+        if (!output[book]!.ranges.length && !Object.keys(output[book]!.verses).length){
+            delete output[book]
+        }
+    }
+
     // Sort our ranges
     for (const key in output) {
         output[key]!.ranges.sort((a: MultiVerseNote, b: MultiVerseNote) => {

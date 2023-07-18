@@ -1,5 +1,5 @@
 
-import {Dirent, mkdirSync, readFileSync, readdirSync, rmSync, statSync} from 'fs'
+import {Dirent, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync} from 'fs'
 import {dirname, join} from 'path'
 
 /**
@@ -67,6 +67,15 @@ export async function concurrent(tasks:(()=>Promise<unknown>)[], limit=10):Promi
 
     // Wait till all the tasks have been completed
     await Promise.all(channels)
+}
+
+
+// Make sure a dir exists and don't throw if it does already
+export function mkdir_exist(path:string):void{
+    if (existsSync(path)){
+        return
+    }
+    mkdirSync(path, {recursive: true})
 }
 
 

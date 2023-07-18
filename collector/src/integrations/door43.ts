@@ -118,7 +118,7 @@ async function _discover(subject:'Bible'|'Aligned_Bible', discover_specific_id?:
             const door43_id = `${language['language']}_${resource['identifier']}`
             const trans_id = `${lang_code}_${resource['identifier']}`
             const log_ids = `${trans_id}/${door43_id}`
-            const trans_dir = join('sources', trans_id)
+            const trans_dir = join('sources', 'bibles', trans_id)
             const meta_file = join(trans_dir, 'meta.json')
 
             // Ignore if only want to discover a specific translation

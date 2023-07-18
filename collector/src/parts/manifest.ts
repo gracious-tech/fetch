@@ -39,7 +39,7 @@ export async function update_manifest(){
         }
 
         // Load the meta data for the translation
-        const meta = read_json<TranslationSourceMeta>(join('sources', trans, 'meta.json'))
+        const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', trans, 'meta.json'))
 
         // Skip if meta data missing or not reviewed yet
         // TODO Also skip if not reviewed (must be applied before beta released)
@@ -58,7 +58,7 @@ export async function update_manifest(){
         }
 
         // Load data extracted from books
-        const extracts_path = join('sources', trans, 'extracts.json')
+        const extracts_path = join('sources', 'bibles', trans, 'extracts.json')
         if (!existsSync(extracts_path)){
             console.error(`IGNORING ${trans} (no extracts)`)
             continue

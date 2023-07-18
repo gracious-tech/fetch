@@ -19,3 +19,4 @@ mkdir collection
 .bin/collector download vie_vcb
 .bin/collector process
 .bin/collector notes-process
+.bin/collector data-crossref

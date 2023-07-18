@@ -30,6 +30,6 @@ export async function init_config(){
     // Ensure sources dirs exist
     mkdir_exist('sources')
     mkdir_exist(join('sources', 'bibles'))
-    mkdir_exist(join('sources', 'data'))
     mkdir_exist(join('sources', 'notes'))
+    mkdir_exist(join('sources', 'crossref'))
 }

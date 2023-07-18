@@ -1,4 +1,12 @@
+
+import {join} from 'node:path'
+import {writeFileSync} from 'node:fs'
+
+import StreamZip from 'node-stream-zip'
+
+import {mkdir_exist, request} from '../parts/utils.js'
 import {books_ordered} from '../parts/bible.js'
+
 
 // Types
 // I initially store the votes in position 0, and replace it with relevance when I buuild the output
@@ -6,8 +14,7 @@ type CrossRefSingle = [number, string, number, number]  // relevance/votes, book
 type CrossRefRange = [...CrossRefSingle, number, number]  // ..., end_c, end_v
 
 // book -> chapter -> verse -> references
-type CrossReferences =
-    Record<string, Record<number, Record<number, (CrossRefSingle|CrossRefRange)[]>>>
+export type BookCrossReferences = Record<string, Record<string, (CrossRefSingle|CrossRefRange)[]>>
 
 /**
  * An interface used for our hash table to enable sorting
@@ -17,6 +24,23 @@ interface CrossRefItem {
     cross_references: (CrossRefSingle|CrossRefRange)[],
 }
 
+
+// Read crossref data from OpenBible.info and return structured format
+export async function download_data(){
+
+    // Download zip
+    mkdir_exist(join('sources', 'crossref'))
+    const zip_path = join('sources', 'crossref', 'cross_references.zip')
+    const zip = await request('https://a.openbible.info/data/cross-references.zip', 'arrayBuffer')
+    writeFileSync(zip_path, Buffer.from(zip))
+
+    // Read and process data
+    const extractor = new StreamZip.async({file: zip_path})
+    const data = await extractor.entryData('cross_references.txt')
+    return cross_references_to_json(data.toString('utf8'))
+}
+
+
 /**
  * Prepare the OB cross reference data to be converted to JSON
  *
@@ -24,13 +48,14 @@ interface CrossRefItem {
  *
  * @returns The data prepared for JSON conversion
  */
-export function cross_references_to_json(content:string): CrossReferences {
-    const output: CrossReferences = {}
-    // openbible_to_usx_book is defined at the bottom of the file
-    for (const book of Object.keys(openbible_to_usx_book)) {
-        // Result is keyed by USX ids, not OpenBible's
-        output[openbible_to_usx_book[book]!] = {}
+export function cross_references_to_json(content:string): Record<string, BookCrossReferences> {
+
+    // Init output object with every book id
+    const output: Record<string, BookCrossReferences> = {}
+    for (const usx_book of Object.values(openbible_to_usx_book)) {
+        output[usx_book] = {}
     }
+
     /**
      * We will store the cross references in this table, so we can sort them.
      * Then we will add them to the output. The key is [book_start_chapter_start_verse].
@@ -58,6 +83,7 @@ export function cross_references_to_json(content:string): CrossReferences {
             continue
         }
         total_votes.push(votes)
+
         // We hold votes in relevance position for now
         let cross_ref: CrossRefSingle|CrossRefRange = [
             votes, to.usx, to.start_chapter, to.start_verse,
@@ -78,9 +104,11 @@ export function cross_references_to_json(content:string): CrossReferences {
         }
         cross_ref_table.set(key, item)
     }
+
     // Set up the results
     total_votes.sort((a: number, b: number) => a - b)
     cross_ref_table.forEach((item: CrossRefItem) => {
+
         // Sort the results
         item.cross_references = item.cross_references
             .map((ref: CrossRefSingle|CrossRefRange) => {
@@ -105,6 +133,7 @@ export function cross_references_to_json(content:string): CrossReferences {
                     // Sort by book
                     return a_index - b_index
                 })
+
         const from = item.from
         if (!(from.start_chapter in output[from.usx]!)) {
             output[from.usx]![from.start_chapter] = {}
@@ -208,6 +237,7 @@ export function extract_reference(reference: string): OBBibleReference|null {
     }
     return result
 }
+
 
 // Map openbible book ids to USX ids
 export const openbible_to_usx_book: Record<string, string> = {

@@ -12,6 +12,7 @@ import {init_config} from './parts/config.js'
 import {update_manifest} from './parts/manifest.js'
 import {discover_translations} from './parts/discover.js'
 import {notes_process} from './notes/notes.js'
+import {crossref_process} from './data/crossref.js'
 
 import './parts/console_colors.js'
 
@@ -56,6 +57,9 @@ await yargs(process.argv.slice(2))
 
     // Notes
     .command('notes-process', "Convert study notes to standard format", {}, argv => notes_process())
+
+    // Data
+    .command('data-crossref', "Generate cross-references data", {}, argv => crossref_process())
 
     // Show help when no command
     .demandCommand()

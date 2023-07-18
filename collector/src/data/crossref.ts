@@ -38,11 +38,15 @@ export async function crossref_process(){
 // Published data doesn't include relevance score at start of array
 type CrossRefSingleDist = [string, number, number]
 type CrossRefRangeDist = [...CrossRefSingleDist, number, number]
+type FilteredReferences = Record<string, Record<string, (CrossRefSingleDist|CrossRefRangeDist)[]>>
 
 
 // Get only refs that match the desired relevance for an individual book
-function filter_refs_by_relevance(refs_for_book:BookCrossReferences, max_rel:number){
-    const filtered:Record<string, Record<string, (CrossRefSingleDist|CrossRefRangeDist)[]>> = {}
+function filter_refs_by_relevance(
+        refs_for_book:BookCrossReferences,
+        max_rel:number,
+): FilteredReferences {
+    const filtered: FilteredReferences = {}
     for (const ch in refs_for_book){
         for (const verse in refs_for_book[ch]){
 
@@ -60,4 +64,5 @@ function filter_refs_by_relevance(refs_for_book:BookCrossReferences, max_rel:num
             }
         }
     }
+    return filtered
 }

@@ -1,9 +1,12 @@
 
-import { partition } from 'lodash-es'
-import * as path from 'path'
+import path from 'path'
+
+import {partition} from 'lodash-es'
+
 import {
     DirectoryEntry, FirstFullParent, find_first_full_parent_dir, get_dir_entries,
 } from './utils.js'
+
 
 /**
  * Generate the HTML content using the specific directory path content
@@ -18,6 +21,7 @@ export function generate_index_content(
         directory:string,
         exclude_breadcrumbs: string[] = [],
 ): string {
+
     // Create the breadcrumbs
     // Filter removes any empty values if the path.sep is at the end
     // Also remove any paths passed in exclude_breadcrumbs
@@ -41,10 +45,12 @@ export function generate_index_content(
         }
         crumbs.push(li)
     }
+
     // Attach the root directory
     crumb_path += `../`
     crumbs.push(`<li><a href="${crumb_path}">/</a></li>`)
     const breadcrumbs = `<ul>${crumbs.reverse().join('')}</ul>`
+
     // Collect the files and folders from the given path
     const sorter = (a: DirectoryEntry, b: DirectoryEntry) => a.name.localeCompare(b.name)
     const contents = get_dir_entries(directory)
@@ -53,6 +59,7 @@ export function generate_index_content(
     const results = partition(contents, (content: DirectoryEntry) => content.isDirectory)
     const dirs = results[0].sort(sorter)
     const files = results[1].sort(sorter)
+
     // Now create a table with columns: folders | content size | files | file size
     const max = Math.max(dirs.length, files.length)
     const rows = []
@@ -91,6 +98,7 @@ export function generate_index_content(
         </thead>
         <tbody>${rows.join('')}</tbody>
     </table>`
+
     // Return the HTML
     return `<!DOCTYPE html>
         <html>
@@ -166,9 +174,11 @@ interface UpdateIndexesReturn {
  * @returns The data needed to update S3
  */
 export function update_indexes(modified:string[], removed:string[]): UpdateIndexesReturn {
+
     // This map stores the removed directory (key), and the first parent that has content (value).
     // This is used to illiminate the need to readdirSync multiple times
     const first_full_parents = new Map<string, string>()
+
     // Build the removals
     const removals: string[] = removed.flatMap((entry: string) => {
         // The entry was removed so check it's parent
@@ -179,6 +189,7 @@ export function update_indexes(modified:string[], removed:string[]): UpdateIndex
             .map((dir: string) => `${dir.replaceAll(path.sep, '/')}/`)
     })
     const modified_handle_paths: string[] = modified.map((file: string) => `${path.dirname(file)}/`)
+
     // All removed paths should include the parent and grandparent path
     const removed_handle_paths: string[] = removed
         .flatMap((file: string) => {
@@ -188,8 +199,10 @@ export function update_indexes(modified:string[], removed:string[]): UpdateIndex
             }
             return [`${full_parent}/`, `${path.dirname(full_parent)}/`]
         })
+
     // Create an array by merging the arrays, and keep only unique paths
     const handle_paths = [...new Set([...modified_handle_paths, ...removed_handle_paths])]
+
     // Build the updates
     const updates: {path:string, html:string}[] = handle_paths
         .map((directory: string) => {
@@ -199,6 +212,7 @@ export function update_indexes(modified:string[], removed:string[]): UpdateIndex
                 html: generate_index_content(directory, ['dist']),
             }
         })
+
     return {
         update: updates,
         remove: removals,

@@ -1,10 +1,14 @@
-import * as path from 'path'
+
+import path from 'path'
+import {closeSync, existsSync, mkdirSync, openSync, rmSync, statSync} from 'fs'
+
 import {afterEach, beforeEach, describe, it} from 'vitest'
-import { 
+
+import {
     read_dir, get_dir_entries, DirectoryEntry, read_files_in_dir, FirstFullParent,
     find_first_full_parent_dir,
 } from './utils'
-import { closeSync, existsSync, mkdirSync, openSync, rmSync, statSync } from 'fs'
+
 
 describe('read_dir', () => {
     const contents = read_dir(path.join('dist', 'bibles', 'eng_bsb'))

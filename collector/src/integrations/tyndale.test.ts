@@ -35,6 +35,13 @@ const test_xml = `
 </body>
 </item>
 
+<item name="Matt.17.10" typename="StudyNote" product="TyndaleOpenStudyNotes">
+<refs>Matt.17.10</refs>
+<body>
+<p class="sn-text"><span class="sn-ref"><a href="?bref=Matt.17.10">17:10</a></span> Same chapter, different verse.</p>
+</body>
+</item>
+
 <item name="Matt.12.24" typename="StudyNote" product="TyndaleOpenStudyNotes">
 <refs>Matt.12.24</refs>
 <body>
@@ -94,6 +101,10 @@ describe('study_notes_to_json', () => {
         expect(notes['gen']!.ranges[0]!.start_v).toEqual(3)
         expect(notes['gen']!.ranges[1]!.start_c).toEqual(2)
         expect(notes['gen']!.ranges[1]!.start_v).toEqual(8)
+    })
+
+    it("Should store multiple notes per chapter", ({expect}) => {
+        expect(Object.keys(notes['mat']!.verses[17]!)).toHaveLength(2)
     })
 
     it("Contents should be trimmed", ({expect}) => {

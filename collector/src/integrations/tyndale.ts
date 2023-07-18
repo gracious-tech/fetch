@@ -70,9 +70,11 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
         body = clean_note(body)
         if (!reference.is_range) {
             // Handle single verse
-            const note: Record<number, string> = {}
-            note[reference.start_verse] = body
-            output[reference.usx]!.verses[reference.start_chapter] = note
+            if (!(reference.start_chapter in output[reference.usx]!.verses)){
+                // Chapter object doesn't exist yet, so init
+                output[reference.usx]!.verses[reference.start_chapter] = {}
+            }
+            output[reference.usx]!.verses[reference.start_chapter]![reference.start_verse] = body
         } else {
             // Range of verses
             const note: MultiVerseNote = {

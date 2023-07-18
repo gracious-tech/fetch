@@ -16,8 +16,8 @@ interface MultiVerseNote {
     contents:string  // HTML
 }
 
-interface StudyNotes {
-    verses:Record<number, Record<number, string>>  // Single verses organised by chapter and verse
+export interface StudyNotes {
+    verses:Record<string, Record<string, string>>  // Single verses organised by chapter and verse
     ranges:MultiVerseNote[]  // Notes that span multiple verses and/or chapters
 }
 

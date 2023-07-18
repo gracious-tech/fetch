@@ -1,5 +1,8 @@
+
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom'
 import { select } from 'xpath'
+
+
 // Types
 
 interface MultiVerseNote {
@@ -15,16 +18,20 @@ interface StudyNotes {
     ranges:MultiVerseNote[]  // Notes that span multiple verses and/or chapters
 }
 
+
 /**
- * Extract the study notes XML and prepare for JSON conversion
+ * Extract study notes from Tyndale XML and convert to standard HTML/JSON
+ * XML source obtainable from https://tyndaleopenresources.com/
  *
  * @param xml The XML to parse
  *
  * @returns The data to be converted to JSON
  */
 export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
+
     // Set up the intial data with empty values. We want to be in book order
     const output:Record<string, StudyNotes> = {}
+
     // tyndale_to_usx_book is defined at the bottom of the file
     for (const tyndale_book of Object.keys(tyndale_to_usx_book)) {
         // Result is keyed by USX ids, not Tyndale's
@@ -33,6 +40,7 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
             ranges: [],
         }
     }
+
     // Parse the XML
     const doc = new DOMParser().parseFromString(xml, 'text/xml')
     const elements = select('//item', doc) as Element[]
@@ -64,6 +72,7 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
             output[reference.usx]!.ranges.push(note)
         }
     })
+
     // Sort our ranges
     for (const key in output) {
         output[key]!.ranges.sort((a: MultiVerseNote, b: MultiVerseNote) => {
@@ -72,6 +81,7 @@ export function study_notes_to_json(xml:string):Record<string, StudyNotes> {
     }
     return output
 }
+
 
 /**
  * An interface describing the extracted Bible reference
@@ -87,19 +97,22 @@ export interface TyndaleBibleReference {
     is_range: boolean,
 }
 
+
 /**
  * Extract the scripture reference based on Tyndale format
- * 
+ *
  * @param reference The reference string
  *
  * @returns The extracted verse details
  */
 export function extract_reference(reference: string): TyndaleBibleReference|null {
+
     const regex = /\b\w+\b/g
     const parts = reference.split('-')
     if (parts.length === 0) {
         return null
     }
+
     // Handle the starting parts (before -)
     const matches = parts[0]!.match(regex) || []
     if (matches.length < 3) {
@@ -116,6 +129,7 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
     const start_verse = parseInt(matches[2]!, 10) || 0
     let end_chapter = 0
     let end_verse = 0
+
     // handle the ending parts (after -)
     if (parts.length === 2) {
         const matches = parts[1]!.match(regex) || []
@@ -143,6 +157,7 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
     return result
 }
 
+
 /*
 Common Span Classes
 ===================
@@ -160,7 +175,7 @@ span.latin Latin language text (keep)
 span.sub Subscript text (converted)
 span.divine-name The divine name, usually set as small caps (keep)
 span.divine-name-ital divine name but set as italic (converted divine-name wrapped in em)
-span.sn-excerpt-divine-name The divine name, usually set as small caps and excerpt (convert to 
+span.sn-excerpt-divine-name The divine name, usually set as small caps and excerpt (convert to
     .excerpt.divine-name)
 span.era Marks BC/AD era designations, usually set as small caps (keep)
 span.bold-era Same as era but set as bold (converted to era wrapped in strong)
@@ -173,7 +188,7 @@ p.sn-list-3 Third level list indent within a study note (converted to .list-3)
 p.sn-text Normal study note text (removed)
 
 span.sn-excerpt Bible text excerpt within a study note (converted to .excerpt)
-span.sn-excerpt-roman Text within a study note excerpt set off as roman when study note 
+span.sn-excerpt-roman Text within a study note excerpt set off as roman when study note
     excerpts are set as italic by default. Otherwise set as italic. (converted to .excerpt.roman)
 span.sn-excerpt-sc Small cap text within a study note excerpt (converted to .excerpt.sc)
 span.sn-hebrew-chars Hebrew language characters within a study note (converted to span.hebrew)
@@ -181,6 +196,7 @@ span.sn-ref Bible reference to which the study note is connected (removed)
 span.sn-ref-sc Small caps text within a study note reference (converted to .sc)
 span.sn-sc Small caps text within a study note (converted to .sc)
 */
+
 
 /**
  * Extract the body of the note and transform it to align with our requirements.
@@ -190,15 +206,15 @@ span.sn-sc Small caps text within a study note (converted to .sc)
  * @returns The transformed text
  */
 export function clean_note(body: string): string {
-    /* TODO Requirements:
-            Remove <a> if no verse ref
-                e.g. <a href="?item=TheDayOfTheLord_ThemeNote_Filament">
-    */
+
     let cleaned = body
+
     // Remove wrapper
     cleaned = cleaned.replace(/^<p(?:\s+class="[^"]+")?>([\s\S]+)<\/p>$/, '$1')
+
     // Remove links that refer this verse
     cleaned = cleaned.replace(/<span class="sn-ref">.*?<\/span>/g, '')
+
     // Transform non-standard markup into HTML
     const elements = {
         'bold': '<strong>$1</strong>',
@@ -225,6 +241,7 @@ export function clean_note(body: string): string {
         const pattern = new RegExp(`<span class="${klass}">(.*?)</span>`, 'g')
         cleaned = cleaned.replace(pattern, replacement)
     })
+
     // convert reference links to data tags
     let pattern = /<a href="\?bref=([^"]*)">([^<]*)<\/a>/g
     cleaned = cleaned.replace(pattern, (match: string, reference: string, text: string) => {
@@ -238,12 +255,16 @@ export function clean_note(body: string): string {
         }
         return `<span data-ref="${format}">${text}</span>`
     })
+
     // strip remaining links
     pattern = /<a\b[^>]*>(.*?)<\/a>/gi
     cleaned = cleaned.replace(pattern, '$1')
+
     // trim the result
     return cleaned.trim()
 }
+
+
 /**
  * Some times Tyndale uses an alternative book name for books.
  * (ie. 1Kgs instead of IKgs).  This list allows us to look up
@@ -268,6 +289,8 @@ export const refs_to_tyndale: Record<string, string> = {
     '2Jn': 'IIJn',
     '3Jn': 'IIIJn',
 }
+
+
 // Map Tyndale book ids to USX ids
 export const tyndale_to_usx_book:Record<string, string> = {
     'Gen': 'gen',

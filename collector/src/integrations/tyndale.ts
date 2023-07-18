@@ -21,7 +21,7 @@ interface StudyNotes {
 
 /**
  * Extract study notes from Tyndale XML and convert to standard HTML/JSON
- * XML source obtainable from https://tyndaleopenresources.com/
+ * Source: StudyNotes.xml from https://tyndaleopenresources.com/
  *
  * @param xml The XML to parse
  *

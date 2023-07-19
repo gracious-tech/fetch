@@ -7,3 +7,9 @@ cd "$(dirname "$(dirname "$0")")"
 # This will install modules for all workspaces by default
 # They'll be stored in the root node_modules despite being defined in separate package.json files
 npm ci
+
+
+# Build components that other components rely on
+.bin/build_client
+.bin/build_client_docs
+.bin/build_converters

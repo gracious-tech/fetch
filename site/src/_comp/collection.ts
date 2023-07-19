@@ -1,5 +1,5 @@
 
-import {BibleClient} from './client/esm/index.js'
+import {BibleClient} from '@gracious.tech/fetch-client'
 
 
 // Use localhost endpoint during dev

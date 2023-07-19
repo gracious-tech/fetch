@@ -3,13 +3,7 @@
 set -e
 cd "$(dirname "$(dirname "$0")")"
 
-# Install modules for each component
-npm ci
-cd client
-npm ci
-cd ../collector
-npm ci
-cd ../app
-npm ci
-cd ../site
+
+# This will install modules for all workspaces by default
+# They'll be stored in the root node_modules despite being defined in separate package.json files
 npm ci

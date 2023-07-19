@@ -4,6 +4,8 @@ import {join} from 'node:path'
 import {execSync} from 'node:child_process'
 
 import {minify} from 'html-minifier-terser'
+import {usx_to_html} from 'usx-to-html'
+import {JSDOM} from 'jsdom'
 
 import * as door43 from '../integrations/door43.js'
 import * as ebible from '../integrations/ebible.js'
@@ -135,12 +137,21 @@ export async function update_dist(trans_id?:string){
             await _update_dist_single(id)
         } catch (error){
             console.error(`FAILED update dist assets for: ${id}`)
-            console.error(`${error as string}`)
+            console.error(error instanceof Error ? error.stack : error)
         }
     }), 4)
 
     // Update manifest whenever dist files change
     await update_manifest()
+}
+
+
+const HTML_MINIFY_OPTIONS = {
+    // Just enable relevent options since we create HTML ourself and many aren't issues
+    collapseWhitespace: true,  // Get rid of useless whitespace
+    conservativeCollapse: true,  // Leave gap between spans etc or words will join
+    removeAttributeQuotes: true,  // Allowed by spec and browsers can still parse
+    decodeEntities: true,  // Don't use &..; if can just use UTF-8 char (e.g. hun_kar)
 }
 
 
@@ -194,36 +205,29 @@ async function _update_dist_single(id:string){
     // Extract meta data from the USX files
     await _create_extracts(src_dir, usx_dir)
 
-    // Locate xslt3 executable and XSL template dir
-    const xslt3 = join(PKG_PATH, 'node_modules', '.bin', 'xslt3')
-    const xsl_template_html = join(PKG_PATH, 'assets', 'usx_transforms', 'usx_to_html.xslt')
-    const xsl_template_txt = join(PKG_PATH, 'assets', 'usx_transforms', 'usx_to_txt.xslt')
-
     // Convert USX to HTML and plain text
+    const parser = new JSDOM().window.DOMParser
     for (const file of read_dir(usx_dir)){
 
         // Determine paths
         const book = file.split('.')[0]!.toLowerCase()
         const src = join(usx_dir, `${book}.usx`)
-        const dst_html = join(dist_dir, 'html', `${book}.html`)
-        const dst_txt = join(dist_dir, 'txt', `${book}.txt`)
+        const dst_html = join(dist_dir, 'html', `${book}.json`)
 
         // Convert to HTML if doesn't exist yet
         if (!fs.existsSync(dst_html)){
-            execSync(`${xslt3} -xsl:${xsl_template_html} -s:${src} -o:${dst_html}`)
-            // Minify the HTML (since HTML isn't as strict as XML/JSON can remove quotes etc)
-            fs.writeFileSync(dst_html, await minify(fs.readFileSync(dst_html, 'utf-8'), {
-                // Just enable relevent options since we create HTML ourself and many aren't issues
-                collapseWhitespace: true,  // Get rid of useless whitespace
-                conservativeCollapse: true,  // Leave gap between spans etc or words will join
-                removeAttributeQuotes: true,  // Allowed by spec and browsers can still parse
-                decodeEntities: true,  // Don't use &..; if can just use UTF-8 char (e.g. hun_kar)
-            }))
-        }
+            const html = usx_to_html(fs.readFileSync(src, {encoding: 'utf8'}), parser)
 
-        // Convert to plain text if doesn't exist yet
-        if (!fs.existsSync(dst_txt)){
-            execSync(`${xslt3} -xsl:${xsl_template_txt} -s:${src} -o:${dst_txt}`)
+            // Minify the HTML (since HTML isn't as strict as XML and can remove quotes etc)
+            for (const ch of html.contents){
+                for (const verse of ch){
+                    verse[0] = await minify(verse[0]!, HTML_MINIFY_OPTIONS)
+                    verse[1] = await minify(verse[1]!, HTML_MINIFY_OPTIONS)
+                    // verse[2] is only either empty or a closing tag, so can't minify
+                }
+            }
+
+            fs.writeFileSync(dst_html, JSON.stringify(html))
         }
     }
 }

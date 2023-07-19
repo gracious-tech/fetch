@@ -1,14 +1,7 @@
-/**
- * Define the type of object
- */
-type NumberOfVerses = {
-    [key: string]: number[]
-}
 
 // The number of verses for every chapter of the Bible
 // WARN Chapters are zero-indexed (i.e chapter 1 is at index 0)
-// TODO This data needs verification
-export const number_of_verses: NumberOfVerses = {
+export const number_of_verses:Record<string, number[]> = {
     '1ch': [
         54,
         55,
@@ -38,7 +31,7 @@ export const number_of_verses: NumberOfVerses = {
         32,
         34,
         21,
-        30
+        30,
     ],
     '1co': [
         31,
@@ -56,14 +49,14 @@ export const number_of_verses: NumberOfVerses = {
         13,
         40,
         58,
-        24
+        24,
     ],
     '1jn': [
         10,
         29,
         24,
         21,
-        21
+        21,
     ],
     '1ki': [
         53,
@@ -87,14 +80,14 @@ export const number_of_verses: NumberOfVerses = {
         21,
         43,
         29,
-        53
+        53,
     ],
     '1pe': [
         25,
         25,
         22,
         19,
-        14
+        14,
     ],
     '1sa': [
         28,
@@ -127,14 +120,14 @@ export const number_of_verses: NumberOfVerses = {
         25,
         11,
         31,
-        13
+        13,
     ],
     '1th': [
         10,
         20,
         13,
         18,
-        28
+        28,
     ],
     '1ti': [
         20,
@@ -142,7 +135,7 @@ export const number_of_verses: NumberOfVerses = {
         16,
         16,
         25,
-        21
+        21,
     ],
     '2ch': [
         17,
@@ -180,7 +173,7 @@ export const number_of_verses: NumberOfVerses = {
         25,
         33,
         27,
-        23
+        23,
     ],
     '2co': [
         24,
@@ -195,10 +188,10 @@ export const number_of_verses: NumberOfVerses = {
         18,
         33,
         21,
-        14
+        14,
     ],
     '2jn': [
-        13
+        13,
     ],
     '2ki': [
         18,
@@ -225,12 +218,12 @@ export const number_of_verses: NumberOfVerses = {
         20,
         37,
         20,
-        30
+        30,
     ],
     '2pe': [
         21,
         22,
-        18
+        18,
     ],
     '2sa': [
         27,
@@ -256,18 +249,18 @@ export const number_of_verses: NumberOfVerses = {
         22,
         51,
         39,
-        25
+        25,
     ],
     '2th': [
         12,
         17,
-        18
+        18,
     ],
     '2ti': [
         18,
         26,
         17,
-        22
+        22,
     ],
     '3jn': [
         15,
@@ -300,7 +293,7 @@ export const number_of_verses: NumberOfVerses = {
         27,
         32,
         44,
-        31
+        31,
     ],
     'amo': [
         15,
@@ -311,13 +304,13 @@ export const number_of_verses: NumberOfVerses = {
         14,
         17,
         14,
-        15
+        15,
     ],
     'col': [
         29,
         23,
         25,
-        18
+        18,
     ],
     'dan': [
         21,
@@ -331,7 +324,7 @@ export const number_of_verses: NumberOfVerses = {
         27,
         21,
         45,
-        13
+        13,
     ],
     'deu': [
         46,
@@ -367,7 +360,7 @@ export const number_of_verses: NumberOfVerses = {
         30,
         52,
         29,
-        12
+        12,
     ],
     'ecc': [
         18,
@@ -381,7 +374,7 @@ export const number_of_verses: NumberOfVerses = {
         18,
         20,
         10,
-        14
+        14,
     ],
     'eph': [
         23,
@@ -389,7 +382,7 @@ export const number_of_verses: NumberOfVerses = {
         21,
         32,
         33,
-        24
+        24,
     ],
     'est': [
         22,
@@ -401,7 +394,7 @@ export const number_of_verses: NumberOfVerses = {
         10,
         17,
         32,
-        3
+        3,
     ],
     'exo': [
         22,
@@ -443,7 +436,7 @@ export const number_of_verses: NumberOfVerses = {
         29,
         31,
         43,
-        38
+        38,
     ],
     'ezk': [
         28,
@@ -493,7 +486,7 @@ export const number_of_verses: NumberOfVerses = {
         25,
         24,
         23,
-        35
+        35,
     ],
     'ezr': [
         11,
@@ -505,7 +498,7 @@ export const number_of_verses: NumberOfVerses = {
         28,
         36,
         15,
-        44
+        44,
     ],
     'gal': [
         24,
@@ -513,7 +506,7 @@ export const number_of_verses: NumberOfVerses = {
         29,
         31,
         26,
-        18
+        18,
     ],
     'gen': [
         31,
@@ -565,16 +558,16 @@ export const number_of_verses: NumberOfVerses = {
         31,
         22,
         33,
-        26
+        26,
     ],
     'hab': [
         17,
         20,
-        19
+        19,
     ],
     'hag': [
         15,
-        23
+        23,
     ],
     'heb': [
         14,
@@ -589,7 +582,7 @@ export const number_of_verses: NumberOfVerses = {
         39,
         40,
         29,
-        25
+        25,
     ],
     'hos': [
         11,
@@ -605,7 +598,7 @@ export const number_of_verses: NumberOfVerses = {
         12,
         14,
         16,
-        9
+        9,
     ],
     'isa': [
         31,
@@ -673,14 +666,14 @@ export const number_of_verses: NumberOfVerses = {
         19,
         12,
         25,
-        24
+        24,
     ],
     'jas': [
         27,
         26,
         18,
         17,
-        20
+        20,
     ],
     'jdg': [
         36,
@@ -703,7 +696,7 @@ export const number_of_verses: NumberOfVerses = {
         31,
         30,
         48,
-        25
+        25,
     ],
     'jer': [
         19,
@@ -757,7 +750,7 @@ export const number_of_verses: NumberOfVerses = {
         39,
         46,
         64,
-        34
+        34,
     ],
     'jhn': [
         51,
@@ -780,7 +773,7 @@ export const number_of_verses: NumberOfVerses = {
         40,
         42,
         31,
-        25
+        25,
     ],
     'job': [
         22,
@@ -824,18 +817,18 @@ export const number_of_verses: NumberOfVerses = {
         30,
         24,
         34,
-        17
+        17,
     ],
     'jol': [
         20,
         32,
-        21
+        21,
     ],
     'jon': [
         17,
         10,
         10,
-        11
+        11,
     ],
     'jos': [
         18,
@@ -861,17 +854,17 @@ export const number_of_verses: NumberOfVerses = {
         45,
         34,
         16,
-        33
+        33,
     ],
     'jud': [
-        25
+        25,
     ],
     'lam': [
         22,
         22,
         66,
         22,
-        22
+        22,
     ],
     'lev': [
         17,
@@ -900,7 +893,7 @@ export const number_of_verses: NumberOfVerses = {
         23,
         55,
         46,
-        34
+        34,
     ],
     'luk': [
         80,
@@ -926,13 +919,13 @@ export const number_of_verses: NumberOfVerses = {
         38,
         71,
         56,
-        53
+        53,
     ],
     'mal': [
         14,
         17,
         18,
-        6
+        6,
     ],
     'mat': [
         25,
@@ -962,7 +955,7 @@ export const number_of_verses: NumberOfVerses = {
         46,
         75,
         66,
-        20
+        20,
     ],
     'mic': [
         16,
@@ -971,7 +964,7 @@ export const number_of_verses: NumberOfVerses = {
         13,
         15,
         16,
-        20
+        20,
     ],
     'mrk': [
         45,
@@ -989,12 +982,12 @@ export const number_of_verses: NumberOfVerses = {
         37,
         72,
         47,
-        20
+        20,
     ],
     'nam': [
         15,
         13,
-        19
+        19,
     ],
     'neh': [
         11,
@@ -1009,7 +1002,7 @@ export const number_of_verses: NumberOfVerses = {
         39,
         36,
         47,
-        31
+        31,
     ],
     'num': [
         54,
@@ -1047,19 +1040,19 @@ export const number_of_verses: NumberOfVerses = {
         56,
         29,
         34,
-        13
+        13,
     ],
     'oba': [
-        21
+        21,
     ],
     'phm': [
-        25
+        25,
     ],
     'php': [
         30,
         30,
         21,
-        23
+        23,
     ],
     'pro': [
         33,
@@ -1092,7 +1085,7 @@ export const number_of_verses: NumberOfVerses = {
         28,
         27,
         33,
-        31
+        31,
     ],
     'psa': [
         6,
@@ -1244,7 +1237,7 @@ export const number_of_verses: NumberOfVerses = {
         20,
         14,
         9,
-        6
+        6,
     ],
     'rev': [
         20,
@@ -1268,7 +1261,7 @@ export const number_of_verses: NumberOfVerses = {
         21,
         15,
         27,
-        21
+        21,
     ],
     'rom': [
         32,
@@ -1286,13 +1279,13 @@ export const number_of_verses: NumberOfVerses = {
         14,
         26,
         33,
-        27
+        27,
     ],
     'rut': [
         22,
         23,
         18,
-        22
+        22,
     ],
     'sng': [
         17,
@@ -1302,12 +1295,12 @@ export const number_of_verses: NumberOfVerses = {
         16,
         13,
         13,
-        14
+        14,
     ],
     'tit': [
         16,
         15,
-        15
+        15,
     ],
     'zec': [
         21,
@@ -1323,11 +1316,11 @@ export const number_of_verses: NumberOfVerses = {
         17,
         14,
         9,
-        21
+        21,
     ],
     'zep': [
         18,
         15,
-        20
-    ]
+        20,
+    ],
 }

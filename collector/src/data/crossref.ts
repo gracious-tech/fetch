@@ -55,7 +55,7 @@ function filter_refs_by_relevance(
                 .map(ref => ref.slice(1) as CrossRefSingleDist|CrossRefRangeDist)
 
             // Add refs for verse if any are chosen
-            if (refs){
+            if (refs.length){
                 // Ensure chapter object exists
                 if (!(ch in filtered)){
                     filtered[ch] = {}

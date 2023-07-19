@@ -1,6 +1,6 @@
 {
     "extends": "../../tsconfig_base.jsonc",
-    "include": ["index.ts"],
+    "include": ["src/**/*.ts"],
     "compilerOptions": {
         "lib": ["ESNext", "DOM"],
     },

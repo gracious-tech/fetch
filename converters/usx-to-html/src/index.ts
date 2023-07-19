@@ -15,6 +15,10 @@ const IGNORE_STYLES = [
     'r', 'rem', 'toc1', 'toc2', 'toc3',
 ]
 
+// `Node` isn't available outside browsers, and we just need nodeType integers anyway
+const ELEMENT_NODE = 1
+const TEXT_NODE = 3
+
 /**
  * Convert a USX document to valid HTML
  *
@@ -22,8 +26,8 @@ const IGNORE_STYLES = [
  *
  * @returns A JSON ready object
  */
-export function usx_to_html(xml:string): BibleHtmlJson {
-    const doc = new DOMParser().parseFromString(xml, 'application/xml')
+export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
+    const doc = new parser().parseFromString(xml, 'application/xml')
     const usx_tag = doc.documentElement
     if ((!usx_tag) || (usx_tag.nodeName !== 'usx')) {
         throw Error('Invalid markup. Missing usx tag.')
@@ -91,7 +95,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                 const para_child = childNodes[index]!
                 if (
                     (para_child.nodeName === 'verse') &&
-                    (para_child.nodeType === Node.ELEMENT_NODE)
+                    (para_child.nodeType === ELEMENT_NODE)
                 ) {
                     // We are handling a verse element
                     const verse_attr = (para_child as Element).getAttribute('number')
@@ -124,7 +128,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                 }
                 if (
                     (para_child.nodeName === 'char') &&
-                    (para_child.nodeType === Node.ELEMENT_NODE)
+                    (para_child.nodeType === ELEMENT_NODE)
                 ) {
                     // We are handling a char element
                     const strong_attr = (para_child as Element).getAttribute('strong')
@@ -137,7 +141,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                 }
                 if (
                     (para_child.nodeName === 'note') &&
-                    (para_child.nodeType === Node.ELEMENT_NODE)
+                    (para_child.nodeType === ELEMENT_NODE)
                 ) {
                     // We are handling a note element
                     para_html += '<span class="fb-note">* <span>'
@@ -146,7 +150,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                         const ele = noteChild as Element
                         if (
                             (ele.nodeName === 'char') &&
-                            (ele.nodeType === Node.ELEMENT_NODE)
+                            (ele.nodeType === ELEMENT_NODE)
                         ) {
                             const style = ele.getAttribute('style')
                             const char_text = ele.textContent || ''
@@ -159,7 +163,7 @@ export function usx_to_html(xml:string): BibleHtmlJson {
                     }
                     para_html += '</span></span>'
                 }
-                if (para_child.nodeType === Node.TEXT_NODE) {
+                if (para_child.nodeType === TEXT_NODE) {
                     // We are handling a text node
                     const text_node = para_child as Text
                     para_html += text_node.textContent

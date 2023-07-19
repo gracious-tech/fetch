@@ -27,7 +27,11 @@ interface LanguageData {
 export async function gen_language_data(){
     // Generate a language data file from CLDR resources
 
-    const cldr_path = join(PKG_PATH, 'node_modules', 'cldr-localenames-full', 'main')
+    let cldr_path = join(PKG_PATH, 'node_modules', 'cldr-localenames-full', 'main')
+    if (!existsSync(cldr_path)){
+        // Will be in repo root during dev due to workspaces
+        cldr_path = join(PKG_PATH, '..', 'node_modules', 'cldr-localenames-full', 'main')
+    }
     const data:LanguageData = {languages: {}, language2to3: {}}
 
     // Setup access to English names of languages

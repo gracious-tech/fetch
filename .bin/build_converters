@@ -11,8 +11,8 @@ for dir in */; do
 
     rm -rf dist
 
-    ../../node_modules/.bin/tsc --emitDeclarationOnly --outDir dist/esm
-    esbuild="../../node_modules/.bin/esbuild --sourcemap --target=es6"
+    npx tsc --emitDeclarationOnly --outDir dist/esm
+    esbuild="npx esbuild --sourcemap --target=es6"
     $esbuild src/*.ts --format=esm --platform=neutral --outdir=dist/esm
     $esbuild src/index.ts --bundle --format=cjs  --platform=node --outfile=dist/bundled.cjs
 

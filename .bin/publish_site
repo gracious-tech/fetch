@@ -7,4 +7,4 @@ cd "$(dirname "$(dirname "$0")")/site"
 ../.bin/build_client
 
 ../.bin/build_site
-node_modules/.bin/esbuild --platform=node ../.bin/publish.ts | node --input-type=module
+npx esbuild --platform=node ../.bin/publish.ts | node --input-type=module

@@ -6,7 +6,7 @@ cd "$(dirname "$(dirname "$0")")/collector"
 
 rm -rf dist
 
-../node_modules/.bin/esbuild src/*.ts src/**/*.ts --sourcemap --target=node18 --format=esm \
+npx esbuild src/*.ts src/**/*.ts --sourcemap --target=node18 --format=esm \
     --platform=node --outdir=dist "$@"
 
 # Copy static data as esbuild won't include (unless whole thing bundled)

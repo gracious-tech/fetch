@@ -5,4 +5,4 @@
 set -e
 cd "$(dirname "$(dirname "$0")")/collection"
 
-../node_modules/.bin/vitest --root ../ "$@"
+npx vitest --root ../ "$@"

@@ -36,14 +36,18 @@ export interface BookExtracts {
 }
 
 
-export interface TranslationSourceMeta {
-    language:string
+export interface CommonSourceMeta {
     name:MetaTranslationName
     year:number|null
+    version:string
     direction:'ltr'|'rtl'
+    copyright:MetaCopyright
+}
+
+
+export interface TranslationSourceMeta extends CommonSourceMeta {
     audio:unknown[]
     video:unknown[]
-    copyright:MetaCopyright
     // Recommended is used to further customise the exclude_obsolete filter and default translation
     // They are usually based on year, but this can manually account for other factors
     // Set to false to consider even a modern translation obsolete
@@ -51,4 +55,9 @@ export interface TranslationSourceMeta {
     recommended:boolean|null  // Only one per language should be true
     source:TranslationSource
     reviewed:boolean
+}
+
+
+export interface NotesSourceMeta extends CommonSourceMeta {
+    // pass
 }

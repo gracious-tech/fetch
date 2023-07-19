@@ -11,6 +11,8 @@ import {update_bmc} from './parts/bmc.js'
 import {init_config} from './parts/config.js'
 import {update_manifest} from './parts/manifest.js'
 import {discover_translations} from './parts/discover.js'
+import {notes_process} from './notes/notes.js'
+import {crossref_process} from './data/crossref.js'
 
 import './parts/console_colors.js'
 
@@ -26,6 +28,7 @@ await yargs(process.argv.slice(2))
     .command('setup-bmc [version]', "Update Bible Multi Converter", {},
         argv => update_bmc(argv['version'] as string))
 
+    // Bibles
     .command('discover [service] [id]', "Discover what translations are available", {},
         argv => discover_translations(argv['service'] as string, argv['id'] as string))
 
@@ -51,6 +54,12 @@ await yargs(process.argv.slice(2))
         argv => report_items('missing'))
     .command('report-unprocessed', "Report translations yet to be processed", {},
         argv => report_unprocessed())
+
+    // Notes
+    .command('notes-process', "Convert study notes to standard format", {}, argv => notes_process())
+
+    // Data
+    .command('data-crossref', "Generate cross-references data", {}, argv => crossref_process())
 
     // Show help when no command
     .demandCommand()

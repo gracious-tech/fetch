@@ -179,7 +179,7 @@ export const number_of_verses: NumberOfVerses = {
         33,
         25,
         33,
-        26,
+        27,
         23
     ],
     '2co': [
@@ -212,7 +212,7 @@ export const number_of_verses: NumberOfVerses = {
         37,
         36,
         21,
-        20,
+        21,
         25,
         29,
         38,
@@ -270,7 +270,7 @@ export const number_of_verses: NumberOfVerses = {
         22
     ],
     '3jn': [
-        15
+        15,
     ],
     'act': [
         26,
@@ -329,7 +329,7 @@ export const number_of_verses: NumberOfVerses = {
         28,
         27,
         27,
-        20,
+        21,
         45,
         13
     ],
@@ -551,7 +551,7 @@ export const number_of_verses: NumberOfVerses = {
         20,
         31,
         29,
-        40,
+        43,
         36,
         30,
         23,
@@ -714,7 +714,7 @@ export const number_of_verses: NumberOfVerses = {
         30,
         34,
         22,
-        25,
+        26,
         25,
         23,
         17,
@@ -985,7 +985,7 @@ export const number_of_verses: NumberOfVerses = {
         50,
         52,
         33,
-        43,
+        44,
         37,
         72,
         47,
@@ -1210,7 +1210,7 @@ export const number_of_verses: NumberOfVerses = {
         9,
         8,
         18,
-        18,
+        19,
         2,
         29,
         176,
@@ -1258,7 +1258,7 @@ export const number_of_verses: NumberOfVerses = {
         21,
         11,
         19,
-        18,
+        18,  // 12:18 Many translations append 12:18 to 12:17 as the final verse
         18,
         20,
         8,
@@ -1284,7 +1284,7 @@ export const number_of_verses: NumberOfVerses = {
         36,
         21,
         14,
-        23,
+        26,
         33,
         27
     ],
@@ -1292,7 +1292,7 @@ export const number_of_verses: NumberOfVerses = {
         22,
         23,
         18,
-        18
+        22
     ],
     'sng': [
         17,
@@ -1329,5 +1329,5 @@ export const number_of_verses: NumberOfVerses = {
         18,
         15,
         20
-    ],
+    ]
 }

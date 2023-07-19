@@ -13,3 +13,7 @@ npm ci
 .bin/build_client
 .bin/build_client_docs
 .bin/build_converters
+
+
+# Build test collection
+.bin/test_collector

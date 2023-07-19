@@ -1,22 +1,163 @@
 
-import {read_dir} from './utils.js'
+import path from 'path'
+
+import {partition} from 'lodash-es'
+
+import {
+    DirectoryEntry, FirstFullParent, find_first_full_parent_dir, get_dir_entries,
+} from './utils.js'
 
 
-export function generate_index_file(path:string):string{
-    // Generate a HTML index file for given directory
-    /* TODO Requirements:
-        * List files and folders separately
-        * Display in two columns (folders | files) so can see both even if lists very long
-        * Standard ASCII sorting (.sort() is fine)
-        * Show size of files in bytes (2,000 bytes rather than 2 KB) for easier comparison
-        * Show number of items in folders (will have to readDir for each)
-        * Do as efficiently as possible with least reads (though not overly important)
-        * All items are links
-        * Include breadcrumb links at top to step up to each parent, all the way to root
-        * Monospace font, and right-align numbers
-        * Dir paths should always end in a slash
-    */
-    return ''
+/**
+ * Generate the HTML content using the specific directory path content
+ *
+ * @param directory             The path to generate an index content for
+ * @param exclude_breadcrumbs   An array of folders in the directory that should not be included
+ *                              in the breadcrumbs
+ *
+ * @returns The html content
+ */
+export function generate_index_content(
+        directory:string,
+        exclude_breadcrumbs: string[] = [],
+): string {
+
+    // Create the breadcrumbs
+    // Filter removes any empty values if the path.sep is at the end
+    // Also remove any paths passed in exclude_breadcrumbs
+    const pieces = directory
+        .split(path.sep)
+        .filter((n: string) => n)
+        .filter((n: string) => !exclude_breadcrumbs.includes(n))
+        .reverse()
+
+    let crumb_path = ''
+    const crumbs = []
+    for (let index = 0; index < pieces.length; index++) {
+        const crumb = pieces[index] ?? ''
+        let li = ''
+        if (index === 0) {
+            // We are in reverse, so 0 is the last item
+            li = `<li class="last">${crumb}</li>`
+        } else {
+            crumb_path += `../`
+            li = `<li><a href="${crumb_path}">${crumb}</a></li>`
+        }
+        crumbs.push(li)
+    }
+
+    // Attach the root directory
+    crumb_path += `../`
+    crumbs.push(`<li><a href="${crumb_path}">/</a></li>`)
+    const breadcrumbs = `<ul>${crumbs.reverse().join('')}</ul>`
+
+    // Collect the files and folders from the given path
+    const sorter = (a: DirectoryEntry, b: DirectoryEntry) => a.name.localeCompare(b.name)
+    const contents = get_dir_entries(directory)
+    // lodash partition seperates the array based on predicate
+    // @link https://lodash.com/docs/4.17.15#partition
+    const results = partition(contents, (content: DirectoryEntry) => content.isDirectory)
+    const dirs = results[0].sort(sorter)
+    const files = results[1].sort(sorter)
+
+    // Now create a table with columns: folders | content size | files | file size
+    const max = Math.max(dirs.length, files.length)
+    const rows = []
+    for (let index = 0; index < max; index++) {
+        let folder_text = ''
+        let folder_size = ''
+        let file_text = ''
+        let file_size = ''
+        if (dirs[index] !== undefined) {
+            const name = dirs[index]!.name
+            folder_text = `<a href="./${name}/">${name}</a>`
+            folder_size = `<span data-entry-name="${name}">${dirs[index]!.dirSize!}</span>`
+        }
+        if (files[index] !== undefined) {
+            const name = files[index]!.name
+            file_text = `<a href="./${name}">${name}</a>`
+            file_size = `<span data-entry-name="${name}">`
+                + files[index]!.fileSize!.toLocaleString() + ` bytes</span>`
+        }
+        rows.push(`<tr>
+            <td>${folder_text}</td>
+            <td>${folder_size}</td>
+            <td></td>
+            <td>${file_text}</td>
+            <td>${file_size}</td>
+        </tr>`)
+    }
+    const table = `<table class="entry-list">
+        <thead>
+            <tr>
+                <th>Folders</th>
+                <th>Items</th>
+                <th></th>
+                <th>Files</th>
+                <th>Size</th>
+            </tr>
+        </thead>
+        <tbody>${rows.join('')}</tbody>
+    </table>`
+
+    // Return the HTML
+    return `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='utf-8'>
+            <style>
+                body {
+                    font-family: monospace, monospace;
+                    font-size: 16px;
+                }
+                #breadcrumbs ul {
+                  padding: 10px 16px;
+                  list-style: none;
+                  background-color: #eee;
+                }
+                #breadcrumbs ul li {
+                  display: inline;
+                  font-size: 18px;
+                }
+                #breadcrumbs ul li+li:before {
+                  padding: 8px;
+                  color: black;
+                  content: '⟩';
+                }
+                #breadcrumbs ul li a {
+                  color: #0275d8;
+                  text-decoration: none;
+                }
+                #breadcrumbs ul li a:hover {
+                  color: #01447e;
+                  text-decoration: underline;
+                }
+                th, td {
+                    border-bottom: 1px solid #0003;
+                }
+                th:nth-child(3), td:nth-child(3) {
+                    border-bottom-style: none;
+                }
+                th, td {
+                    padding: .5rem;
+                }
+                table {
+                    border-collapse: collapse;
+                }
+                td:nth-child(1), td:nth-child(4) {
+                    width: 300px;
+                }
+                td:nth-child(2), td:nth-child(5) {
+                    width: 200px;
+                    text-align: end;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="breadcrumbs">${breadcrumbs}</div>
+            ${table}
+        </body>
+        </html>`
 }
 
 
@@ -25,22 +166,56 @@ interface UpdateIndexesReturn {
     remove:string[]
 }
 
-export function update_indexes(modified:string[], removed:string[]):UpdateIndexesReturn{
-    // Determine what updates are needed for published dir index files
-    /* TODO Requirements:
-        This function takes a list of files in collection that have been modified or removed.
-        The files can be anywhere in the collection, in nested dirs.
-        If a file has been modified, need to update the index for its parent
-            e.g. bibles/eng_bsb/html/1ch.html -> Regenerating bibles/eng_bsb/html/
-        If a file has been removed, may need to remove its parent index
-            But should readDir the parent to see if other files still exist, and regenerate it if so
-        Dir paths should always end in a slash and shoudn't include 'index.html'
-    */
+/**
+ * Using the provided values, we tell S3 with index files need to be updated.
+ *
+ * @param modified The files that have been modified
+ * @param removed The files that have been removed
+ *
+ * @returns The data needed to update S3
+ */
+export function update_indexes(modified:string[], removed:string[]): UpdateIndexesReturn {
 
-    // Return list of indexes that need publishing and/or removing
-    // Will then update or remove them from S3
+    // This map stores the removed directory (key), and the first parent that has content (value).
+    // This is used to illiminate the need to readdirSync multiple times
+    const first_full_parents = new Map<string, string>()
+
+    // Build the removals
+    const removals: string[] = removed.flatMap((entry: string) => {
+        // The entry was removed so check it's parent
+        const results: FirstFullParent = find_first_full_parent_dir(path.dirname(entry))
+        first_full_parents.set(entry, results.directory)
+        // We need to make the path S3 friendly
+        return results.emptyDirectories
+            .map((dir: string) => `${dir.replaceAll(path.sep, '/')}/`)
+    })
+    const modified_handle_paths: string[] = modified.map((file: string) => `${path.dirname(file)}/`)
+
+    // All removed paths should include the parent and grandparent path
+    const removed_handle_paths: string[] = removed
+        .flatMap((file: string) => {
+            const full_parent = first_full_parents.get(file)
+            if (!full_parent) {
+                return []
+            }
+            return [`${full_parent}/`, `${path.dirname(full_parent)}/`]
+        })
+
+    // Create an array by merging the arrays, and keep only unique paths
+    const handle_paths = [...new Set([...modified_handle_paths, ...removed_handle_paths])]
+
+    // Build the updates
+    const updates: {path:string, html:string}[] = handle_paths
+        .map((directory: string) => {
+            // Path should use the standard /
+            return {
+                path: directory.replaceAll(path.sep, '/'),
+                html: generate_index_content(directory, ['dist']),
+            }
+        })
+
     return {
-        update: [],
-        remove: [],
+        update: updates,
+        remove: removals,
     }
 }

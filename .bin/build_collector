@@ -10,5 +10,5 @@ rm -rf dist
     --platform=node --outdir=dist "$@"
 
 # Copy static data as esbuild won't include (unless whole thing bundled)
-mkdir dist/data
+mkdir -p dist/data
 cp src/data/population.json dist/data/population.json

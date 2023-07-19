@@ -67,7 +67,7 @@ export async function discover(discover_specific_id?:string):Promise<void>{
         }
 
         // Skip if already discovered
-        const trans_dir = join('sources', trans_id)
+        const trans_dir = join('sources', 'bibles', trans_id)
         const meta_file = join(trans_dir, 'meta.json')
         if (existsSync(meta_file)){
             exists.push(ebible_id)

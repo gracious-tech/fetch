@@ -14,8 +14,8 @@ export function _missing_meta(meta:TranslationSourceMeta){
 
 export function report_items(mode?:'missing'|'unreviewed'){
     // Output a list of all included translations
-    for (const id of read_dir('sources')){
-        const meta = read_json<TranslationSourceMeta>(`sources/${id}/meta.json`)
+    for (const id of read_dir(join('sources', 'bibles'))){
+        const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
 
         // Ignore depending on mode
         if (mode === 'missing' && !_missing_meta(meta)){

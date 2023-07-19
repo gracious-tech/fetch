@@ -1,0 +1,7 @@
+{
+    "extends": "../../tsconfig_base.jsonc",
+    "include": ["src/**/*.ts"],
+    "compilerOptions": {
+        "lib": ["ESNext", "DOM"],
+    },
+}

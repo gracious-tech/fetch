@@ -19,9 +19,11 @@ export async function serve(port=8430){
         const time = new Date().toLocaleTimeString()
         console.info(`[${time}] ${req.method!} ${req.url!}`)
 
+        // Required for every response
+        res.setHeader('Access-Control-Allow-Origin', '*')  // Allow all CORS requests
+
         // Util for sending response
         function send(status:number, contents:string):void{
-            res.setHeader('Access-Control-Allow-Origin', '*')  // Allow all CORS requests
             res.writeHead(status)
             res.write(contents)
             res.end()

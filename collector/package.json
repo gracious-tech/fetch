@@ -36,16 +36,18 @@
         "csv-parse": "^5.4.0",
         "html-minifier-terser": "^7.2.0",
         "html-to-text": "^9.0.5",
+        "jsdom": "^22.1.0",
         "lodash-es": "^4.17.21",
         "node-stream-zip": "^1.15.0",
+        "usx-to-html": "^0.0.0",
         "xpath": "^0.0.32",
-        "xslt3": "^2.5.0",
         "yaml": "^2.3.1",
         "yargs": "^17.7.2"
     },
     "devDependencies": {
         "@types/html-minifier-terser": "^7.0.0",
         "@types/html-to-text": "^9.0.1",
+        "@types/jsdom": "^21.1.1",
         "@types/lodash-es": "^4.17.7",
         "@types/yargs": "^17.0.24"
     }

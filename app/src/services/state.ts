@@ -1,7 +1,7 @@
 
 import {reactive, computed, watch} from 'vue'
 
-import {SyncedVerses} from '@/client/esm/book'
+import type {SyncedVerses} from '@gracious.tech/fetch-client/dist/esm/book'
 
 
 // LOCAL STORAGE

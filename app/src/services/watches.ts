@@ -2,7 +2,7 @@
 
 import {watch} from 'vue'
 
-import {sync_verses} from '@/client/esm/book'
+import {sync_verses} from '@gracious.tech/fetch-client'
 
 import {state} from './state'
 import {content} from './content'

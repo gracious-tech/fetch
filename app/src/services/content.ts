@@ -1,6 +1,9 @@
 
-import {BibleClient} from '@/client/esm'
-import type {BibleCollection, GetTranslationsItem, GetLanguagesItem} from '@/client/esm/collection'
+import {BibleClient} from '@gracious.tech/fetch-client'
+import type {
+    BibleCollection, GetTranslationsItem, GetLanguagesItem,
+} from '@gracious.tech/fetch-client/dist/esm/collection'
+
 
 const endpoint = import.meta.env.PROD ? 'https://collection.fetch.bible/' : 'http://localhost:8430/'
 

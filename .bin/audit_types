@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$(dirname "$0")")"
 
 
-node_modules/.bin/tsc --noEmit --project collector
-node_modules/.bin/tsc --noEmit --project client
-node_modules/.bin/vue-tsc --noEmit --project app
-node_modules/.bin/vue-tsc --noEmit --project site
+npx tsc --noEmit --project collector
+npx tsc --noEmit --project client
+npx vue-tsc --noEmit --project app
+npx vue-tsc --noEmit --project site

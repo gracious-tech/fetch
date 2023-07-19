@@ -1,0 +1,20 @@
+#!/bin/bash
+# Build converters
+set -e
+cd "$(dirname "$(dirname "$0")")/converters"
+
+
+# Do in each dir
+# See `build_client` for docs on commands etc
+for dir in */; do
+    cd "$dir"
+
+    rm -rf dist
+
+    npx tsc --emitDeclarationOnly --outDir dist/esm
+    esbuild="npx esbuild --sourcemap --target=es6"
+    $esbuild src/*.ts --format=esm --platform=neutral --outdir=dist/esm
+    $esbuild src/index.ts --bundle --format=cjs  --platform=node --outfile=dist/bundled.cjs
+
+    cd ..
+done

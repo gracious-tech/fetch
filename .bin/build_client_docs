@@ -3,4 +3,4 @@
 set -e
 cd "$(dirname "$(dirname "$0")")/site"
 
-./node_modules/.bin/typedoc --out src/access/client/api --tsconfig ../client/tsconfig.json "$@" ../client/src
+npx typedoc --out src/access/client/api --tsconfig ../client/tsconfig.json "$@" ../client/src

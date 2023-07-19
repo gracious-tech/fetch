@@ -1,17 +1,13 @@
 
 node_modules/
+dist/
 
-/app/dist/
 /app/.deployments/
-
-/client/dist/
 
 /collection/
 
 /collector/bmc/
-/collector/dist/
 
-/site/dist/
 /site/src/access/client/api/
 /site/.deployments/
 /site/.vitepress/cache/

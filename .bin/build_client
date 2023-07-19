@@ -16,17 +16,17 @@ rm -rf dist
 
 
 # Build css
-node_modules/.bin/sass --style=compressed src/css/index.sass dist/client.css
+npx sass --style=compressed src/css/index.sass dist/client.css
 
 
 # Common args
 # NOTE Target must be suitable for browsers as well as Node18+
-esbuild="../node_modules/.bin/esbuild --sourcemap --target=es6"
+esbuild="npx esbuild --sourcemap --target=es6"
 
 
 # Build cross-platform ESM with typings (the main format recommended to be used)
 # NOTE Not bundling as apps should do themselves, and separate files easier for debugging and types
-../node_modules/.bin/tsc --emitDeclarationOnly --outDir dist/esm
+npx tsc --emitDeclarationOnly --outDir dist/esm
 $esbuild src/*.ts --format=esm --platform=neutral --outdir=dist/esm
 
 

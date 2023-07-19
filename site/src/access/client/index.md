@@ -86,7 +86,7 @@ console.log(book.get_chapter(1))
 ## Styles
 The client includes a functional stylesheet, meaning styles that are minimalistic and critical for correct display. If you don't include this in your project then, for example, footnotes etc. are going to appear inline and undistinguishable from actual scripture.
 
-If you use a tool like Webpack or Vite then you'll simply need to `import '@gracious.tech/fetch-client/dist/client.css'` in a Javascript module, or you could alternatively deploy it with your code and use a `<link>` element to include it.
+If you use a tool like Webpack or Vite then you'll simply need to `import '@gracious.tech/fetch-client/client.css'` in a Javascript module, or you could alternatively deploy it with your code and use a `<link>` element to include it.
 
 All styles are namespaced under the class `fetch-bible` and all subclasses are prefixed with `fb-` so that it won't affect your existing styles and they also are unlikely to affect fetch(bible) HTML. So you must embed fetch(bible) HTML under a container element with the class `fetch-bible`.
 

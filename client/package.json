@@ -4,8 +4,14 @@
   "description": "Interact with a fetch(bible) collection in an API-like way",
   "type": "module",
   "exports": {
-    "import": "./dist/esm/index.js",
-    "require": "./dist/bundled.cjs"
+    ".": {
+        "import": "./dist/esm/index.js",
+        "require": "./dist/bundled.cjs"
+    },
+    "./client.css": {
+        "import": "./dist/client.css",
+        "require": "./dist/client.css"
+    }
   },
   "types": "./dist/esm/index.d.ts",
   "files": [

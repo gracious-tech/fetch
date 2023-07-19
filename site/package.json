@@ -1,11 +1,13 @@
 {
     "private": true,
     "devDependencies": {
-        "@gracious.tech/fetch-client": "latest",
         "pug": "^3.0.2",
         "sass": "^1.63.4",
         "typedoc": "^0.24.8",
         "typedoc-plugin-markdown": "^3.15.3",
         "vitepress": "^1.0.0-beta.2"
+    },
+    "dependencies": {
+        "@gracious.tech/fetch-client": "^0.2.0"
     }
 }

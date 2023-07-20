@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import {join} from 'node:path'
 import {execSync} from 'node:child_process'
 
-import {minify} from 'html-minifier-terser'
 import {usx_to_html} from 'usx-to-html'
 import {JSDOM} from 'jsdom'
 
@@ -146,15 +145,6 @@ export async function update_dist(trans_id?:string){
 }
 
 
-const HTML_MINIFY_OPTIONS = {
-    // Just enable relevent options since we create HTML ourself and many aren't issues
-    collapseWhitespace: true,  // Get rid of useless whitespace
-    conservativeCollapse: true,  // Leave gap between spans etc or words will join
-    removeAttributeQuotes: true,  // Allowed by spec and browsers can still parse
-    decodeEntities: true,  // Don't use &..; if can just use UTF-8 char (e.g. hun_kar)
-}
-
-
 async function _update_dist_single(id:string){
     // Update distributable files for given translation
     // NOTE This should only have one external process running (concurrency done at higher level)
@@ -217,16 +207,6 @@ async function _update_dist_single(id:string){
         // Convert to HTML if doesn't exist yet
         if (!fs.existsSync(dst_html)){
             const html = usx_to_html(fs.readFileSync(src, {encoding: 'utf8'}), parser)
-
-            // Minify the HTML (since HTML isn't as strict as XML and can remove quotes etc)
-            for (const ch of html.contents){
-                for (const verse of ch){
-                    verse[0] = await minify(verse[0]!, HTML_MINIFY_OPTIONS)
-                    verse[1] = await minify(verse[1]!, HTML_MINIFY_OPTIONS)
-                    // verse[2] is only either empty or a closing tag, so can't minify
-                }
-            }
-
             fs.writeFileSync(dst_html, JSON.stringify(html))
         }
     }

@@ -88,6 +88,10 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
                 content_between_paras += `<h4 class="fb-${style}">${header_text}</h4>`
                 continue
             }
+            if (style === 'b') {
+                content_between_paras += `<p class="fb-${style}"></p>`
+                continue
+            }
             const childNodes = Array.from(child.childNodes)
             // Build up the paragraph HTML by iterating all children of the para tag
             let para_html = `${content_between_paras}<p class="fb-${style}">`

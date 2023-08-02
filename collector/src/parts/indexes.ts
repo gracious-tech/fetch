@@ -109,11 +109,17 @@ export function generate_index_content(
                 body {
                     font-family: monospace, monospace;
                     font-size: 16px;
+                    background-color: black;
+                    color: #ddd;
+                }
+                a {
+                    color: #c12bdb;
+                    text-decoration: none;
                 }
                 #breadcrumbs ul {
                   padding: 10px 16px;
                   list-style: none;
-                  background-color: #eee;
+                  background-color: #333;
                 }
                 #breadcrumbs ul li {
                   display: inline;
@@ -121,19 +127,11 @@ export function generate_index_content(
                 }
                 #breadcrumbs ul li+li:before {
                   padding: 8px;
-                  color: black;
+                  color: #fff3;
                   content: '⟩';
                 }
-                #breadcrumbs ul li a {
-                  color: #0275d8;
-                  text-decoration: none;
-                }
-                #breadcrumbs ul li a:hover {
-                  color: #01447e;
-                  text-decoration: underline;
-                }
                 th, td {
-                    border-bottom: 1px solid #0003;
+                    border-bottom: 1px solid #fff3;
                 }
                 th:nth-child(3), td:nth-child(3) {
                     border-bottom-style: none;

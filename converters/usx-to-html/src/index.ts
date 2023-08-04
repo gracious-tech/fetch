@@ -1,4 +1,7 @@
+
 import {number_of_verses} from './stats.js'
+import {ignored_para_styles, ignored_char_styles} from './ignore.js'
+
 
 /**
  * The interface for the Bible HTML Json content
@@ -7,17 +10,11 @@ export interface BibleHtmlJson {
     contents: (string[][])[]
 }
 
-/**
- * When iterating the para tags, skip these style tags
- */
-const IGNORE_STYLES = [
-    'h', 'ide', 'imt', 'imt1', 'imt2', 'mt', 'mt1', 'mt2', 'mt3', 'mt4',
-    'r', 'rem', 'toc1', 'toc2', 'toc3',
-]
 
 // `Node` isn't available outside browsers, and we just need nodeType integers anyway
 const ELEMENT_NODE = 1
 const TEXT_NODE = 3
+
 
 /**
  * Convert a USX document to valid HTML
@@ -27,11 +24,13 @@ const TEXT_NODE = 3
  * @returns A JSON ready object
  */
 export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
+
     const doc = new parser().parseFromString(xml, 'application/xml')
     const usx_tag = doc.documentElement
     if ((!usx_tag) || (usx_tag.nodeName !== 'usx')) {
         throw Error('Invalid markup. Missing usx tag.')
     }
+
     // Retrieve the book to build out our output
     const book_node = usx_tag.getElementsByTagName('book')
     if ((!book_node) || (book_node.length === 0)) {
@@ -45,6 +44,7 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
     if (!(usx_code in number_of_verses)) {
         throw Error('Invalid book. The book code does not exist.')
     }
+
     // Build out the object
     const output: BibleHtmlJson = {
         contents: [
@@ -59,6 +59,7 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
         }
         output.contents[chapter_number] = chapter
     })
+
     // Fill in the object
     const children = Array.from(usx_tag.children)
     let current_chapter = -1
@@ -66,6 +67,7 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
     let content_between_paras = ''
     let verse_html = ''
     for (const child of children) {
+
         if (child.nodeName === 'chapter') {
             const chapter_attr = child.getAttribute('number')
             if (!chapter_attr) {
@@ -75,24 +77,32 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
             current_chapter = parseInt(chapter_attr, 10)
             content_between_paras += `<h3 data-c="${current_chapter}">${current_chapter}</h3>`
         }
+
         if (child.nodeName === 'para') {
             // Open a new paragraph
             const style_attr = child.getAttribute('style')
             const style = style_attr || ''
-            if (IGNORE_STYLES.includes(style)) {
-                // skip these styles
+
+            // Ignore extra-biblical content
+            if (ignored_para_styles.includes(style)) {
                 continue
             }
+
+            // Convert section headings to <h4>
             if (['s1', 's2', 's3', 's4'].includes(style)) {
                 const header_text = child.textContent || ''
                 content_between_paras += `<h4 class="fb-${style}">${header_text}</h4>`
                 continue
             }
+
+            // TODO
             if (style === 'b') {
                 content_between_paras += `<p class="fb-${style}"></p>`
                 continue
             }
+
             const childNodes = Array.from(child.childNodes)
+
             // Build up the paragraph HTML by iterating all children of the para tag
             let para_html = `${content_between_paras}<p class="fb-${style}">`
             for (let index = 0; index < childNodes.length; index++) {
@@ -121,6 +131,7 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
                         }
                         continue
                     }
+
                     // Start a new verse
                     current_verse = parseInt(verse_attr, 10)
                     para_html += `<sup data-v="${current_chapter}:${current_verse}">${current_verse}</sup>`
@@ -130,11 +141,16 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
                         output.contents[current_chapter]![current_verse]![0] = `<p class="fb-${style}">`
                     }
                 }
+
                 if (
                     (para_child.nodeName === 'char') &&
                     (para_child.nodeType === ELEMENT_NODE)
                 ) {
                     // We are handling a char element
+                    const char_style = (para_child as Element).getAttribute('style') ?? ''
+                    if (ignored_char_styles.includes(char_style)){
+                        continue
+                    }
                     const strong_attr = (para_child as Element).getAttribute('strong')
                     const char_text = (para_child as Element).textContent || ''
                     if (strong_attr) {
@@ -143,6 +159,7 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
                         para_html += char_text
                     }
                 }
+
                 if (
                     (para_child.nodeName === 'note') &&
                     (para_child.nodeType === ELEMENT_NODE)
@@ -167,12 +184,14 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
                     }
                     para_html += '</span></span>'
                 }
+
                 if (para_child.nodeType === TEXT_NODE) {
                     // We are handling a text node
                     const text_node = para_child as Text
                     para_html += text_node.textContent
                 }
             }
+
             if (para_html.trim() !== '') {
                 // Close up the para tag
                 verse_html += `${para_html}</p>`.replace('\n', '')

@@ -37,22 +37,21 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
         throw Error(`Book code invalid: ${book_code!}`)
     }
 
-    // Prepare output with empty strings for every verse
-    const output: BibleHtmlJson = {
+    // Prepare state tracking
+    const state = {
+        chapter: 1,
+        verse: 1,
+        verse_html: '',  // Buffer for verse contents until next verse reached
+        prepend: '',  // Content that should be prepended to next verse if current verse ended
+        // Prepare output with empty strings for every verse
         contents: [
             [],  // Chapter 0
             ...number_of_verses[book_code]!.map(num_verses => {
                 // NOTE +1 for verse 0
                 return Array(num_verses + 1).fill(['', '', '']) as string[][]
             }),
-        ],
+        ] as BibleHtmlJson['contents'],
     }
-
-    // Prepare state tracking
-    let current_chapter = 1
-    let current_verse = 1
-    let between_paras = ''  // This catches headings so can prepend to following verse
-    let verse_html = ''  // Gather verse contents until next verse reached
 
     // Iterate over <usx> children (elements only, text nodes not allowed at root level)
     for (const child of Array.from(usx_element.children)){
@@ -69,9 +68,9 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
             if (!chapter_number){
                 continue  // Chapter end markers don't have `number`; just ignore
             }
-            current_chapter = parseInt(chapter_number, 10)
+            state.chapter = parseInt(chapter_number, 10)
             // Add a heading for the chapter start
-            between_paras += `<h3 data-c="${current_chapter}">${current_chapter}</h3>`
+            state.prepend += `<h3 data-c="${state.chapter}">${state.chapter}</h3>`
         }
 
         // The only element type remaining should be <para>, so skip all others to keep logic simple
@@ -92,33 +91,33 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
         // Convert major headings to <h2>
         // TODO Not currently supporting nested elements within heading contents (like <char>)
         if (['ms', 'ms1', 'ms2', 'ms3', 'ms4', 'mr'].includes(style)){
-            between_paras += `<h2 class="fb-${style}">${escape_text(child.textContent)}</h2>`
+            state.prepend += `<h2 class="fb-${style}">${escape_text(child.textContent)}</h2>`
             continue
         }
 
         // Convert section headings to <h4>
         if (['s', 's1', 's2', 's3', 's4', 'sr'].includes(style)) {
-            between_paras += `<h4 class="fb-${style}">${escape_text(child.textContent)}</h4>`
+            state.prepend += `<h4 class="fb-${style}">${escape_text(child.textContent)}</h4>`
             continue
         }
 
         // Convert minor headings to <h5>
         if (['sp'].includes(style)) {
-            between_paras += `<h5 class="fb-${style}">${escape_text(child.textContent)}</h5>`
+            state.prepend += `<h5 class="fb-${style}">${escape_text(child.textContent)}</h5>`
             continue
         }
 
         // Breaks are not allowed to have contents
         // See https://ubsicap.github.io/usx/parastyles.html#b
         if (style === 'b') {
-            between_paras += `<p class="fb-b"></p>`
+            state.prepend += `<p class="fb-b"></p>`
             continue
         }
 
         const childNodes = Array.from(child.childNodes)
 
         // Build up the paragraph HTML by iterating all children of the para tag
-        let para_html = `${between_paras}<p class="fb-${style}">`
+        let para_html = `${state.prepend}<p class="fb-${style}">`
         for (let index = 0; index < childNodes.length; index++) {
             const para_child = childNodes[index]!
             if (
@@ -131,28 +130,28 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
                 if ((!verse_attr)) {
                     if (eid_attr) {
                         // We are at the end of the verse
-                        verse_html += para_html.replace('\n', '')
-                        output.contents[current_chapter]![current_verse]![1] = verse_html
+                        state.verse_html += para_html.replace('\n', '')
+                        state.contents[state.chapter]![state.verse]![1] = state.verse_html
                         if ((index + 1) === childNodes.length) {
                             // We have no more children so close the tag here.
-                            output.contents[current_chapter]![current_verse]![1] += '</p>'
+                            state.contents[state.chapter]![state.verse]![1] += '</p>'
                         } else {
                             // We are in the middle of a verse
-                            output.contents[current_chapter]![current_verse]![2] = '</p>'
+                            state.contents[state.chapter]![state.verse]![2] = '</p>'
                         }
                         para_html = ''
-                        verse_html = ''
+                        state.verse_html = ''
                     }
                     continue
                 }
 
                 // Start a new verse
-                current_verse = parseInt(verse_attr, 10)
-                para_html += `<sup data-v="${current_chapter}:${current_verse}">${current_verse}</sup>`
-                between_paras = ''
+                state.verse = parseInt(verse_attr, 10)
+                para_html += `<sup data-v="${state.chapter}:${state.verse}">${state.verse}</sup>`
+                state.prepend = ''
                 if (index > 0) {
                     // Our verse starts in the middle of a paragraph
-                    output.contents[current_chapter]![current_verse]![0] = `<p class="fb-${style}">`
+                    state.contents[state.chapter]![state.verse]![0] = `<p class="fb-${style}">`
                 }
             }
 
@@ -208,11 +207,11 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
 
         if (para_html.trim() !== '') {
             // Close up the para tag
-            verse_html += `${para_html}</p>`.replace('\n', '')
+            state.verse_html += `${para_html}</p>`.replace('\n', '')
             // Reset everything
             para_html = ''
         }
     }
 
-    return output
+    return {contents: state.contents}
 }

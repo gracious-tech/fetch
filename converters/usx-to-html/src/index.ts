@@ -196,9 +196,8 @@ function process_contents(state:ParserState, nodes:NodeListOf<ChildNode>,
                 throw new Error(`Verse ${new_number} is not greater than previous ${state.verse}`)
             }
 
-            // If still in a <para> then need ending data
-            const para_finishing = index + 1 === nodes.length
-            if (!para_finishing){
+            // If not at beginning of a <para> then verse now ending is mid-paragraph
+            if (index > 0){
                 state.contents[state.chapter]![state.verse]![2] = '</p>'
             }
 
@@ -251,7 +250,7 @@ function process_contents(state:ParserState, nodes:NodeListOf<ChildNode>,
                 add_html(state, '</ruby>')
             } else {
                 // Turn all other char styles into a <span>
-                add_html(state, '<span>')
+                add_html(state, `<span class="fb-${char_style}">`)
                 process_contents(state, element.childNodes, escape_text)
                 add_html(state, '</span>')
             }

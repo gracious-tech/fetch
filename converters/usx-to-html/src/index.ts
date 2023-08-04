@@ -88,10 +88,24 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
                 continue
             }
 
+            // Convert major headings to <h2>
+            if (['ms', 'ms1', 'ms2', 'ms3', 'ms4', 'mr'].includes(style)) {
+                const header_text = child.textContent || ''
+                content_between_paras += `<h2 class="fb-${style}">${header_text}</h2>`
+                continue
+            }
+
             // Convert section headings to <h4>
-            if (['s1', 's2', 's3', 's4'].includes(style)) {
+            if (['s', 's1', 's2', 's3', 's4', 'sr'].includes(style)) {
                 const header_text = child.textContent || ''
                 content_between_paras += `<h4 class="fb-${style}">${header_text}</h4>`
+                continue
+            }
+
+            // Convert minor headings to <h5>
+            if (['sp'].includes(style)) {
+                const header_text = child.textContent || ''
+                content_between_paras += `<h5 class="fb-${style}">${header_text}</h5>`
                 continue
             }
 

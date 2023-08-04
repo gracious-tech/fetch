@@ -1,5 +1,4 @@
 
-import {escape_text} from './utils.js'
 import {number_of_verses} from './stats.js'
 import {ignored_elements, ignored_para_styles, ignored_char_styles} from './ignore.js'
 
@@ -9,17 +8,31 @@ export interface BibleHtmlJson {
     contents: (string[][])[]
 }
 
-
-// `Node` isn't available outside browsers, and we just need nodeType integers anyway
-const ELEMENT_NODE = 1
-const TEXT_NODE = 3
+interface ParserState {
+    chapter:number
+    verse:number
+    para_open:string
+    unknown_owner:string
+    contents:BibleHtmlJson['contents']
+    alignment:boolean
+}
 
 
 // Convert USX to HTML-JSON
-export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
+export function usx_to_html(xml:string, alignment=true, parser=DOMParser): BibleHtmlJson {
 
     // Parse XML
     const doc = new parser().parseFromString(xml, 'application/xml')
+
+    // Util for escaping text
+    function escape_text(text:string|undefined|null){
+        if (!text){
+            return ''
+        }
+        const div = doc.createElement('div')
+        div.appendChild(doc.createTextNode(text))
+        return div.innerHTML
+    }
 
     // Confirm was given a USX doc
     const usx_element = doc.documentElement as Element
@@ -38,19 +51,24 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
     }
 
     // Prepare state tracking
-    const state = {
-        chapter: 1,
-        verse: 1,
-        verse_html: '',  // Buffer for verse contents until next verse reached
-        prepend: '',  // Content that should be prepended to next verse if current verse ended
+    const state:ParserState = {
+        chapter: 0,
+        verse: 0,
+        para_open: '',  // The opening tag of the current <para> element
+        unknown_owner: '',  // Content that should be prepended to next verse if current verse done
         // Prepare output with empty strings for every verse
         contents: [
             [],  // Chapter 0
             ...number_of_verses[book_code]!.map(num_verses => {
+                const array = []
                 // NOTE +1 for verse 0
-                return Array(num_verses + 1).fill(['', '', '']) as string[][]
+                for (let i = 0; i < num_verses + 1; i++){
+                    array.push(['', '', ''])
+                }
+                return array
             }),
         ] as BibleHtmlJson['contents'],
+        alignment,  // So available to `process_contents()`
     }
 
     // Iterate over <usx> children (elements only, text nodes not allowed at root level)
@@ -64,13 +82,23 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
         // Handle chapter markers
         // NOTE Paragraphs never flow over chapters in USX
         if (child.nodeName === 'chapter') {
-            const chapter_number = child.getAttribute('number')
-            if (!chapter_number){
-                continue  // Chapter end markers don't have `number`; just ignore
+
+            if (child.hasAttribute('eid')){
+                continue  // Ignore chapter end markers
             }
-            state.chapter = parseInt(chapter_number, 10)
+
+            const chapter_number = parseInt(child.getAttribute('number') ?? '0', 10)
+            if (chapter_number < 1 || chapter_number >= state.contents.length){
+                throw new Error(`Chapter number isn't valid for the book: ${chapter_number}`)
+            }
+            if (chapter_number !== state.chapter + 1){
+                throw new Error(`Chapter ${chapter_number} isn't +1 previous ${state.chapter}`)
+            }
+            state.chapter = chapter_number
+            state.verse = 0
             // Add a heading for the chapter start
-            state.prepend += `<h3 data-c="${state.chapter}">${state.chapter}</h3>`
+            add_html(state, `<h3 data-c="${state.chapter}">${state.chapter}</h3>`, true)
+            continue
         }
 
         // The only element type remaining should be <para>, so skip all others to keep logic simple
@@ -91,127 +119,159 @@ export function usx_to_html(xml:string, parser=DOMParser): BibleHtmlJson {
         // Convert major headings to <h2>
         // TODO Not currently supporting nested elements within heading contents (like <char>)
         if (['ms', 'ms1', 'ms2', 'ms3', 'ms4', 'mr'].includes(style)){
-            state.prepend += `<h2 class="fb-${style}">${escape_text(child.textContent)}</h2>`
+            add_html(state, `<h2 class="fb-${style}">${escape_text(child.textContent)}</h2>`, true)
             continue
         }
 
         // Convert section headings to <h4>
         if (['s', 's1', 's2', 's3', 's4', 'sr'].includes(style)) {
-            state.prepend += `<h4 class="fb-${style}">${escape_text(child.textContent)}</h4>`
+            add_html(state, `<h4 class="fb-${style}">${escape_text(child.textContent)}</h4>`, true)
             continue
         }
 
         // Convert minor headings to <h5>
-        if (['sp'].includes(style)) {
-            state.prepend += `<h5 class="fb-${style}">${escape_text(child.textContent)}</h5>`
+        if (['sp', 'qa'].includes(style)) {
+            add_html(state, `<h5 class="fb-${style}">${escape_text(child.textContent)}</h5>`, true)
             continue
         }
 
-        // Breaks are not allowed to have contents
-        // See https://ubsicap.github.io/usx/parastyles.html#b
-        if (style === 'b') {
-            state.prepend += `<p class="fb-b"></p>`
-            continue
-        }
-
-        const childNodes = Array.from(child.childNodes)
-
-        // Build up the paragraph HTML by iterating all children of the para tag
-        let para_html = `${state.prepend}<p class="fb-${style}">`
-        for (let index = 0; index < childNodes.length; index++) {
-            const para_child = childNodes[index]!
-            if (
-                (para_child.nodeName === 'verse') &&
-                (para_child.nodeType === ELEMENT_NODE)
-            ) {
-                // We are handling a verse element
-                const verse_attr = (para_child as Element).getAttribute('number')
-                const eid_attr = (para_child as Element).getAttribute('eid')
-                if ((!verse_attr)) {
-                    if (eid_attr) {
-                        // We are at the end of the verse
-                        state.verse_html += para_html.replace('\n', '')
-                        state.contents[state.chapter]![state.verse]![1] = state.verse_html
-                        if ((index + 1) === childNodes.length) {
-                            // We have no more children so close the tag here.
-                            state.contents[state.chapter]![state.verse]![1] += '</p>'
-                        } else {
-                            // We are in the middle of a verse
-                            state.contents[state.chapter]![state.verse]![2] = '</p>'
-                        }
-                        para_html = ''
-                        state.verse_html = ''
-                    }
-                    continue
-                }
-
-                // Start a new verse
-                state.verse = parseInt(verse_attr, 10)
-                para_html += `<sup data-v="${state.chapter}:${state.verse}">${state.verse}</sup>`
-                state.prepend = ''
-                if (index > 0) {
-                    // Our verse starts in the middle of a paragraph
-                    state.contents[state.chapter]![state.verse]![0] = `<p class="fb-${style}">`
-                }
-            }
-
-            if (
-                (para_child.nodeName === 'char') &&
-                (para_child.nodeType === ELEMENT_NODE)
-            ) {
-                // We are handling a char element
-                const char_style = (para_child as Element).getAttribute('style') ?? ''
-                if (ignored_char_styles.includes(char_style)){
-                    continue
-                }
-                const strong_attr = (para_child as Element).getAttribute('strong')
-                const char_text = (para_child as Element).textContent || ''
-                if (strong_attr) {
-                    para_html += `<span data-s="${strong_attr}">${char_text}</span>`
-                } else {
-                    para_html += char_text
-                }
-            }
-
-            if (
-                (para_child.nodeName === 'note') &&
-                (para_child.nodeType === ELEMENT_NODE)
-            ) {
-                // We are handling a note element
-                para_html += '<span class="fb-note">* <span>'
-                // Iterate all the child nodes of the note element and build up the content
-                for (const noteChild of Array.from(para_child.childNodes)) {
-                    const ele = noteChild as Element
-                    if (
-                        (ele.nodeName === 'char') &&
-                        (ele.nodeType === ELEMENT_NODE)
-                    ) {
-                        const style = ele.getAttribute('style')
-                        const char_text = ele.textContent || ''
-                        if (style) {
-                            para_html += `<span class="fb-${style}">${char_text}</span>`
-                        } else {
-                            para_html += char_text
-                        }
-                    }
-                }
-                para_html += '</span></span>'
-            }
-
-            if (para_child.nodeType === TEXT_NODE) {
-                // We are handling a text node
-                const text_node = para_child as Text
-                para_html += text_node.textContent
-            }
-        }
-
-        if (para_html.trim() !== '') {
-            // Close up the para tag
-            state.verse_html += `${para_html}</p>`.replace('\n', '')
-            // Reset everything
-            para_html = ''
-        }
+        // All other styles are standard <p> elements, so start one
+        state.para_open = `<p class="fb-${style}">`
+        add_html(state, state.para_open, true)
+        process_contents(state, child.childNodes, escape_text)
+        add_html(state, '</p>')
+        state.para_open = ''
     }
 
     return {contents: state.contents}
+}
+
+
+function process_contents(state:ParserState, nodes:NodeListOf<ChildNode>,
+        escape_text:(t:string|undefined|null)=>string){
+    // Process the contents of a node (nested or not) within a <para> element
+    /* WARN It's important to call this between modifying state for opening/closing tags
+        e.g.
+            add_html(state, '<sup>')
+            process_contents(state, element.childNodes)
+            add_html(state, '</sup>')
+
+    */
+    for (let index = 0; index < nodes.length; index++){
+        const node = nodes[index]!
+
+        // If first node and not a verse element, then reset unknown_owner
+        if (index === 0 && node.nodeName !== 'verse'){
+            state.contents[state.chapter]![state.verse]![1] += state.unknown_owner
+            state.unknown_owner = ''
+        }
+
+        // Handle text nodes
+        if (node.nodeType === 3){
+            add_html(state, escape_text(node.textContent))
+        }
+
+        // Ignore all other node types that aren't elements (e.g. comments), or on ignored list
+        if (node.nodeType !== 1 || ignored_elements.includes(node.nodeName)){
+            continue
+        }
+        const element = node as Element
+
+        // Handle verse elements
+        if (element.nodeName === 'verse'){
+
+            // Ignore verse end markers
+            // TODO Could ignore non-header content until next next start marker to be extra safe
+            if (element.hasAttribute('eid')){
+                continue
+            }
+
+            // Get the new verse number
+            // NOTE If a range, stick everything in the first verse of the range (e.g. 17-18 -> 17)
+            const new_number = parseInt(element.getAttribute('number')?.split('-')[0] ?? '0', 10)
+            if (new_number < 0 || new_number >= state.contents[state.chapter]!.length){
+                throw new Error(`Verse number isn't valid for the book: ${new_number}`)
+            }
+            if (new_number <= state.verse){
+                throw new Error(`Verse ${new_number} is not greater than previous ${state.verse}`)
+            }
+
+            // If still in a <para> then need ending data
+            const para_finishing = index + 1 === nodes.length
+            if (!para_finishing){
+                state.contents[state.chapter]![state.verse]![2] = '</p>'
+            }
+
+            // Switch to new verse
+            state.verse = new_number
+
+            // Any unknown owner data is now known to belong to the new verse
+            state.contents[state.chapter]![state.verse]![1] += state.unknown_owner
+            state.unknown_owner = ''
+
+            // Add verse number to contents
+            add_html(state, `<sup data-v="${state.chapter}:${state.verse}">${state.verse}</sup>`)
+
+            // If in middle of a <para> then need opening data
+            if (index > 0){
+                state.contents[state.chapter]![state.verse]![0] = state.para_open
+            }
+        }
+
+        // Handle char elements
+        if (element.nodeName === 'char'){
+
+            // Get the char's style
+            const char_style = element.getAttribute('style') ?? ''
+            if (ignored_char_styles.includes(char_style)){
+                continue
+            }
+
+            if (char_style === 'w'){
+                // Handle alignment data
+                if (state.alignment){
+                    // TODO Convert strong/lemma data to actual word by consulting a critical text
+                    add_html(state, '<span>')
+                    process_contents(state, element.childNodes, escape_text)
+                    add_html(state, '</span>')
+                } else {
+                    // Include element contents only
+                    process_contents(state, element.childNodes, escape_text)
+                }
+            } else if (['ord', 'sup'].includes(char_style)){
+                add_html(state, '<sup>')
+                process_contents(state, element.childNodes, escape_text)
+                add_html(state, '</sup>')
+            } else if (char_style === 'rb'){
+                add_html(state, '<ruby>')
+                process_contents(state, element.childNodes, escape_text)
+                // TODO Handle splitting of words with ':' (currently ignoring)
+                const gloss = element.getAttribute('gloss')?.replaceAll(':', '')
+                add_html(state, `<rt>${escape_text(gloss)}</rt>`)
+                add_html(state, '</ruby>')
+            } else {
+                // Turn all other char styles into a <span>
+                add_html(state, '<span>')
+                process_contents(state, element.childNodes, escape_text)
+                add_html(state, '</span>')
+            }
+        }
+
+        // Handle note elements
+        if (element.nodeName === 'note'){
+            add_html(state, '<span class="fb-note">*<span>')
+            process_contents(state, element.childNodes, escape_text)
+            add_html(state, '</span></span>')
+        }
+    }
+}
+
+
+function add_html(state:ParserState, content:string, may_belong_to_next_verse=false):void{
+    // Add HTML to current verse, possibly buffering if may belong to next verse
+    if (state.unknown_owner || may_belong_to_next_verse){
+        state.unknown_owner += content
+    } else {
+        state.contents[state.chapter]![state.verse]![1] += content
+    }
 }

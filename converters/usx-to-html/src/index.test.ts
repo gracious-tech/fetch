@@ -9,7 +9,9 @@ import {number_of_verses} from './stats.js'
 
 const test_usx = readFileSync(join(__dirname, '..', 'test.usx'), {encoding: 'utf8'})
 
-
+/**
+ * @vitest-environment jsdom
+ */
 describe("usx_to_html", () => {
 
     const output = usx_to_html(test_usx)
@@ -143,6 +145,12 @@ describe("usx_to_html", () => {
 
     it("Includes verse markers as a <sup> element", async ({expect}) => {
         expect(output.contents[1][1][1]).toContain('<sup data-v="1:1">1</sup>')
+    })
+
+    it('should not repeat the header', ({expect}) => {
+        const verse = output.contents[1][12][1]
+        const count = (verse.match(/<h4 class="fb-s1">The People Obey<\/h4>/g) || []).length
+        expect(count).toEqual(1)
     })
 
 })

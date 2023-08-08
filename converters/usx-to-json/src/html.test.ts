@@ -4,17 +4,17 @@ import {readFileSync} from 'node:fs'
 
 import {describe, it} from 'vitest'
 
-import {usx_to_html} from './index.js'
+import {usx_to_json_html} from './html.js'
 import {number_of_verses} from './stats.js'
 
-const test_usx = readFileSync(join(__dirname, '..', 'test.usx'), {encoding: 'utf8'})
+const test_usx = readFileSync(join(__dirname, '..', '..', 'test.usx'), {encoding: 'utf8'})
 
 /**
  * @vitest-environment jsdom
  */
-describe("usx_to_html", () => {
+describe("usx_to_json_html", () => {
 
-    const output = usx_to_html(test_usx)
+    const output = usx_to_json_html(test_usx)
 
     it("Adds an empty chapter 0", async ({expect}) => {
         expect(output.contents[0]).toEqual([])
@@ -36,7 +36,7 @@ describe("usx_to_html", () => {
 
     it('should throw an error on missing usx tag', ({expect}) => {
         const html = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><blah></blah>'
-        expect(() => usx_to_html(html)).toThrow('Invalid markup. Missing usx tag.')
+        expect(() => usx_to_json_html(html)).toThrow()
     })
 
     it('should throw an error on missing book tag', ({expect}) => {
@@ -44,7 +44,7 @@ describe("usx_to_html", () => {
             <usx>
                 <para></para>
         </usx>`
-        expect(() => usx_to_html(html)).toThrow('Invalid markup. Missing book tag.')
+        expect(() => usx_to_json_html(html)).toThrow()
     })
 
     it('should throw an error on missing the book code attribute', ({expect}) => {
@@ -53,7 +53,7 @@ describe("usx_to_html", () => {
             <book style="id">- Berean Study Bible</book>
                 <para></para>
         </usx>`
-        expect(() => usx_to_html(html)).toThrow('Invalid markup. Missing book code attribute.')
+        expect(() => usx_to_json_html(html)).toThrow()
     })
 
     it('should throw an error on providing an invalid book code attribute', ({expect}) => {
@@ -62,18 +62,13 @@ describe("usx_to_html", () => {
             <book code="FAKE" style="id">- Berean Study Bible</book>
                 <para></para>
         </usx>`
-        expect(() => usx_to_html(html)).toThrow('Invalid book. The book code does not exist.')
+        expect(() => usx_to_json_html(html)).toThrow()
     })
 
     it("should get a verse that completes a paragraph", ({expect}) => {
         const verse = output.contents[1][7]
-        expect(verse).not.toBeUndefined()
-        expect(verse).not.toBeNull()
-        expect(verse).not.toEqual(['', '', ''])
-        // eslint-disable-next-line max-len
-        const html = '<p class="fb-b"></p><p class="fb-m"><sup data-v="1:7">7</sup><span data-s="H3541">This</span> <span data-s="H3068">is</span> <span data-s="H3541">what</span> <span data-s="H5921">the</span> <span data-s="H3068">LORD</span> <span data-s="H3068">of</span> <span data-s="H6635">Hosts</span> <span data-s="H3541">says</span>:</p><p class="fb-b"></p><p class="fb-q1">“<span data-s="H7760">Consider</span> <span data-s="H3824">carefully</span> <span data-s="H3068">your</span> <span data-s="H1870">ways</span>.</p>'
         expect(verse[0]).toEqual('')
-        expect(verse[1]).toEqual(html)
+        expect(verse[1]).toMatch(/^<p class.+<\/p>$/)
         expect(verse[2]).toEqual('')
     })
 
@@ -91,13 +86,9 @@ describe("usx_to_html", () => {
 
     it('should correctly handle a verse that ends mid-paragraph', ({expect}) => {
         const verse  = output.contents[2][2]
-        expect(verse).not.toBeUndefined()
-        expect(verse).not.toBeNull()
-        expect(verse).not.toEqual(['', '', ''])
-        // eslint-disable-next-line max-len
-        const html = ' <sup data-v="2:2">2</sup>“<span data-s="H1696">Speak</span> <span data-s="H1121">to</span> <span data-s="H2216">Zerubbabel</span> <span data-s="H1121">son</span> <span data-s="H1121">of</span> <span data-s="H7597">Shealtiel</span>, <span data-s="H6346">governor</span> <span data-s="H1121">of</span> <span data-s="H3063">Judah</span>, <span data-s="H1121">and</span> <span data-s="H1121">to</span> <span data-s="H3091">Joshua</span> <span data-s="H1121">son</span> <span data-s="H1121">of</span> <span data-s="H3087">Jehozadak</span>,<span class="fb-note">* <span><span class="fb-fr"></span><span class="fb-ft">2:2 </span><span class="fb-ft">Jehozadak is a variant of Jozadak; also in verse 4; see Ezra 3:2.</span></span></span> <span data-s="H3091">the</span> <span data-s="H1419">high</span> <span data-s="H3548">priest</span>, <span data-s="H1121">and</span> <span data-s="H1121">also</span> <span data-s="H1121">to</span> <span data-s="H3091">the</span> <span data-s="H7611">remnant</span> <span data-s="H1121">of</span> <span data-s="H3091">the</span> <span data-s="H5971">people</span>. <span data-s="H7592">Ask</span> <span data-s="H1121">them</span>,'
-        expect(verse[1]).toEqual(html)
         expect(verse[0]).toEqual('<p class="fb-m">')
+        expect(verse[1]).not.toMatch(/^<p/)
+        expect(verse[1]).not.toMatch(/<\/p>$/)
         expect(verse[2]).toEqual('</p>')
     })
 

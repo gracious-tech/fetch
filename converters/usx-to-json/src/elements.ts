@@ -9,6 +9,7 @@ export const ignored_elements:readonly string[] = [
     'figure',   // Illustrations etc
     'optbreak', // Line breaks that are optional (and opting not to use)
     'ms',       // TODO Multi-purpose markers (could be useful in future)
+    'ref',      // Passage references (can allow if within a <note> but ignored by default)
 ]
 
 
@@ -56,4 +57,18 @@ export const ignored_para_styles:readonly string[] = [
 
 export const ignored_char_styles = [
     'rq',  // In-text cross-reference (use own system instead)
+]
+
+
+export const headings_major = ['ms', 'ms1', 'ms2', 'ms3', 'ms4', 'mr']
+export const headings_regular = ['s', 's1', 's2', 's3', 's4', 'sr']
+export const headings_minor = ['sp', 'qa']
+
+
+// Para styles that should have a single linebreak between them
+export const non_para_para = [
+    'q', 'q1', 'q2', 'q3', 'q4',  // Poetry
+    'qr',  // Poetic refrain
+    'li', 'li1', 'li2', 'li3', 'li4',  // List item
+    'lim', 'lim1', 'lim2', 'lim3', 'lim4',  // Embedded list item
 ]

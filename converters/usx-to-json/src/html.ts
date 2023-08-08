@@ -1,11 +1,12 @@
 
-import {number_of_verses} from './stats.js'
-import {ignored_elements, ignored_para_styles, ignored_char_styles} from './ignore.js'
+import {get_num_verses} from './common.js'
+import {ignored_elements, ignored_para_styles, ignored_char_styles, headings_major,
+    headings_regular, headings_minor} from './elements.js'
 
 
 // Types
-export interface BibleHtmlJson {
-    contents: (string[][])[]
+export interface BibleJsonHtml {
+    contents: string[][][]
 }
 
 interface ParserState {
@@ -13,16 +14,20 @@ interface ParserState {
     verse:number
     para_open:string
     unknown_owner:string
-    contents:BibleHtmlJson['contents']
+    contents:BibleJsonHtml['contents']
     alignment:boolean
 }
 
 
 // Convert USX to HTML-JSON
-export function usx_to_html(xml:string, alignment=true, parser=DOMParser): BibleHtmlJson {
+export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): BibleJsonHtml {
 
     // Parse XML
     const doc = new parser().parseFromString(xml, 'application/xml')
+    const usx_element = doc.documentElement as Element
+
+    // Detect book and expected number of verses
+    const num_verses = get_num_verses(usx_element)
 
     // Util for escaping text
     function escape_text(text:string|undefined|null){
@@ -34,22 +39,6 @@ export function usx_to_html(xml:string, alignment=true, parser=DOMParser): Bible
         return div.innerHTML
     }
 
-    // Confirm was given a USX doc
-    const usx_element = doc.documentElement as Element
-    if (!usx_element || usx_element.nodeName !== 'usx') {
-        throw new Error("Contents is not USX (missing <usx> root element)")
-    }
-
-    // Identity book so can determine expected chapter/verse numbers
-    const book_element = usx_element.getElementsByTagName('book')[0]
-    if (!book_element){
-        throw new Error("USX is missing <book> element")
-    }
-    const book_code = book_element.getAttribute('code')?.toLowerCase()
-    if (!book_code || !(book_code in number_of_verses)){
-        throw Error(`Book code invalid: ${book_code!}`)
-    }
-
     // Prepare state tracking
     const state:ParserState = {
         chapter: 0,
@@ -59,15 +48,15 @@ export function usx_to_html(xml:string, alignment=true, parser=DOMParser): Bible
         // Prepare output with empty strings for every verse
         contents: [
             [],  // Chapter 0
-            ...number_of_verses[book_code]!.map(num_verses => {
+            ...num_verses.map(num_verses_in_ch => {
                 const array = []
                 // NOTE +1 for verse 0
-                for (let i = 0; i < num_verses + 1; i++){
+                for (let i = 0; i < num_verses_in_ch + 1; i++){
                     array.push(['', '', ''])
                 }
                 return array
             }),
-        ] as BibleHtmlJson['contents'],
+        ] as BibleJsonHtml['contents'],
         alignment,  // So available to `process_contents()`
     }
 
@@ -118,19 +107,19 @@ export function usx_to_html(xml:string, alignment=true, parser=DOMParser): Bible
 
         // Convert major headings to <h2>
         // TODO Not currently supporting nested elements within heading contents (like <char>)
-        if (['ms', 'ms1', 'ms2', 'ms3', 'ms4', 'mr'].includes(style)){
+        if (headings_major.includes(style)){
             add_html(state, `<h2 class="fb-${style}">${escape_text(child.textContent)}</h2>`, true)
             continue
         }
 
         // Convert section headings to <h4>
-        if (['s', 's1', 's2', 's3', 's4', 'sr'].includes(style)) {
+        if (headings_regular.includes(style)) {
             add_html(state, `<h4 class="fb-${style}">${escape_text(child.textContent)}</h4>`, true)
             continue
         }
 
         // Convert minor headings to <h5>
-        if (['sp', 'qa'].includes(style)) {
+        if (headings_minor.includes(style)) {
             add_html(state, `<h5 class="fb-${style}">${escape_text(child.textContent)}</h5>`, true)
             continue
         }
@@ -148,7 +137,7 @@ export function usx_to_html(xml:string, alignment=true, parser=DOMParser): Bible
 
 
 function process_contents(state:ParserState, nodes:NodeListOf<ChildNode>,
-        escape_text:(t:string|undefined|null)=>string){
+        escape_text:(t:string|undefined|null)=>string, allow_nonbib=false){
     // Process the contents of a node (nested or not) within a <para> element
     /* WARN It's important to call this between modifying state for opening/closing tags
         e.g.
@@ -169,6 +158,13 @@ function process_contents(state:ParserState, nodes:NodeListOf<ChildNode>,
         // Handle text nodes
         if (node.nodeType === 3){
             add_html(state, escape_text(node.textContent))
+        }
+
+        // Allow <ref> if within non-biblical content (e.g. a footnote)
+        if (allow_nonbib && node.nodeName === 'ref'){
+            // TODO Add loc metadata if come up with way to parse it
+            process_contents(state, node.childNodes, escape_text, true)
+            continue
         }
 
         // Ignore all other node types that aren't elements (e.g. comments), or on ignored list
@@ -259,7 +255,7 @@ function process_contents(state:ParserState, nodes:NodeListOf<ChildNode>,
         // Handle note elements
         if (element.nodeName === 'note'){
             add_html(state, '<span class="fb-note">*<span>')
-            process_contents(state, element.childNodes, escape_text)
+            process_contents(state, element.childNodes, escape_text, true)
             add_html(state, '</span></span>')
         }
     }

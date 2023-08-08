@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import {join} from 'node:path'
 import {execSync} from 'node:child_process'
 
-import {usx_to_html} from 'usx-to-html'
+import {usx_to_json_html, usx_to_json_txt} from 'usx-to-json'
 import {JSDOM} from 'jsdom'
 
 import * as door43 from '../integrations/door43.js'
@@ -203,11 +203,18 @@ async function _update_dist_single(id:string){
         const book = file.split('.')[0]!.toLowerCase()
         const src = join(usx_dir, `${book}.usx`)
         const dst_html = join(dist_dir, 'html', `${book}.json`)
+        const dst_txt = join(dist_dir, 'txt', `${book}.json`)
 
         // Convert to HTML if doesn't exist yet
         if (!fs.existsSync(dst_html)){
-            const html = usx_to_html(fs.readFileSync(src, {encoding: 'utf8'}), false, parser)
+            const html = usx_to_json_html(fs.readFileSync(src, {encoding: 'utf8'}), false, parser)
             fs.writeFileSync(dst_html, JSON.stringify(html))
+        }
+
+        // Convert to plain text if doesn't exist yet
+        if (!fs.existsSync(dst_txt)){
+            const txt = usx_to_json_txt(fs.readFileSync(src, {encoding: 'utf8'}), parser)
+            fs.writeFileSync(dst_txt, JSON.stringify(txt))
         }
     }
 }

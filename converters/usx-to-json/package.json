@@ -1,7 +1,7 @@
 {
-  "name": "usx-to-html",
+  "name": "usx-to-json",
   "version": "0.0.0",
-  "description": "Convert USX Bible format to HTML (divided by verse in JSON)",
+  "description": "Convert USX Bible format to JSON with verse contents in either HTML or plain text.",
   "type": "module",
   "exports": {
     "import": "./dist/esm/index.js",
@@ -25,5 +25,5 @@
   "bugs": {
     "url": "https://github.com/gracious-tech/fetch/issues"
   },
-  "homepage": "https://github.com/gracious-tech/fetch/tree/master/converters/usx-to-html"
+  "homepage": "https://github.com/gracious-tech/fetch/tree/master/converters/usx-to-json"
 }

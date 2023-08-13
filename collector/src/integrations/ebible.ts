@@ -24,6 +24,10 @@ interface EbibleRow {
 }
 
 
+// Translations that can be sourced from a better location (or other issue)
+const IGNORE = ['engnet']
+
+
 export async function discover(discover_specific_id?:string):Promise<void>{
     // Discover translations that are available
 
@@ -53,6 +57,9 @@ export async function discover(discover_specific_id?:string):Promise<void>{
         const lang_code = language_data.normalise(row['languageCode'])
         if (!lang_code){
             console.error(`IGNORED ${ebible_id} (unknown language)`)
+            return
+        } else if (IGNORE.includes(ebible_id)){
+            console.error(`IGNORED ${ebible_id} (in ignore list)`)
             return
         }
 

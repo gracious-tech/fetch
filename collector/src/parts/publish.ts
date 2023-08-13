@@ -2,7 +2,7 @@
 import {join} from 'path'
 import {readFileSync} from 'fs'
 
-import {concurrent, read_json, type_from_path, read_dir} from './utils.js'
+import {concurrent, read_json, type_from_path, read_files_deep} from './utils.js'
 import {PublisherAWS} from '../integrations/aws.js'
 import type {DistManifest} from './shared_types'
 
@@ -29,24 +29,21 @@ export async function publish(translation?:string):Promise<void>{
     const manifest = read_json<DistManifest>(manifest_path)
 
     // Add translations
-    const files = []
-    const invalidations = []
+    const files:string[] = []
+    const invalidations:string[] = []
     for (const id in manifest.translations){
         if (translation && id !== translation){
             continue  // Only publishing a single translation
         }
-        const usx_dir = join('dist', 'bibles', id, 'usx')
-        const usfm_dir = join('dist', 'bibles', id, 'usfm')
-        const html_dir = join('dist', 'bibles', id, 'html')
-        const txt_dir = join('dist', 'bibles', id, 'txt')
-        files.push(
-            ...read_dir(usx_dir).map(file => join(usx_dir, file)),
-            ...read_dir(usfm_dir).map(file => join(usfm_dir, file)),
-            ...read_dir(html_dir).map(file => join(html_dir, file)),
-            ...read_dir(txt_dir).map(file => join(txt_dir, file)),
-        )
+        files.push(...read_files_deep(join('dist', 'bibles', id)))
         invalidations.push(`/bibles/${id}/*`)
     }
+
+    // Add other data
+    files.push(...read_files_deep(join('dist', 'notes')))
+    invalidations.push('/notes/*')
+    files.push(...read_files_deep(join('dist', 'crossref')))
+    invalidations.push('/crossref/*')
 
     // Add manifest last so assets are ready before it is used
     files.push(manifest_path)

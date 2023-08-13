@@ -167,6 +167,22 @@ export function read_files_in_dir(directory:string): string[] {
 }
 
 
+// Get paths for all the files in a dir and any child dirs (recursive)
+export function read_files_deep(directory:string):string[]{
+    const files:string[] = []
+    for (const entry of readdirSync(directory, {withFileTypes: true})){
+        const entry_path = join(directory, entry.name)
+        if (entry.isDirectory()){
+            files.push(...read_files_deep(entry_path))
+        } else if (!entry.isFile() || IGNORE_FILES.includes(entry.name)){
+            continue
+        }
+        files.push(entry_path)
+    }
+    return files
+}
+
+
 export function read_json<T>(path:string):T{
     // Read a JSON file and cast as given type
     return JSON.parse(readFileSync(path, 'utf-8')) as T

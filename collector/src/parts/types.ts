@@ -20,11 +20,11 @@ export interface CollectionConfig {
 
 
 export interface TranslationSource {
-    service:'ebible'|'dbl'|'door43'
-    id:string
+    service:'ebible'|'dbl'|'door43'|'manual'
     format:'usfm'|'usx1-2'|'usx3+'
-    url:string
     updated:string  // yyyy-mm-dd
+    id:string|null
+    url:string|null
 }
 
 

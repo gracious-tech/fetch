@@ -8,6 +8,7 @@ import {JSDOM} from 'jsdom'
 
 import * as door43 from '../integrations/door43.js'
 import * as ebible from '../integrations/ebible.js'
+import {generic_update_sources} from '../integrations/generic.js'
 import {extract_meta} from './usx.js'
 import {update_manifest} from './manifest.js'
 import {concurrent, PKG_PATH, read_json, read_dir} from './utils.js'
@@ -19,6 +20,7 @@ export async function update_source(trans_id?:string){
     // TODO Don't update if update date unchanged
 
     // Collect meta files by service to better manage concurrency
+    const manual_sourced:Record<string, TranslationSourceMeta> = {}
     const door43_sourced:Record<string, TranslationSourceMeta> = {}
     const ebible_sourced:Record<string, TranslationSourceMeta> = {}
 
@@ -30,7 +32,9 @@ export async function update_source(trans_id?:string){
 
         // Get translation's meta data and allocate to correct service
         const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
-        if (meta.source.service === 'door43'){
+        if (meta.source.service === 'manual'){
+            manual_sourced[id] = meta
+        } else if (meta.source.service === 'door43'){
             door43_sourced[id] = meta
         } else if (meta.source.service === 'ebible'){
             ebible_sourced[id] = meta
@@ -38,12 +42,14 @@ export async function update_source(trans_id?:string){
     }
 
     // Fail if nothing matched
-    if (Object.keys(door43_sourced).length + Object.keys(ebible_sourced).length === 0){
+    if ([manual_sourced, door43_sourced, ebible_sourced]
+        .every(source => !Object.keys(source).length)){
         console.error("No translations identified")
     }
 
     // Wait for all to be updated
     await Promise.all([
+        generic_update_sources(manual_sourced),
         door43.update_sources(door43_sourced),
         ebible.update_sources(ebible_sourced),
     ])

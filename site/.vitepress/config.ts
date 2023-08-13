@@ -20,6 +20,9 @@ export default defineConfig({
         resolve: {
             alias: [{find: '@', replacement: path.resolve(__dirname, '../src')}],
         },
+        build: {
+            target: 'es2022',  // Support top-level await, site only for developers anyway
+        },
     },
     themeConfig: {
         logo: '/icon.svg',

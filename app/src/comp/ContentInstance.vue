@@ -1,9 +1,9 @@
 
 <template lang='pug'>
 
-div.content(ref='content_div' class='fetch-bible' @touchstart.passive='on_touch_start'
-        @touchend.passive='on_touch_end' @touchmove.passive='on_touch_move'
-        @touchcancel.passive='on_touch_cancel' :class='fetch_classes')
+div.content(ref='content_div' :class='fetch_classes'
+        @touchstart.passive='on_touch_start' @touchend.passive='on_touch_end'
+        @touchmove.passive='on_touch_move' @touchcancel.passive='on_touch_cancel')
 
     div.prev_ch(ref='swipe_prev' :class='{disabled: state.chapter <= 1}')
         | {{ state.chapter - 1 }}
@@ -12,12 +12,11 @@ div.content(ref='content_div' class='fetch-bible' @touchstart.passive='on_touch_
 
     div.single(v-if='state.content' v-html='state.content')
     template(v-else)
-        template(v-for='item of state.content_verses' :key='item.id')
-            div.heading(v-if='"heading" in item' v-html='item.heading')
-            div.verse(v-else)
-                div.vid {{ item.verse }}
-                //- eslint-disable-next-line vue/require-v-for-key
-                div.verse_trans(v-for='html of item.html' v-html='html')
+        div.verse(v-for='(item, verse_i) of state.content_verses[0]' :key='item.id')
+            div.vid {{ item.verse }}
+            div.verse_trans(v-for='(trans, trans_i) of state.trans' :key='trans'
+                :class='direction[trans_i]'
+                v-html='state.content_verses[trans_i]?.[verse_i]?.content')
 
 </template>
 
@@ -27,7 +26,7 @@ div.content(ref='content_div' class='fetch-bible' @touchstart.passive='on_touch_
 import {ref, onMounted, watch, computed} from 'vue'
 
 import {state, change_chapter} from '@/services/state'
-import {chapters} from '@/services/computes'
+import {chapters, direction} from '@/services/computes'
 
 
 // Swipe distance tracking
@@ -49,6 +48,7 @@ const content_div = ref<HTMLDivElement>()
 // Fetch classes
 const fetch_classes = computed(() => {
     return {
+        'fetch-bible': true,
         'no-headings': !state.show_headings,
         'no-chapters': !state.show_chapters,
         'no-verses': !state.show_verses,
@@ -200,6 +200,14 @@ onMounted(() => {
         chapter_nodes[(node as HTMLElement).dataset['c']!] = node as HTMLElement
     }
 
+    // Listen to clicks on verses for study info
+    for (const node of Object.values(verse_nodes)){
+        node.addEventListener('click', () => {
+            const data_v = node.dataset['v']!.split(':').map(part => parseInt(part))
+            state.study = [state.book, data_v[0]!, data_v[1]!]
+        })
+    }
+
     // Scroll to current chapter
     scroll_to_verse(state.target ?? [state.chapter, state.verse])
 
@@ -261,12 +269,14 @@ watch(() => state.target, target => {
         font-size: 20px
         @media (min-width: 800px)
             font-size: 22px
+    &.no-verses .vid
+        display: none  // .vid is custom so must manually hide
 
 .single
     padding: 24px
 
 .prev_ch, .next_ch
-    position: absolute
+    position: fixed
     top: 50%
     width: 48px
     height: 48px
@@ -293,6 +303,11 @@ watch(() => state.target, target => {
     padding: 12px
 
 .verse
+    // Parallel translations
+
+    // Hide normal verse markers since will display custom on side
+    :deep(sup[data-v])
+        display: none
 
     .vid
         display: flex
@@ -312,10 +327,13 @@ watch(() => state.target, target => {
         flex-grow: 1
         padding: 6px 12px
 
+        &.rtl
+            direction: rtl
+
         // No top/bottom margin for verse as have padding already
-        :deep(> p:first-child)
+        :deep(> *:first-child)
             margin-top: 0
-        :deep(> p:last-child)
+        :deep(> *:last-child)
             margin-bottom: 0
 
     // Color translations to distinguish between them

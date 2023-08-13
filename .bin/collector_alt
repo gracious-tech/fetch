@@ -1,0 +1,8 @@
+#!/bin/bash
+# Execute collector within the alternate test collection
+set -e
+cd "$(dirname "$(dirname "$0")")/collection_alt"
+
+
+../.bin/build_collector --log-level=warning
+NODE_OPTIONS="--no-warnings" node ../collector/dist/index.js "$@"

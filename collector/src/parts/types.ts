@@ -31,7 +31,7 @@ export interface TranslationSource {
 export interface BookExtracts {
     name:string|null
     sections:MetaBookSection[]
-    last_verse:number[]
+    missing_verses:Record<number, Record<number, [number, number]|null>>
     chapter_headings:Record<number, string|null>  // Null if a section provides a better heading
 }
 
@@ -40,6 +40,7 @@ export interface CommonSourceMeta {
     name:MetaTranslationName
     year:number|null
     version:string
+    language:string
     direction:'ltr'|'rtl'
     copyright:MetaCopyright
 }

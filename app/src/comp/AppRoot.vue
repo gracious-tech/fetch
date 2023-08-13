@@ -24,6 +24,7 @@ v-app(:style='{"max-width": max_width}')
             div.primary
                 SearchToolbar.search(v-if='state.search !== null')
                 BibleContent.content
+                StudyInfo.study
 
 TransDialog(v-if='state.show_trans_dialog')
 SettingsDialog(v-if='state.show_style_dialog')
@@ -38,6 +39,7 @@ import {watch, onMounted, computed} from 'vue'
 import {useTheme} from 'vuetify'
 
 import BookMenu from './BookMenu.vue'
+import StudyInfo from './StudyInfo.vue'
 import BibleContent from './BibleContent.vue'
 import AppToolbar from './AppToolbar.vue'
 import SearchToolbar from './SearchToolbar.vue'
@@ -116,12 +118,18 @@ onMounted(() => {
                     .search
                         flex-grow: 0  // Override Vuetify to stop expanding beyond own height
 
-                    .content
+                    .content, .study
                         flex-basis: 0  // So don't crush toolbar
-                        flex-grow: 1
                         overflow-y: auto
                         overflow-x: hidden
                         overflow-wrap: anywhere
+
+                    .content
+                        flex-grow: 3
+
+                    .study
+                        flex-grow: 1
+
 
 
 </style>

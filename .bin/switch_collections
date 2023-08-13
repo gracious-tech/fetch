@@ -1,0 +1,8 @@
+#!/bin/bash
+# Switch main and alternate test collections
+set -e
+cd "$(dirname "$(dirname "$0")")"
+
+mv collection collection_tmp
+mv collection_alt collection
+mv collection_tmp collection_alt

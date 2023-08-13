@@ -18,7 +18,7 @@ export const LICENSES:Record<string, MetaStandardLicense> = {
         },
     },
     'cc-by': {
-        name: "Creative Commons Attribution",
+        name: "CC BY",
         restrictions: {
             limit_verses: null,
             limit_book_ratio: null,
@@ -30,7 +30,7 @@ export const LICENSES:Record<string, MetaStandardLicense> = {
         },
     },
     'cc-by-sa': {
-        name: "Creative Commons Attribution-ShareAlike",
+        name: "CC BY-SA",
         restrictions: {
             limit_verses: null,
             limit_book_ratio: null,
@@ -42,7 +42,7 @@ export const LICENSES:Record<string, MetaStandardLicense> = {
         },
     },
     'cc-by-nc': {
-        name: "Creative Commons Attribution-NonCommercial",
+        name: "CC BY-NC",
         restrictions: {
             limit_verses: null,
             limit_book_ratio: null,
@@ -54,7 +54,7 @@ export const LICENSES:Record<string, MetaStandardLicense> = {
         },
     },
     'cc-by-nc-sa': {
-        name: "Creative Commons Attribution-NonCommercial-ShareAlike",
+        name: "CC BY-NC-SA",
         restrictions: {
             limit_verses: null,
             limit_book_ratio: null,
@@ -66,7 +66,7 @@ export const LICENSES:Record<string, MetaStandardLicense> = {
         },
     },
     'cc-by-nd': {
-        name: "Creative Commons Attribution-NoDerivatives",
+        name: "CC BY-ND",
         restrictions: {
             limit_verses: null,
             limit_book_ratio: null,
@@ -78,7 +78,7 @@ export const LICENSES:Record<string, MetaStandardLicense> = {
         },
     },
     'cc-by-nc-nd': {
-        name: "Creative Commons Attribution-NonCommercial-NoDerivatives",
+        name: "CC BY-NC-ND",
         restrictions: {
             limit_verses: null,
             limit_book_ratio: null,

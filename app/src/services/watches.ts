@@ -2,8 +2,6 @@
 
 import {watch} from 'vue'
 
-import {sync_verses} from '@gracious.tech/fetch-client'
-
 import {state} from './state'
 import {content} from './content'
 import {post_message} from './post'
@@ -39,6 +37,8 @@ watch([() => state.trans, () => state.book], async () => {
     state.offline = false
     state.content = ''
     state.content_verses = []
+    state.crossref = null
+    state.notes = null
 
     // If first/primary trans doesn't have current book, change to a valid book
     if (!content.collection.has_book(state.trans[0], state.book)){
@@ -64,12 +64,20 @@ watch([() => state.trans, () => state.book], async () => {
         return
     }
 
+    // Start fetching study data now, so haven't delayed display of actual Scripture
+    void content.client.fetch_crossref(state.book, 'small').then(crossref => {
+        state.crossref = crossref
+    })
+    void fetch(`${content.client._data_endpoint}notes/eng_tyndale/html/${state.book}.json`)
+        .then(async resp => {
+            state.notes = (await resp.json())['verses'] as Record<string, Record<string, string>>
+        })
+
     // Get either plain HTML or separated verses
     if (books.length === 1){
         state.content = books[0]!.get_whole()
     } else {
-        state.content_verses = sync_verses(
-            books.map(book => book ? book.get_whole({list: true}) : []))
+        state.content_verses = books.map(book => book ? book.get_list() : [])
     }
 }, {deep: true})
 

@@ -3,29 +3,14 @@ import {get_num_verses} from './common.js'
 import {ignored_elements, ignored_para_styles, ignored_char_styles, headings_major,
     headings_regular, headings_minor, non_para_para} from './elements.js'
 
+import type {BibleJsonTxt, TxtContent} from './shared_types'
 
-export interface BibleHeading {
-    type:'heading'
-    contents:string
-    level:1|2|3
-}
-
-export interface BibleFootnote {
-    type:'note'
-    contents:string
-}
-
-export type VerseContent = string|BibleHeading|BibleFootnote
-
-export interface BibleJsonTxt {
-    contents: VerseContent[][][]
-}
 
 interface ParserState {
     chapter:number
     verse:number
     prev_para_type:'para'|'break'|null
-    unknown_owner:VerseContent[]
+    unknown_owner:TxtContent[]
     contents:BibleJsonTxt['contents']
 }
 
@@ -214,7 +199,16 @@ function process_contents(state:ParserState, nodes:NodeListOf<ChildNode>){
 
 
 // Add content to current verse, possibly buffering if may belong to next verse
-function add_content(state:ParserState, content:VerseContent, may_belong_to_next_verse=false):void{
+function add_content(state:ParserState, content:TxtContent, may_belong_to_next_verse=false):void{
+
+    // Strip any newlines that might be present in the HTML but not intended to be a line break
+    if (typeof content === 'string'){
+        content = content.replaceAll('\n', '')
+    } else {
+        content.contents = content.contents.replaceAll('\n', '')
+    }
+
+    // Decide whether to add to unknown_owner or actual verse
     if (state.unknown_owner.length || may_belong_to_next_verse){
         add_or_join(state.unknown_owner, content)
     } else {
@@ -224,7 +218,7 @@ function add_content(state:ParserState, content:VerseContent, may_belong_to_next
 
 
 // Add verse content to an array, but join if it is a string and so was the previous item
-function add_or_join(array:VerseContent[], item:VerseContent){
+function add_or_join(array:TxtContent[], item:TxtContent){
     if (typeof array.at(-1) === 'string' && typeof item === 'string'){
         array[array.length - 1] += item
     } else {

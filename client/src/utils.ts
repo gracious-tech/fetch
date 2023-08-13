@@ -124,3 +124,15 @@ export function escape_html(text:string):string{
     }
     return text.replace(/[&<>"']/g, char => escapes[char]!)
 }
+
+
+// @internal
+export function num_to_letters(num:number):string{
+    // Return letters to represent a number (e.g. 1=a 2=b 26=z 27=aa)
+    if (num <= 0){
+        return ''
+    }
+    const ascii_offset = 97
+    return num_to_letters(Math.floor((num-1) / 26))
+        + String.fromCharCode((num-1) % 26 + ascii_offset)
+}

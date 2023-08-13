@@ -5,6 +5,7 @@ dist/
 /app/.deployments/
 
 /collection/
+/collection_alt/
 
 /collector/bmc/
 

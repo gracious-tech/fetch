@@ -26,6 +26,11 @@ const app = createApp(AppRoot)
 // Add Vuetify
 const dark_val = state.dark ?? matchMedia('(prefers-color-scheme: dark)').matches
 app.use(createVuetify({
+    defaults: {
+        VDialog: {
+            scrollable: true,  // Stops toolbars in dialogs from scrolling with contents
+        },
+    },
     theme: {
         defaultTheme: dark_val ? 'dark' : 'light',
         themes: {

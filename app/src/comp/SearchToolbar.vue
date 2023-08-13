@@ -7,7 +7,7 @@ v-toolbar(:density='density')
 
     template(#append)
         v-btn-toggle(color='secondary' density='compact')
-            v-btn {{ book_display }}
+            v-btn {{ current_book_name }}
             v-btn OT
             v-btn NT
             v-btn All
@@ -21,7 +21,7 @@ v-toolbar(:density='density')
 
 
 import {density, state} from '@/services/state'
-import {book_display} from '@/services/computes'
+import {current_book_name} from '@/services/computes'
 
 
 </script>

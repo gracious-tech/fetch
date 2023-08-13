@@ -6,7 +6,8 @@ import {books_ordered} from '../parts/bible.js'
 import {download_data} from '../integrations/openbible.js'
 import {mkdir_exist} from '../parts/utils.js'
 
-import type {BookCrossReferences} from '../integrations/openbible.js'
+import type {BookCrossReferences} from '../integrations/openbible'
+import type {CrossrefData, CrossrefRange, CrossrefSingle} from '../parts/shared_types'
 
 
 // Generate cross-references data
@@ -35,24 +36,15 @@ export async function crossref_process(){
 }
 
 
-// Published data doesn't include relevance score at start of array
-type CrossRefSingleDist = [string, number, number]
-type CrossRefRangeDist = [...CrossRefSingleDist, number, number]
-type FilteredReferences = Record<string, Record<string, (CrossRefSingleDist|CrossRefRangeDist)[]>>
-
-
 // Get only refs that match the desired relevance for an individual book
-function filter_refs_by_relevance(
-        refs_for_book:BookCrossReferences,
-        max_rel:number,
-): FilteredReferences {
-    const filtered: FilteredReferences = {}
+function filter_refs_by_relevance(refs_for_book:BookCrossReferences, max_rel:number):CrossrefData{
+    const filtered: CrossrefData = {}
     for (const ch in refs_for_book){
         for (const verse in refs_for_book[ch]){
 
             // Filter by relevance and then remove the score from the data
             const refs = refs_for_book[ch]![verse]!.filter(ref => ref[0] <= max_rel)
-                .map(ref => ref.slice(1) as CrossRefSingleDist|CrossRefRangeDist)
+                .map(ref => ref.slice(1) as CrossrefSingle|CrossrefRange)
 
             // Add refs for verse if any are chosen
             if (refs.length){

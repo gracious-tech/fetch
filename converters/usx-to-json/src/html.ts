@@ -2,12 +2,8 @@
 import {get_num_verses} from './common.js'
 import {ignored_elements, ignored_para_styles, ignored_char_styles, headings_major,
     headings_regular, headings_minor} from './elements.js'
+import type {BibleJsonHtml} from './shared_types'
 
-
-// Types
-export interface BibleJsonHtml {
-    contents: string[][][]
-}
 
 interface ParserState {
     chapter:number

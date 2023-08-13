@@ -107,7 +107,8 @@ export interface DistTranslation extends DistManifestItem {
     video:unknown[]
     recommended:boolean|null
     books:Record<string, string>  // Books that are available and their names
-    last_verse:Record<string, number[]>|null  // Null if same as most common system
+    // {book:{c:{v:[c, v]}}}
+    missing_verses:Record<string, Record<number, Record<number, [number, number]>>>
 }
 
 
@@ -136,3 +137,32 @@ export interface DistNotes extends DistManifestItem {
 export interface DistNotesManifest {
     notes:Record<string, DistNotes>
 }
+
+
+// FORMATS
+
+
+export interface BibleJsonHtml {
+    contents: string[][][]
+}
+
+export interface TxtHeading {
+    type:'heading'
+    contents:string
+    level:1|2|3
+}
+
+export interface TxtNote {
+    type:'note'
+    contents:string
+}
+
+export type TxtContent = string|TxtHeading|TxtNote
+
+export interface BibleJsonTxt {
+    contents: TxtContent[][][]
+}
+
+export type CrossrefSingle = [string, number, number]
+export type CrossrefRange = [...CrossrefSingle, number, number]
+export type CrossrefData = Record<string, Record<string, (CrossrefSingle|CrossrefRange)[]>>

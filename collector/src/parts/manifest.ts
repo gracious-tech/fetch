@@ -2,9 +2,9 @@
 import {join} from 'path'
 import {existsSync, writeFileSync} from 'fs'
 
-import {isEqual} from 'lodash-es'
+import {number_of_verses} from 'usx-to-json'
 
-import {book_names_english, books_ordered, last_verse} from './bible.js'
+import {book_names_english, books_ordered} from './bible.js'
 import {get_language_data} from './languages.js'
 import {LICENSES} from './license.js'
 import {read_json, read_dir} from './utils.js'
@@ -24,7 +24,7 @@ export async function update_manifest(){
         language2to3: {},
         books_ordered,
         book_names_english,
-        last_verse,
+        last_verse: number_of_verses,
         licenses: LICENSES,
     }
 
@@ -65,13 +65,14 @@ export async function update_manifest(){
         }
         const extracts = read_json<Record<string, BookExtracts>>(extracts_path)
 
-        // Get last_verse data as map of book id -> last_verse
-        const own_last_verse:Record<string, number[]> = Object.fromEntries(
-            Object.entries(extracts).map(([book, data]) => [book, data.last_verse]))
-
         // Get book names
         const book_names = Object.fromEntries(html_books.map(book => {
             return [book, extracts[book]?.name || book_names_english[book]!]
+        }))
+
+        // Get missing verses
+        const missing_verses = Object.fromEntries(html_books.map(book => {
+            return [book, extracts[book]?.missing_verses ?? {}]
         }))
 
         // Put it all together
@@ -86,7 +87,7 @@ export async function update_manifest(){
             copyright: meta.copyright,
             recommended: meta.recommended,
             books: book_names,
-            last_verse: isEqual(last_verse, own_last_verse) ? null : own_last_verse,
+            missing_verses,
         }
 
         // Record the language as being included

@@ -116,17 +116,14 @@ function update_select_translation(){
 function update_select_book(){
     const books = collection.get_books(select_translation.value)
     update_options(select_book, books.map(book => {
-        return [book.id, `${book.local} (${book.english})`]
+        return [book.id, `${book.name_local} (${book.name_english})`]
     }))
 }
 
 
 // Method for populating the chapter <select> element
 function update_select_chapter(){
-    const chapters = collection.get_chapters(
-        select_translation.value,
-        select_book.value,
-    )
+    const chapters = collection.get_chapters(select_book.value)
     update_options(select_chapter, chapters.map(c => [c, c]))
 }
 

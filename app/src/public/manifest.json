@@ -2,8 +2,8 @@
     "display": "standalone",
     "name": "fetch(bible) app",
     "short_name": "fetch(bible)",
+    "start_url": "/",
     "icons": [
-        {"src": "/icon_maskable.png"},
-        {"src": "/icon_maskable.png", "purpose": "maskable"}
+        {"src": "/icon_maskable.png", "purpose": "any maskable", "sizes": "512x512"}
     ]
 }

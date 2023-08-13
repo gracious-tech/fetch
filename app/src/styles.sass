@@ -19,3 +19,22 @@ body
 .fetch-bible.no-chapters h3[data-c]
     display: block !important
     visibility: hidden
+
+
+// Make verse numbers buttons
+.fetch-bible sup[data-v]
+    background-color: #8884
+    display: inline-flex
+    justify-content: center
+    align-items: center
+    vertical-align: middle
+    position: static
+    border-radius: 50%
+    padding: 0 !important
+    margin-right: 0.3em
+    width: 2em
+    height: 2em
+    cursor: pointer
+
+    &:hover
+        background-color: rgb(var(--v-theme-primary))

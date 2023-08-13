@@ -1,8 +1,10 @@
 
 import {request} from './utils.js'
 import {BibleCollection} from './collection.js'
+import {BookCrossref} from './crossref.js'
+
 import type {UsageOptions, UsageConfig} from './types'
-import type {DistManifest} from './shared_types'
+import type {CrossrefData, DistManifest} from './shared_types'
 
 
 // The options available for configuring a BibleClient
@@ -15,6 +17,9 @@ export interface BibleClientConfig {
     The values can be relative URLs but all must end in a slash.
     */
     endpoints?:string[]
+
+    /* The endpoint desired for generic data like crossrefs, defaulting to the first endpoint. */
+    data_endpoint?:string
 
     /* Configure how you'll be using Bible translations to automatically filter out those
         which have incompatible licenses. You can alternatively do this per translation when
@@ -39,7 +44,9 @@ export interface BibleClientConfig {
 export class BibleClient {
 
     // @internal
-    _endpoints = ['https://collection.fetch.bible/']
+    _endpoints:string[]
+    // @internal
+    _data_endpoint:string
     // @internal
     _usage:UsageConfig = {
         commercial: false,
@@ -50,7 +57,8 @@ export class BibleClient {
 
     // Create a new BibleClient, defaulting to the official fetch(bible) collection
     constructor(config:BibleClientConfig={}){
-        this._endpoints = config.endpoints ?? this._endpoints
+        this._endpoints = config.endpoints ?? ['https://collection.fetch.bible/']
+        this._data_endpoint = config.data_endpoint ?? this._endpoints[0]!
         this._usage = {...this._usage, ...config.usage}
     }
 
@@ -65,4 +73,10 @@ export class BibleClient {
         return new BibleCollection(this._usage, manifests as OneOrMore<[string, DistManifest]>)
     }
 
+    // Fetch cross-reference data for a book
+    async fetch_crossref(book:string, size:'small'|'medium'|'large'='medium'){
+        const url = this._data_endpoint + `crossref/${size}/${book}.json`
+        const data = JSON.parse(await request(url)) as CrossrefData
+        return new BookCrossref(data)
+    }
 }

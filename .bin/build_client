@@ -21,7 +21,7 @@ npx sass --style=compressed src/css/index.sass dist/client.css
 
 # Common args
 # NOTE Target must be suitable for browsers as well as Node18+
-esbuild="npx esbuild --sourcemap --target=es6"
+esbuild="npx esbuild --sourcemap --target=ES2019"
 
 
 # Build cross-platform ESM with typings (the main format recommended to be used)

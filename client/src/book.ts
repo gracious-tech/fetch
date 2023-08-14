@@ -98,8 +98,10 @@ export class BibleBookHtml {
         if (!verses.length){
             return ''
         }
-        const result = verses[0]![0]! + verses.map(v => v[1]).join('') + verses.at(-1)![2]!
-        return result + this._attribution(options.attribute)
+        return verses[0]![0]!
+            + verses.map(v => v[1]).join('')
+            + verses[verses.length-1]![2]!
+            + this._attribution(options.attribute)
     }
 
     // Get HTML for multiple chapters

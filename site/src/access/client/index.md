@@ -16,7 +16,7 @@ You can also use this client to access your own self-hosted collection if you ch
 
 You can use this client both client-side and server-side.
 
-### Browsers (ES6+)
+### Browsers (ES2019+)
 
 It is recommended to use a bundler (like Vite or Webpack) and simply `import {BibleClient} from '@gracious.tech/fetch-client'`. This will use the published ESM form which supports tree-shaking.
 

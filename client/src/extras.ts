@@ -50,7 +50,7 @@ export function passage_obj_to_str(ref:PassageRefArg){
 export function passage_str_to_obj(ref:string){
 
     // Clean ref
-    ref = ref.replaceAll(' ', '')
+    ref = ref.replace(/ /g, '')
 
     // Init props
     let chapter_start:number
@@ -111,7 +111,7 @@ export function book_name_to_code(input:string, book_names:Record<string, string
             .replace(/^i /, '1').replace('1st ', '1').replace('first ', '1')
             .replace(/^ii /, '2').replace('2nd ', '2').replace('second ', '2')
             .replace(/^iii /, '3').replace('3rd ', '3').replace('third ', '3')
-            .replaceAll(/[^\da-zA-Z]/g, '')
+            .replace(/[^\da-zA-Z]/g, '')
     }
 
     // Clean the input

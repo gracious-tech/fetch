@@ -174,6 +174,7 @@ export function read_files_deep(directory:string):string[]{
         const entry_path = join(directory, entry.name)
         if (entry.isDirectory()){
             files.push(...read_files_deep(entry_path))
+            continue
         } else if (!entry.isFile() || IGNORE_FILES.includes(entry.name)){
             continue
         }

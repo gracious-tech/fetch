@@ -6,13 +6,13 @@ div.pane(v-if='state.study' class='pa-4')
         span.ref(@click='return_to_verse') {{ verse_label }}
         v-btn.close(icon variant='flat' @click='state.study = null')
             app-icon(name='close')
+    template(v-if='notes')
+        h5 Notes
+        div.notes(ref='notes_div' class='text-body-2' v-html='notes')
     template(v-if='crossrefs.length')
         h5(class='mb-2') Cross references
         template(v-for='crossref of crossrefs' :key='crossref.label')
             v-chip(class='mr-2 mb-2' size='small' @click='crossref.view') {{ crossref.label }}
-    template(v-if='notes')
-        h5 Notes
-        div.notes(ref='notes_div' class='text-body-2' v-html='notes')
 
 </template>
 

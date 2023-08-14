@@ -1,7 +1,9 @@
 
 <template lang='pug'>
 
-v-app(:style='{"max-width": max_width}')
+v-app(:style='{"max-width": max_width}' @mousemove='resize_study_move' @mouseup='resize_study_end'
+        @mouseleave='resize_study_end'
+        @touchmove.passive='resize_study_move_touch' @touchend.passive='resize_study_end')
 
     //- Show book menu in drawer for narrow screens
     //- NOTE touchless disables swiping right from screen edge to open (conflicts with prev ch)
@@ -24,7 +26,11 @@ v-app(:style='{"max-width": max_width}')
             div.primary
                 SearchToolbar.search(v-if='state.search !== null')
                 BibleContent.content
-                StudyInfo.study
+                div.resize(v-if='state.study' @mousedown='resize_study_start'
+                        @touchstart.passive='resize_study_start')
+                    div.handle
+                div.study(v-if='state.study' ref='study_div' class='pa-4 pt-0')
+                    StudyInfo
 
 TransDialog(v-if='state.show_trans_dialog')
 SettingsDialog(v-if='state.show_style_dialog')
@@ -35,7 +41,7 @@ AboutDialog(v-if='state.show_about_dialog')
 
 <script lang='ts' setup>
 
-import {watch, onMounted, computed} from 'vue'
+import {watch, onMounted, computed, ref} from 'vue'
 import {useTheme} from 'vuetify'
 
 import BookMenu from './BookMenu.vue'
@@ -55,6 +61,30 @@ const max_width = computed(() => {
     const pixels = 1000 + 500 * state.trans.length
     return `${pixels}px`
 })
+
+
+// Resize study pane
+let resize_study_active = false
+const study_div = ref<HTMLDivElement>()
+const resize_study_start = () => {
+    resize_study_active = true
+}
+const resize_study_end = () => {
+    resize_study_active = false
+}
+const resize_study_move_touch = (event:TouchEvent) => {
+    resize_study_move({pageY: event.touches[0]!.pageY})
+}
+const resize_study_move = (event:{pageY:number}) => {
+    if (resize_study_active && study_div.value){
+        const resize_bar_height = 16 / 2
+        let new_height = self.innerHeight - event.pageY - resize_bar_height
+        const smallest = 100
+        const largest = self.innerHeight - 200
+        new_height = Math.max(smallest, Math.min(largest, new_height))
+        study_div.value.style.minHeight = `${new_height}px`
+    }
+}
 
 
 const theme = useTheme()
@@ -125,10 +155,32 @@ onMounted(() => {
                         overflow-wrap: anywhere
 
                     .content
-                        flex-grow: 3
+                        flex-grow: 1
+
+                    .resize
+                        border-top: 2px solid hsl(0, 0%, 50%)
+                        height: 16px
+                        background-color: rgb(var(--v-theme-surface))
+                        cursor: ns-resize
+                        text-align: center
+                        user-select: none
+                        z-index: 1
+
+                        &:hover
+                            border-top-color: rgb(var(--v-theme-primary))
+                            .handle
+                                background-color: rgb(var(--v-theme-primary))
+
+                        .handle
+                            display: inline-block
+                            min-width: 42px
+                            height: 24px
+                            border-radius: 0 0 50% 50%
+                            background-color: hsl(0, 0%, 50%)
 
                     .study
-                        flex-grow: 1
+                        min-height: 30%
+                        background-color: rgb(var(--v-theme-surface))
 
 
 

@@ -1,18 +1,18 @@
 
 <template lang='pug'>
 
-div.pane(v-if='state.study' class='pa-4')
-    h3
-        span.ref(@click='return_to_verse') {{ verse_label }}
-        v-btn.close(icon variant='flat' @click='state.study = null')
-            app-icon(name='close')
-    template(v-if='notes')
-        h5 Notes
-        div.notes(ref='notes_div' class='text-body-2' v-html='notes')
-    template(v-if='crossrefs.length')
-        h5(class='mb-2') Cross references
-        template(v-for='crossref of crossrefs' :key='crossref.label')
-            v-chip(class='mr-2 mb-2' size='small' @click='crossref.view') {{ crossref.label }}
+
+h3
+    span.ref(@click='return_to_verse') {{ verse_label }}
+    v-btn.close(icon variant='flat' @click='state.study = null')
+        app-icon(name='close')
+template(v-if='notes')
+    h5 Notes
+    div.notes(ref='notes_div' class='text-body-2' v-html='notes')
+template(v-if='crossrefs.length')
+    h5(class='mb-2') Cross references
+    template(v-for='crossref of crossrefs' :key='crossref.label')
+        v-chip(class='mr-2 mb-2' size='small' @click='crossref.view') {{ crossref.label }}
 
 </template>
 
@@ -92,13 +92,12 @@ const return_to_verse = () => {
 
 <style lang='sass' scoped>
 
-.pane
-    background-color: rgb(var(--v-theme-surface))
-    border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity))
-
 h3
     display: flex
     justify-content: space-between
+
+h5
+    margin-top: 6px
 
 .ref
     cursor: pointer

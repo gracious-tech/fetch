@@ -4,8 +4,6 @@
 
 h3
     span.ref(@click='return_to_verse') {{ verse_label }}
-    v-btn.close(icon variant='flat' @click='state.study = null')
-        app-icon(name='close')
 template(v-if='notes')
     h5 Notes
     div.notes(ref='notes_div' class='text-body-2' v-html='notes')
@@ -101,11 +99,6 @@ h5
 
 .ref
     cursor: pointer
-
-.close
-    position: fixed
-    right: 4px
-    margin-top: -12px
 
 .notes :deep() span[data-ref]
     color: rgb(var(--v-theme-primary))

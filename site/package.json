@@ -8,6 +8,6 @@
         "vitepress": "^1.0.0-beta.2"
     },
     "dependencies": {
-        "@gracious.tech/fetch-client": "^0.2.0"
+        "@gracious.tech/fetch-client": "^0.3.0"
     }
 }

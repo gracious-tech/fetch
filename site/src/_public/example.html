@@ -82,7 +82,7 @@ async function update_content(){
         select_translation.value,
         select_book.value,
     )
-    div_content.innerHTML = book.get_chapter(select_chapter.value)
+    div_content.innerHTML = book.get_chapter(Number(select_chapter.value))
 }
 
 

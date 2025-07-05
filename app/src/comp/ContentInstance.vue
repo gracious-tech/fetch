@@ -363,9 +363,12 @@ const highlight_range = (passage:PassageReference, id:string) => {
     }
 
     // Register the range as a highlight
-    // @ts-ignore New feature
-    // eslint-disable-next-line
-    CSS.highlights.set(id, new Highlight(range))
+    // TODO Webkit doesn't clear ranges properly, so wait for switch to <span>s and classes instead
+    if (!/iPhone|iPad|iPod/.test(navigator.userAgent)){
+        // @ts-ignore New feature
+        // eslint-disable-next-line
+        CSS.highlights.set(id, new Highlight(range))
+    }
 }
 
 

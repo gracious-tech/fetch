@@ -29,7 +29,7 @@ export type {BookCrossref} from './book/crossref.js'
 export type {GlossesBook, GlossesWord} from './book/glosses.js'
 export type {NotesBook, RelevantNotes} from './book/notes.js'
 export type {
-    GetPassageOptions,
+    GetHtmlOptions,
     GetTxtOptions,
     IndividualVerse,
     BibleBook,

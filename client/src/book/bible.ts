@@ -7,7 +7,7 @@ import type {RuntimeLicense, RuntimeCopyright} from '../assets/types.js'
 import type {BibleJsonHtml, BibleJsonTxt, TxtContent} from '../assets/shared_types.js'
 
 
-export interface GetPassageOptions {
+export interface GetHtmlOptions {
     attribute?:boolean|RuntimeLicense
 }
 
@@ -92,13 +92,13 @@ export class BibleBookHtml {
     }
 
     // Get the HTML for the entire book
-    get_whole({attribute}:GetPassageOptions={}):string{
+    get_whole({attribute}:GetHtmlOptions={}):string{
         return this._html.contents.flat().map(v => v[1]).join('') + this._attribution(attribute)
     }
 
     // Get HTML for a specific passage
     get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number,
-            options:GetPassageOptions={}):string{
+            options:GetHtmlOptions={}):string{
         const chapters = this._get_list(start_chapter, start_verse, end_chapter, end_verse)
         if (!chapters.length){
             return ''
@@ -118,7 +118,7 @@ export class BibleBookHtml {
     }
 
     // Get HTML for a specific passage specified by a PassageReference object
-    get_passage_from_ref(ref:PassageReference, options:GetPassageOptions={}):string{
+    get_passage_from_ref(ref:PassageReference, options:GetHtmlOptions={}):string{
         if (ref.type === 'book'){
             return this.get_whole(options)
         }
@@ -130,7 +130,7 @@ export class BibleBookHtml {
     }
 
     // Get HTML for multiple chapters
-    get_chapters(first:number, last:number, options:GetPassageOptions={}):string{
+    get_chapters(first:number, last:number, options:GetHtmlOptions={}):string{
         if (typeof first !== 'number' || typeof last !== 'number'){
             throw new Error("First/last chapters must be numbers")  // Protect against '1' + 1 = 11
         }
@@ -138,13 +138,13 @@ export class BibleBookHtml {
     }
 
     // Get HTML for a single chapter
-    get_chapter(chapter:number, options:GetPassageOptions={}):string{
+    get_chapter(chapter:number, options:GetHtmlOptions={}):string{
         // @ts-ignore possible TS bug
         return this.get_chapters(chapter, chapter, options)
     }
 
     // Get HTML for a single verse
-    get_verse(chapter:number, verse:number, options:GetPassageOptions={}):string{
+    get_verse(chapter:number, verse:number, options:GetHtmlOptions={}):string{
         return this.get_passage(chapter, verse, chapter, verse, options)
     }
 

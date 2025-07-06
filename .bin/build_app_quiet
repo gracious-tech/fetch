@@ -1,0 +1,6 @@
+#!/bin/bash
+# Build quiet app
+set -e
+cd "$(realpath -m "$0/../..")/app"
+
+VITE_QUIET=yes npx vite build

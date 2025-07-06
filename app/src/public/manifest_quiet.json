@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+    "id": "quiet.fetch.bible",
+    "name": "Quiet Bible - Simple, fast, open source",
+    "short_name": "Quiet Bible",
+    "description": "A simple, fast, open source Bible app with 900+ languages",
+    "display": "standalone",
+    "start_url": "/",
+    "background_color": "#ffdf7b",
+    "theme_color": "#ff7ba3",
+    "icons": [
+        {"src": "/icon_quiet.png", "purpose": "any", "sizes": "512x512"},
+        {"src": "/icon_quiet_maskable.png", "purpose": "maskable", "sizes": "512x512"},
+        {"src": "/icon_quiet_mono.png", "purpose": "monochrome", "sizes": "512x512"},
+        {"src": "/icon_quiet_maskable_mono.png", "purpose": "monochrome maskable", "sizes": "512x512"}
+    ]
+}

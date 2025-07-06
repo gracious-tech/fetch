@@ -8,7 +8,7 @@ cd "$(realpath -m "$0/../..")/app"
 ../.bin/build_search
 ../.bin/build_client
 
-../.bin/build_app
+../.bin/build_app_quiet
 
 # Publish to server
 npx esbuild --platform=node ../.bin/publish.ts | node --input-type=module - quiet.fetch.bible

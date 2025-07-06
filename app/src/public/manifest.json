@@ -1,9 +1,15 @@
 {
-    "display": "standalone",
-    "name": "fetch(bible) app",
+    "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+    "id": "app.fetch.bible",
+    "name": "Official fetch(bible) app",
     "short_name": "fetch(bible)",
+    "description": "The official app of the fetch(bible) platform",
+    "display": "standalone",
     "start_url": "/",
+    "background_color": "#f2d2f7",
+    "theme_color": "#c12bdb",
     "icons": [
-        {"src": "/icon_maskable.png", "purpose": "any maskable", "sizes": "512x512"}
+        {"src": "/icon.png", "purpose": "any", "sizes": "512x512"},
+        {"src": "/icon_maskable.png", "purpose": "maskable", "sizes": "512x512"}
     ]
 }

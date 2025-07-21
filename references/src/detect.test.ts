@@ -156,6 +156,17 @@ describe('detect_references', () => {
         relative("Gen 1:1-2:2,6:1", 'verse', 6, 1)
     })
 
+    it("Interprets relative verse after two previous references", ({expect}) => {
+        const detector = detect_references('2 Cor 2:17; 11:7,12')
+        let match = detector.next().value!
+        expect(match.ref).toMatchObject({type: 'verse', start_chapter: 2, start_verse: 17})
+        match = detector.next().value!
+        expect(match.ref).toMatchObject({type: 'verse', start_chapter: 11, start_verse: 7})
+        match = detector.next().value!
+        // NOTE Previous bug resulted in 2:12, coming from the main ref rather than the previous
+        expect(match.ref).toMatchObject({type: 'verse', start_chapter: 11, start_verse: 12})
+    })
+
     it("Doesn't steal numbers from subsequent refs", ({expect}) => {
         const detector = detect_references("1 Cor 9:18,2 Cor 2:17 and 2 Cor 11:7,9 cor")
         expect([...detector].map(m => m.text)).toEqual(["1 Cor 9:18", "2 Cor 2:17", "2 Cor 11:7", "9"])

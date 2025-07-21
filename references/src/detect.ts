@@ -79,6 +79,10 @@ export function* detect_references(text:string, book_names?:BookNamesArg,
             // WARN Sticky flag 'y' needed to ensure match is at start of lastIndex
             const add_regex = new RegExp(regex_additional_range, 'uiy')
             add_regex.lastIndex = regex.lastIndex  // Move up to where main regex is up to
+
+            // Additional refs all have same book as main ref, but chapter may change, so track
+            let prev_end_chapter = ref.end_chapter
+
             while (true){
 
                 // If followed by a valid book name, skip check for additional ranges
@@ -103,7 +107,7 @@ export function* detect_references(text:string, book_names?:BookNamesArg,
                 let prefix = ref.book
                 const has_verse_sep = new RegExp(regex_verse_sep).test(add_match[1]!)
                 if (!has_verse_sep && ['verse', 'range_verses', 'range_multi'].includes(ref.type)){
-                    prefix += `${ref.end_chapter}:`
+                    prefix += `${prev_end_chapter}:`
                 }
                 const add_ref = from_string(prefix + add_match[1]!)
                 if (!add_ref || !add_ref.args_valid){
@@ -117,6 +121,7 @@ export function* detect_references(text:string, book_names?:BookNamesArg,
                     whole: false,
                 }
                 end_of_prev_match = add_match_real_index + add_match[1]!.length
+                prev_end_chapter = add_ref.end_chapter
 
                 // Move main regex up to where successful additional ranges regex is up to
                 // WARN Only if larger as lastIndex will reset to 0 at end of string

@@ -140,7 +140,7 @@ export const book_abbrev_english:Readonly<Record<string, string>> = Object.freez
     '1ti': "1 Tim",
     '2ti': "2 Tim",
     'tit': "Titus",
-    'phm': "Phil",
+    'phm': "Philem",
     'heb': "Heb",
     'jas': "James",
     '1pe': "1 Pet",

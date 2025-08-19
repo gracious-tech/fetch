@@ -60,7 +60,9 @@ import population from './population.json'
 
 
 // Languages that have the same written form as another language that does have a translation
-const COVERED_BY_UNRESTRICTED_ALT = ['wuu']
+// NOTE According to AI, only cjy would feel natural reading a Bible intended for Mandarin
+//      This is still the case even if both simplified and traditional scripts are available
+const COVERED_BY_UNRESTRICTED_ALT = ['cjy']
 const COVERED_BY_SHAREABLE_ALT = [...COVERED_BY_UNRESTRICTED_ALT]
 
 

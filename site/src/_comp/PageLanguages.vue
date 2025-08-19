@@ -18,7 +18,7 @@ table
         td {{ lang.name_local }}
         td {{ lang.name_english }}
         td {{ lang.code }}
-        td {{ lang.population || "None" }}
+        td {{ lang.pop_text }}
         td
             a(:href='`../bibles/#${lang.code}`') {{ lang.count }}
 p Also see which languages are <a href='/content/need/'>still without a shareable translation</a>
@@ -37,7 +37,7 @@ table
         td {{ lang.name_local }}
         td {{ lang.name_english }}
         td {{ lang.code }}
-        td {{ lang.population || "None" }}
+        td {{ lang.pop_text }}
         td
             a(:href='`../bibles/#${lang.code}`') {{ lang.count }}
 
@@ -50,21 +50,21 @@ p
 <script lang='ts' setup>
 
 import {collection} from './collection'
+import {population_text} from './utils'
 
 
 // Generate list of languages
 const languages = collection.bibles.get_languages().map(lang => {
-    const mil = Math.round((lang.population ?? 0) / 1000000)
     return {
         ...lang,
         count: collection.bibles.get_resources({language: lang.code}).length,
-        pop: lang.population === null ? "None" : (mil ? `${mil.toLocaleString()} million` : '< 1 million'),
-        mil,
+        pop_text: population_text(lang.population),
+        pop: lang.population ?? 0,  // Non-null version so can sort
     }
 })
 
 // Get top 20
-const languages_top20 = languages.slice().sort((a, b) => b.mil - a.mil).slice(0, 20)
+const languages_top20 = languages.slice().sort((a, b) => b.pop - a.pop).slice(0, 20)
 
 </script>
 

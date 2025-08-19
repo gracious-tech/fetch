@@ -24,7 +24,7 @@ table
         td {{ lang.local }}
         td {{ lang.english }}
         td {{ lang.id }}
-        td {{ lang.pop_str }}
+        td {{ lang.pop_text }}
 
 p(v-if='can_display_more')
     VPButton(@click='show_more' text="Show more" theme='alt')
@@ -55,6 +55,7 @@ p
 import {computed, ref} from 'vue'
 
 import {collection} from './collection'
+import {population_text} from './utils'
 import population from './population.json'
 
 
@@ -111,8 +112,7 @@ const languages_without_shareable_limited = computed(() => {
     return languages_without_shareable
         .slice(0, displayed_items.value)
         .map(([id, data]) => {
-            const mil = Math.round(data.pop / 1000000)
-            return {id, ...data, pop_str: mil ? `${mil.toLocaleString()} million` : "< 1 million"}
+            return {id, ...data, pop_text: population_text(data.pop)}
         })
 })
 const can_display_more = computed(

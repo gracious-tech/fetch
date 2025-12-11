@@ -49,6 +49,61 @@ function validate_ref(start_chapter:number, start_verse:number, end_chapter:numb
 }
 
 
+// @internal
+function _get_list(contents:string[][][], start_chapter=1, start_verse=1, end_chapter?:number,
+        end_verse?:number):IndividualVerse<string[]>[][]{
+    // Get list of individual verses with metadata, grouped by chapter
+    // NOTE end_verse can be 0 to signify non-inclusion of the first verse/heading of chapter
+    // TODO Option for splitting at clean paragraph breaks (where new verse starts next para)
+
+    // Default to ending at end of book
+    if (!end_chapter){
+        end_chapter = contents.length
+        end_verse = 0
+    } else if (typeof end_verse !== 'number'){  // WARN May be 0 which is valid
+        end_chapter += 1
+        end_verse = 0
+    }
+
+    // Validate
+    validate_ref(start_chapter, start_verse, end_chapter, end_verse)
+
+    // Util for creating objects from verse data
+    const get_verses_for_ch = (chapter:number, start:number, end?:number) => {
+        const verses = contents[chapter]?.slice(start, end && end + 1) ?? []
+        return verses.map((verse, i) => {
+            const verse_num = start + i
+            return {
+                // Calculate an id for the verse that is reproducible and sortable
+                // e.g. Psalm 119:176 = 119176 (cccvvv)
+                id: chapter * 1000 + verse_num,
+                chapter,
+                verse: verse_num,
+                content: verse,
+            }
+        })
+    }
+
+    // If range is within a single chapter, need to limit how much is taken from it
+    const same_ch_end_verse = start_chapter === end_chapter ? end_verse : undefined
+
+    // Add verses of start chapter
+    const verses = [get_verses_for_ch(start_chapter, start_verse, same_ch_end_verse)]
+
+    // Add inbetween chapters
+    for (let ch = start_chapter + 1; ch < end_chapter; ch++){
+        verses.push(get_verses_for_ch(ch, 1))
+    }
+
+    // Add verses of end chapter
+    if (end_chapter > start_chapter){
+        verses.push(get_verses_for_ch(end_chapter, 1, end_verse))
+    }
+
+    return verses.filter(verses_for_ch => verses_for_ch.length)
+}
+
+
 // Access to the HTML text of a Bible book
 export class BibleBookHtml {
 
@@ -99,7 +154,8 @@ export class BibleBookHtml {
     // Get HTML for a specific passage
     get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number,
             options:GetHtmlOptions={}):string{
-        const chapters = this._get_list(start_chapter, start_verse, end_chapter, end_verse)
+        const chapters =
+            _get_list(this._html.contents, start_chapter, start_verse, end_chapter, end_verse)
         if (!chapters.length){
             return ''
         }
@@ -148,64 +204,10 @@ export class BibleBookHtml {
         return this.get_passage(chapter, verse, chapter, verse, options)
     }
 
-    // @internal
-    _get_list(start_chapter=1, start_verse=1, end_chapter?:number, end_verse?:number)
-            :IndividualVerse<string[]>[][]{
-        // Get list of individual verses with metadata, grouped by chapter
-        // NOTE end_verse can be 0 to signify non-inclusion of the first verse/heading of chapter
-        // TODO Option for splitting at clean paragraph breaks (where new verse starts next para)
-
-        // Default to ending at end of book
-        if (!end_chapter){
-            end_chapter = this._html.contents.length
-            end_verse = 0
-        } else if (typeof end_verse !== 'number'){  // WARN May be 0 which is valid
-            end_chapter += 1
-            end_verse = 0
-        }
-
-        // Validate
-        validate_ref(start_chapter, start_verse, end_chapter, end_verse)
-
-        // Util for creating objects from verse data
-        const get_verses_for_ch = (chapter:number, start:number, end?:number) => {
-            const verses = this._html.contents[chapter]?.slice(start, end && end + 1) ?? []
-            return verses.map((verse, i) => {
-                const verse_num = start + i
-                return {
-                    // Calculate an id for the verse that is reproducible and sortable
-                    // e.g. Psalm 119:176 = 119176 (cccvvv)
-                    id: chapter * 1000 + verse_num,
-                    chapter,
-                    verse: verse_num,
-                    content: verse,
-                }
-            })
-        }
-
-        // If range is within a single chapter, need to limit how much is taken from it
-        const same_ch_end_verse = start_chapter === end_chapter ? end_verse : undefined
-
-        // Add verses of start chapter
-        const verses = [get_verses_for_ch(start_chapter, start_verse, same_ch_end_verse)]
-
-        // Add inbetween chapters
-        for (let ch = start_chapter + 1; ch < end_chapter; ch++){
-            verses.push(get_verses_for_ch(ch, 1))
-        }
-
-        // Add verses of end chapter
-        if (end_chapter > start_chapter){
-            verses.push(get_verses_for_ch(end_chapter, 1, end_verse))
-        }
-
-        return verses.filter(verses_for_ch => verses_for_ch.length)
-    }
-
     // Get HTML as an array of individual verses (each verse will be in its own paragraph)
     get_list(start_chapter?:number, start_verse?:number, end_chapter?:number, end_verse?:number)
             :IndividualVerse<string>[]{
-        return this._get_list(start_chapter, start_verse, end_chapter, end_verse)
+        return _get_list(this._html.contents, start_chapter, start_verse, end_chapter, end_verse)
             .flat().map(verse => {
                 return {
                     ...verse,

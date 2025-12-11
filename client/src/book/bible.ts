@@ -50,8 +50,8 @@ function validate_ref(start_chapter:number, start_verse:number, end_chapter:numb
 
 
 // @internal
-function _get_list(contents:string[][][], start_chapter=1, start_verse=1, end_chapter?:number,
-        end_verse?:number):IndividualVerse<string[]>[][]{
+function _get_list<T>(contents:T[][][], start_chapter=1, start_verse=1, end_chapter?:number,
+        end_verse?:number):IndividualVerse<T[]>[][]{
     // Get list of individual verses with metadata, grouped by chapter
     // NOTE end_verse can be 0 to signify non-inclusion of the first verse/heading of chapter
     // TODO Option for splitting at clean paragraph breaks (where new verse starts next para)
@@ -101,6 +101,24 @@ function _get_list(contents:string[][][], start_chapter=1, start_verse=1, end_ch
     }
 
     return verses.filter(verses_for_ch => verses_for_ch.length)
+}
+
+
+// @internal
+function _ref_to_get_list_args(ref:PassageReference){
+    // PassageReference objects will have exact numbers except for `book` and `chapter`
+    let end_chapter:number|undefined = ref.end_chapter
+    let end_verse:number|undefined = ref.end_verse
+    if (ref.type === 'book'){
+        // `get_list()` defaults to going to end of book when no end given
+        end_chapter = undefined
+        end_verse = undefined
+    } else if (ref.type === 'chapter'){
+        // `get_list()` accepts 0 for end_verse to finish at end of previous chapter
+        end_chapter += 1
+        end_verse = 0
+    }
+    return [ref.start_chapter, ref.start_verse, end_chapter, end_verse]
 }
 
 
@@ -211,27 +229,14 @@ export class BibleBookHtml {
             .flat().map(verse => {
                 return {
                     ...verse,
-                    content: verse.content.join(''),
+                    content: verse.content.join(''),  // Join ends to form valid paragraph
                 }
             })
     }
 
     // Get HTML as an array of individual verses by passing a PassageReference object
     get_list_from_ref(ref:PassageReference):IndividualVerse<string>[]{
-
-        // PassageReference objects will have exact numbers except for `book` and `chapter`
-        let end_chapter:number|undefined = ref.end_chapter
-        let end_verse:number|undefined = ref.end_verse
-        if (ref.type === 'book'){
-            // `get_list()` defaults to going to end of book when no end given
-            end_chapter = undefined
-            end_verse = undefined
-        } else if (ref.type === 'chapter'){
-            // `get_list()` accepts 0 for end_verse to finish at end of previous chapter
-            end_chapter += 1
-            end_verse = 0
-        }
-        return this.get_list(ref.start_chapter, ref.start_verse, end_chapter, end_verse)
+        return this.get_list(..._ref_to_get_list_args(ref))
     }
 }
 
@@ -429,6 +434,18 @@ export class BibleBookTxt {
     // Get txt for a single verse
     get_verse(chapter:number, verse:number, options:GetTxtOptions={}):string{
         return this.get_passage(chapter, verse, chapter, verse, options)
+    }
+
+    // Get txt as an array of individual verses
+    get_list(start_chapter?:number, start_verse?:number, end_chapter?:number, end_verse?:number)
+            :IndividualVerse<TxtContent[]>[]{
+        return _get_list(this._txt.contents, start_chapter, start_verse, end_chapter, end_verse)
+            .flat()
+    }
+
+    // Get txt as an array of individual verses by passing a PassageReference object
+    get_list_from_ref(ref:PassageReference):IndividualVerse<TxtContent[]>[]{
+        return this.get_list(..._ref_to_get_list_args(ref))
     }
 }
 

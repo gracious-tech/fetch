@@ -34,6 +34,7 @@ While fetch(bible) has no restrictions itself, most Bible translations have term
  * [Paper Bible](https://paper.bible)
  * [Track Bible](https://track.bible)
  * [TheWay by Church Renewal International](https://theway.app/)
+ * [Manna - Daily Bible Reader](https://gathermanna.com/)
 
 <img src='@/_assets/decor_apps.svg' style='max-width: 300px; margin: 36px auto'>
 

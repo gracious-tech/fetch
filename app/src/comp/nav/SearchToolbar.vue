@@ -6,7 +6,7 @@ v-toolbar(:density='density')
     //- autocomplete=off tells browser not to show its own suggestions which would overlap own
     v-combobox.input(ref='combobox' v-model='search_value' hide-details autocomplete='off'
             density='compact' variant='outlined' autofocus :items='state.search_history'
-            :multiple='orig_mode' :chips='orig_mode' :readonly='orig_mode')
+            :multiple='orig_mode' :chips='orig_mode' :readonly='orig_mode' @keydown.enter='enter')
         template(#prepend-inner)
             app-icon.placeholder(v-if='!state.search' name='search')
         template(v-if='orig_mode' #chip='chip_props')
@@ -30,7 +30,7 @@ v-toolbar(:density='density')
 
 import {computed, useTemplateRef} from 'vue'
 
-import {density, state} from '@/services/state'
+import {density, filtered_results, go_to_search_result, state} from '@/services/state'
 import {current_book_abbrev} from '@/services/computes'
 
 import type {VCombobox} from 'vuetify/lib/components'
@@ -82,6 +82,12 @@ const remove = (i:number) => {
         if (!state.search_orig.words.length){
             state.search_orig = null
         }
+    }
+}
+
+const enter = () => {
+    if (filtered_results.value.length){
+        go_to_search_result(filtered_results.value[0]!)
     }
 }
 

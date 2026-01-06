@@ -25,24 +25,9 @@ div.results(class='pa-4')
 
 <script lang='ts' setup>
 
-import {computed} from 'vue'
-
 import SearchResultsItem from './SearchResultsItem.vue'
-import {state} from '@/services/state'
+import {state, filtered_results} from '@/services/state'
 
-
-const filtered_results = computed(() => {
-    return (state.search_results ?? []).filter(result => {
-        if (state.search_filter === 'ot'){
-            return result.ref.ot
-        } else if (state.search_filter === 'nt'){
-            return result.ref.nt
-        } else if (state.search_filter === 'book'){
-            return result.ref.book === state.book
-        }
-        return true
-    })
-})
 
 </script>
 

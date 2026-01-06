@@ -161,6 +161,21 @@ export const safe_hsl = computed(() => {
 })
 
 
+// Search results (applying any filters)
+export const filtered_results = computed(() => {
+    return (state.search_results ?? []).filter(result => {
+        if (state.search_filter === 'ot'){
+            return result.ref.ot
+        } else if (state.search_filter === 'nt'){
+            return result.ref.nt
+        } else if (state.search_filter === 'book'){
+            return result.ref.book === state.book
+        }
+        return true
+    })
+})
+
+
 // METHODS
 
 
@@ -179,6 +194,17 @@ export const change_to_ref = (ref:PassageReference) => {
     state.verse = ref.start_verse
     // Ensure always a new object so scrolling triggered etc. upon repeated clicks of same ref
     state.passage = PassageReference.from_serialized(ref.to_serialized())
+}
+
+
+// Go to the search result and update history etc
+export const go_to_search_result = (result:SearchResult) => {
+    change_to_ref(result.ref)
+    state.show_nav = false
+    // Since have made use of these search results, save the query to history
+    const query = state.search.trim()
+    state.search_history = [query, ...state.search_history.filter(q => q !== query)].slice(0, 10)
+    add_to_read_history(result.ref)
 }
 
 

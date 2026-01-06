@@ -242,11 +242,11 @@ const update_dom = () => {
     scroll_to_verse(state.chapter, state.verse)
 
     // Highlight if a range specified
-    if (state.passage){
-        highlight_passage()
-    }
     if (state.study){
         highlight_study()
+    }
+    if (state.passage){  // Do second so that study doesn't wipe out a new passage highlight
+        highlight_passage()
     }
 
     // Update chapter/verse in state when scroll past them

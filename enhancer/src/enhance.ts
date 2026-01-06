@@ -128,7 +128,7 @@ export class BibleEnhancer {
                 html += '<p>&mdash;</p>'
             }
             // Append custom attribution which is just the translation's abbreviation
-            html += `<p class='fb-attribution'>${trans_meta.name_abbrev}</p>`
+            html += `<div class='fb-attribution'>${trans_meta.name_abbrev}</div>`
         }
         div.innerHTML = html
     }

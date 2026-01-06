@@ -37,6 +37,7 @@ let touch_start_x:number|null = null
 let touch_start_y:number|null = null
 let touch_end_x:number|null = null
 let touch_end_y:number|null = null
+let touch_selection:Node|null = null
 
 // References to DOM elements
 const swipe_prev = ref<HTMLDivElement>()
@@ -102,6 +103,7 @@ function cancel_swipe(){
     touch_start_y = null
     touch_end_x = null
     touch_end_y = null
+    touch_selection = null
 
     // Reset appearance of swipe icons
     swipe_prev.value!.style.left = `-48px`
@@ -179,6 +181,8 @@ const on_touch_start = (event:TouchEvent) => {
         // Disable animation so swipe feels more responsive
         swipe_prev.value!.style.transition = ''
         swipe_next.value!.style.transition = ''
+        // Record previous selection to see if it changes (and should cancel swipe)
+        touch_selection = window.getSelection()?.anchorNode ?? null
     }
 }
 
@@ -196,6 +200,13 @@ const on_touch_end = () => {
 
 
 const on_touch_move = (event:TouchEvent) => {
+
+    // If text selected since began swipe, cancel swipe
+    if (window.getSelection()?.anchorNode !== touch_selection){
+        cancel_swipe()
+        return
+    }
+
     // React to touch movement
     if (event.touches.length){
 

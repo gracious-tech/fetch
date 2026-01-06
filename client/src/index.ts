@@ -13,6 +13,7 @@ export type * from '@gracious.tech/bible-references'
 // Internal code
 // NOTE Don't export classes not meant to be initiated directly, export them as types instead
 export {FetchClient} from './client.js'
+export {wrap_verse_parts, add_passage_class, rm_passage_class} from './book/html.js'
 export {substantial_poetry} from './assets/data.js'
 export {FetchNetworkError} from './assets/request.js'
 

@@ -146,11 +146,12 @@ export class BibleBookHtml {
         }
         const url = this._copyright.attribution_url
         const owner = escape_html(this._copyright.attribution)
+        // NOTE Use <div> so <p> is reserved for actual bible content
         return `
-            <p class="fb-attribution">
+            <div class="fb-attribution">
                 <a href="${url}" target="_blank">${owner}</a>
                 (<a href="${license.url}" target="_blank">${license.name}</a>)
-            </p>
+            </div>
         `
     }
 

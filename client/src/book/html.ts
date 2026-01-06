@@ -45,6 +45,7 @@ export function wrap_verse_parts(root:HTMLElement):void{
 
 
 // Add class to range of verses
+// NOTE This doesn't verify the book, it assumes container's verses belong to passage's book
 export function add_passage_class(container:HTMLElement, passage:PassageReference, clas:string){
     let begun = false
     for (const span of container.querySelectorAll<HTMLSpanElement>('span[data-v]')){

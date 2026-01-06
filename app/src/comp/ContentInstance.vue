@@ -1,7 +1,7 @@
 
 <template lang='pug'>
 
-div.content(ref='content_div' :class='fetch_classes'
+div.content(ref='content_div' :class='fetch_classes' @click='on_click'
         @touchstart.passive='on_touch_start' @touchend.passive='on_touch_end'
         @touchmove.passive='on_touch_move' @touchcancel.passive='on_touch_cancel')
 
@@ -25,7 +25,8 @@ div.content(ref='content_div' :class='fetch_classes'
 import {ref, onMounted, watch, computed} from 'vue'
 
 import {PassageReference} from '@gracious.tech/bible-references'
-import {substantial_poetry} from '@gracious.tech/fetch-client'
+import {substantial_poetry, wrap_verse_parts, add_passage_class, rm_passage_class}
+    from '@gracious.tech/fetch-client'
 
 import {state, change_passage} from '@/services/state'
 import {chapters, direction} from '@/services/computes'
@@ -149,6 +150,27 @@ const scroll_to_verse = (chapter:number, verse:number) => {
 }
 
 
+const on_click = (event:MouseEvent) => {
+
+    // Only listen to clicks on verses
+    if (! (event.target instanceof HTMLElement) || !event.target.dataset['v']){
+        return
+    }
+
+    // Identify the verse
+    const data_v = event.target.dataset['v']
+    const data_v_ints = data_v.split(':').map(part => parseInt(part))
+    const new_study = new PassageReference(state.book, data_v_ints[0], data_v_ints[1])
+
+    // If clicking on verse already being studied, deselect it instead
+    if (state.study && state.study.equals(new_study)){
+        state.study = null
+    } else {
+        state.study = new_study
+    }
+}
+
+
 const on_touch_start = (event:TouchEvent) => {
     // Init start vars when a new touch again begins
     if (event.touches.length === 1){
@@ -202,6 +224,9 @@ const on_touch_cancel = () => {
 // Manual interaction with DOM of verses
 const update_dom = () => {
 
+    // Wrap parts of verses in spans
+    wrap_verse_parts(content_div.value!)
+
     // Discover verse elements once mounted so can scroll/detect them
     // NOTE Only adds if not yet defined (so skip ones in additional translations)
     verse_nodes = {}
@@ -213,28 +238,15 @@ const update_dom = () => {
         chapter_nodes[(node as HTMLElement).dataset['c']!] ??= node as HTMLElement
     }
 
-    // Listen to clicks on verses for study info
-    for (const node of Object.values(verse_nodes)){
-        node.addEventListener('click', () => {
-            const data_v = node.dataset['v']!.split(':').map(part => parseInt(part))
-            const new_study = new PassageReference(state.book, data_v[0], data_v[1])
-            // If clicking on verse already being studied, deselect it instead
-            if (state.study && state.study.equals(new_study)){
-                state.study = null
-            } else {
-                state.study = new_study
-            }
-            // Clear passage highlight when selecting/deselecting a verse
-            clear_highlight('passage')
-        })
-    }
-
     // Scroll to current chapter
     scroll_to_verse(state.chapter, state.verse)
 
-    // Highlight passage if specified
+    // Highlight if a range specified
     if (state.passage){
         highlight_passage()
+    }
+    if (state.study){
+        highlight_study()
     }
 
     // Update chapter/verse in state when scroll past them
@@ -289,85 +301,30 @@ watch(() => state.passage, passage => {
 
 
 watch(() => state.study, study => {
-    highlight_study_verse()
+    highlight_study()
 })
 
 
-// Highlight (or clear) the verse being studied
-const highlight_study_verse = () => {
-    if (state.study){
-        highlight_range(state.study, 'study')
-    } else {
-        clear_highlight('study')
+// Highlight (or clear) the verse being studied whenever it changes
+const highlight_study = () => {
+    rm_passage_class(content_div.value!, 'hl-study')
+    // Also clear passage when selecting/deselecting a verse (show study highlight instead)
+    rm_passage_class(content_div.value!, 'hl-passage')
+
+    // Only highlight if study verse is same book as currently displayed
+    if (state.study && state.study.book === state.book){
+        add_passage_class(content_div.value!, state.study, 'hl-study')
     }
 }
 
 
 // Highlight (or clear) the current passage in focus
 const highlight_passage = () => {
+    rm_passage_class(content_div.value!, 'hl-passage')
     // These types make sense to highlight (range_chapters would be too long and unnecessary)
     const types = ['verse', 'range_verses', 'range_multi']
-    if (state.passage && types.includes(state.passage.type)){
-        highlight_range(state.passage, 'passage')
-    } else {
-        clear_highlight('passage')
-    }
-}
-
-
-// Clear a highlight
-const clear_highlight = (id:string) => {
-    if ('highlights' in CSS){
-        // @ts-ignore New feature
-        // eslint-disable-next-line
-        CSS.highlights.delete(id)
-    }
-}
-
-
-// Highlight a range of text
-const highlight_range = (passage:PassageReference, id:string) => {
-
-    // Ensure browser supports
-    if (! ('highlights' in CSS)){
-        return
-    }
-
-    // Start range at start verse marker
-    const range = new Range()
-    const start = verse_nodes[`${passage.start_chapter}:${passage.start_verse}`]
-    if (!start){
-        return  // Start is missing for some reason. Highlighting is non-essential so ignore
-    }
-    range.setStartBefore(start)
-
-    // Get verse marker for verse after last verse so can select up to it
-    const after_end = passage.get_next_verse(true)
-    let end:HTMLElement|undefined
-    if (!after_end){
-        // Final verse of book, so select up to attribution
-        end = content_div.value?.querySelector('.fb-attribution') ?? undefined
-    } else if (after_end.start_verse === 1){
-        // If range ends at chapter, stop at the chapter node itself to avoid highlighting it
-        end = chapter_nodes[after_end.start_chapter]
-    } else {
-        // Select up to the next verse marker
-        end = verse_nodes[`${after_end.start_chapter}:${after_end.start_verse}`]
-    }
-
-    // If can't find end, simply end after the verse's current paragraph
-    if (end){
-        range.setEndBefore(end)
-    } else if (start.parentElement){
-        range.setEndAfter(start.parentElement)
-    }
-
-    // Register the range as a highlight
-    // TODO Webkit doesn't clear ranges properly, so wait for switch to <span>s and classes instead
-    if (!/iPhone|iPad|iPod/.test(navigator.userAgent)){
-        // @ts-ignore New feature
-        // eslint-disable-next-line
-        CSS.highlights.set(id, new Highlight(range))
+    if (state.passage && state.passage.book === state.book && types.includes(state.passage.type)){
+        add_passage_class(content_div.value!, state.passage, 'hl-passage')
     }
 }
 
@@ -493,10 +450,10 @@ const highlight_range = (passage:PassageReference, id:string) => {
         display: flex
 
 
-.content :deep(::highlight(passage))
-    background-color: rgb(var(--v-theme-primary), 0.2)
+.content :deep(.hl-passage)
+    background-color: rgb(var(--v-theme-primary), 0.25)
 
-.content :deep(::highlight(study))
+.content :deep(.hl-study)
     background-color: rgb(var(--v-theme-primary), 0.5)
 
 </style>

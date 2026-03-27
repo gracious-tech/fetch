@@ -178,6 +178,12 @@ export interface BibleJsonTxt {
     contents: TxtContent[][][]
 }
 
+export interface BibleJsonTypst {
+    book:string
+    name:BookNames
+    contents: string[][]
+}
+
 export type CrossrefSingle = [string, number, number]
 export type CrossrefRange = [...CrossrefSingle, number, number]
 export type CrossrefData = Record<string, Record<string, (CrossrefSingle|CrossrefRange)[]>>

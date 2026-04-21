@@ -1,6 +1,6 @@
 {
   "name": "reverse-usx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ensure a USX document follows the standard versification used in modern bibles.",
   "type": "module",
   "exports": {

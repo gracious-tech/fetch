@@ -28,10 +28,11 @@ export class NotesBook {
         const relevant:RelevantNotes[] = []
 
         // Add exact verse note if present
-        if (this._data.verses[chapter]?.[verse]){
+        const verse_note = this._data.verses[chapter]?.[verse]
+        if (verse_note){
             relevant.push({
                 reference: new PassageReference(this._data.book, chapter, verse),
-                contents: this._data.verses[chapter][verse],
+                contents: verse_note,
             })
         }
 

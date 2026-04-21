@@ -90,6 +90,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
         columns: true,
         skip_empty_lines: true,
         trim: true,
+        escape: '\\',  // eBible uses \ for escaping " instead of double ("")
     }) as EbibleRow[]
 
     // Load language data

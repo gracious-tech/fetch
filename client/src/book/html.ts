@@ -3,7 +3,7 @@
 import type {PassageReference} from '@gracious.tech/bible-references'
 
 
-// Wrap all parts of verses in <span>s with ids so they can be styled and interacted with
+// Wrap all parts of verses in spans with ids so they can be styled and interacted with
 export function wrap_verse_parts(root:HTMLElement):void{
 
     // Keep track of which verse contents belongs to

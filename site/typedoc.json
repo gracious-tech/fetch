@@ -1,8 +1,7 @@
 {
     "$schema": "https://typedoc.org/schema.json",
     "plugin": ["typedoc-plugin-markdown"],
-    "entryDocument": "index.md",
-    "hideInPageTOC": true,
+    "entryFileName": "index.md",
     "entryPointStrategy": "Expand",
     "excludeExternals": true,
     "commentStyle": "All",

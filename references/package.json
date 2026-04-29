@@ -1,6 +1,6 @@
 {
   "name": "@gracious.tech/bible-references",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Bible reference detection, parsing, and rendering that supports any language.",
   "type": "module",
   "exports": {

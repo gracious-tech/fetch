@@ -153,6 +153,13 @@ describe('get_prev_verse', () => {
             end_verse: 1}).get_prev_verse(true))
             .toMatchObject(simple(1, 12))
     })
+
+    it("Expands book/chapter type to actual end when prev_to_end=true", ({expect}) => {
+        // Book type: expands to last verse (2th 3:18), so prev is 3:17
+        expect(new PassageReference('2th').get_prev_verse(true)).toMatchObject(simple(3, 17))
+        // Chapter type: expands to last verse of chapter (2th ch1 = 1:12), so prev is 1:11
+        expect(new PassageReference('2th', 1).get_prev_verse(true)).toMatchObject(simple(1, 11))
+    })
 })
 
 
@@ -168,6 +175,13 @@ describe('get_next_verse', () => {
         expect(new PassageReference({book: '2th', start_chapter: 1, start_verse: 1, end_chapter: 2,
             end_verse: 1}).get_next_verse(true))
             .toMatchObject(simple(2, 2))
+    })
+
+    it("Expands book/chapter type to actual end when after_end=true", ({expect}) => {
+        // Book type: expands to last verse (2th 3:18), so next is null
+        expect(new PassageReference('2th').get_next_verse(true)).toBe(null)
+        // Chapter type: expands to last verse of chapter (2th ch1 = 1:12), so next is 2:1
+        expect(new PassageReference('2th', 1).get_next_verse(true)).toMatchObject(simple(2, 1))
     })
 })
 
@@ -429,6 +443,167 @@ describe('total_verses', () => {
         expect(PassageReference.from_string('2 Tim 1:2-4:3')!.total_verses()).toBe(17 + 26 + 17 + 3)
     })
 
+})
+
+
+describe('is_before', () => {
+
+    it("Returns true when ref ends before the given chapter/verse", ({expect}) => {
+        expect(new PassageReference('gen', 1, 5).is_before(1, 6)).toBe(true)
+        expect(new PassageReference('gen', 1, 5).is_before(1, 5)).toBe(false)
+        expect(new PassageReference('gen', 1, 6).is_before(1, 5)).toBe(false)
+    })
+
+    it("Returns true when ref ends before the given ref starts", ({expect}) => {
+        const a = new PassageReference('gen', 1, 5)
+        const b = new PassageReference('gen', 1, 6)
+        expect(a.is_before(b)).toBe(true)
+        expect(b.is_before(a)).toBe(false)
+        expect(a.is_before(a)).toBe(false)
+    })
+
+    it("Expands book/chapter type to actual end for ref", ({expect}) => {
+        // Chapter type expands to end of chapter (gen ch1 = 1:31)
+        // so is_before(1:31) should be false (ends at, not before)
+        expect(new PassageReference('gen', 1).is_before(1, 31)).toBe(false)
+        // and is_before(1:15) should be false (1:31 is not before 1:15)
+        expect(new PassageReference('gen', 1).is_before(1, 15)).toBe(false)
+        // but is_before(2:1) should be true (1:31 is before 2:1)
+        expect(new PassageReference('gen', 1).is_before(2, 1)).toBe(true)
+    })
+
+    it("Uses canonical book order for cross-book comparison", ({expect}) => {
+        expect(new PassageReference('gen').is_before(new PassageReference('mat'))).toBe(true)
+        expect(new PassageReference('mat').is_before(new PassageReference('gen'))).toBe(false)
+    })
+})
+
+
+describe('is_after', () => {
+
+    it("Returns true when ref starts after the given chapter/verse", ({expect}) => {
+        expect(new PassageReference('gen', 1, 6).is_after(1, 5)).toBe(true)
+        expect(new PassageReference('gen', 1, 5).is_after(1, 5)).toBe(false)
+        expect(new PassageReference('gen', 1, 5).is_after(1, 6)).toBe(false)
+    })
+
+    it("Returns true when ref starts after the given ref ends", ({expect}) => {
+        const a = new PassageReference('gen', 1, 5)
+        const b = new PassageReference('gen', 1, 6)
+        expect(b.is_after(a)).toBe(true)
+        expect(a.is_after(b)).toBe(false)
+        expect(a.is_after(a)).toBe(false)
+    })
+
+    it("Expands book/chapter type to actual end for ref arg", ({expect}) => {
+        // Chapter type arg expands to end of chapter (gen ch1 = 1:31)
+        // so a verse within ch1 should NOT be after ch1
+        expect(new PassageReference('gen', 1, 15).is_after(new PassageReference('gen', 1))).toBe(false)
+        // the last verse of ch1 should NOT be after ch1
+        expect(new PassageReference('gen', 1, 31).is_after(new PassageReference('gen', 1))).toBe(false)
+        // but the first verse of ch2 SHOULD be after ch1
+        expect(new PassageReference('gen', 2, 1).is_after(new PassageReference('gen', 1))).toBe(true)
+    })
+
+    it("Uses canonical book order for cross-book comparison", ({expect}) => {
+        expect(new PassageReference('mat').is_after(new PassageReference('gen'))).toBe(true)
+        expect(new PassageReference('gen').is_after(new PassageReference('mat'))).toBe(false)
+    })
+})
+
+
+describe('includes', () => {
+
+    it("Returns true when the given chapter/verse is within ref", ({expect}) => {
+        const ref = new PassageReference({book: 'gen', start_chapter: 1, start_verse: 5,
+            end_chapter: 2, end_verse: 10})
+        expect(ref.includes(1, 5)).toBe(true)   // start boundary
+        expect(ref.includes(2, 10)).toBe(true)  // end boundary
+        expect(ref.includes(1, 10)).toBe(true)  // middle
+        expect(ref.includes(1, 4)).toBe(false)  // before start
+        expect(ref.includes(2, 11)).toBe(false) // after end
+    })
+
+    it("Returns true when the argument ref is fully within the calling ref", ({expect}) => {
+        const outer = new PassageReference({book: 'gen', start_chapter: 1, start_verse: 1,
+            end_chapter: 5, end_verse: 32})
+        const inner = new PassageReference({book: 'gen', start_chapter: 1, start_verse: 5,
+            end_chapter: 2, end_verse: 10})
+        expect(outer.includes(inner)).toBe(true)
+        expect(inner.includes(outer)).toBe(false)
+    })
+
+    it("Returns true when refs are identical", ({expect}) => {
+        const ref = new PassageReference({book: 'gen', start_chapter: 1, start_verse: 5,
+            end_chapter: 2, end_verse: 10})
+        expect(ref.includes(ref)).toBe(true)
+    })
+
+    it("Returns false when ref only partially overlaps", ({expect}) => {
+        const ref = new PassageReference({book: 'gen', start_chapter: 2, start_verse: 5,
+            end_chapter: 3, end_verse: 10})
+        // Arg starts before the calling ref
+        expect(ref.includes(new PassageReference({book: 'gen', start_chapter: 1,
+            start_verse: 1, end_chapter: 2, end_verse: 10}))).toBe(false)
+        // Arg ends after the calling ref
+        expect(ref.includes(new PassageReference({book: 'gen', start_chapter: 3,
+            start_verse: 5, end_chapter: 4, end_verse: 1}))).toBe(false)
+    })
+
+    it("Expands book/chapter type to full range for the calling ref", ({expect}) => {
+        // Book type includes any verse within the book
+        expect(new PassageReference('gen').includes(new PassageReference('gen', 5, 1))).toBe(true)
+        // Chapter type includes verses within the chapter
+        expect(new PassageReference('gen', 1).includes(new PassageReference('gen', 1, 15))).toBe(true)
+        expect(new PassageReference('gen', 1).includes(new PassageReference('gen', 2, 1))).toBe(false)
+    })
+
+    it("Returns false for different books", ({expect}) => {
+        expect(new PassageReference('gen').includes(new PassageReference('mat', 1, 1))).toBe(false)
+    })
+})
+
+
+describe('overlaps', () => {
+
+    it("Returns true when ranges share verses", ({expect}) => {
+        const ref = new PassageReference({book: 'gen', start_chapter: 2, start_verse: 5,
+            end_chapter: 3, end_verse: 10})
+        // Partial overlap at start
+        expect(ref.overlaps(new PassageReference({book: 'gen', start_chapter: 1,
+            start_verse: 1, end_chapter: 2, end_verse: 10}))).toBe(true)
+        // Partial overlap at end
+        expect(ref.overlaps(new PassageReference({book: 'gen', start_chapter: 3,
+            start_verse: 5, end_chapter: 4, end_verse: 1}))).toBe(true)
+        // One contains the other
+        expect(ref.overlaps(new PassageReference({book: 'gen', start_chapter: 1,
+            start_verse: 1, end_chapter: 5, end_verse: 32}))).toBe(true)
+        // Same ref
+        expect(ref.overlaps(ref)).toBe(true)
+    })
+
+    it("Returns false when ranges do not share verses", ({expect}) => {
+        const ref = new PassageReference({book: 'gen', start_chapter: 2, start_verse: 5,
+            end_chapter: 3, end_verse: 10})
+        // Ends just before ref starts
+        expect(ref.overlaps(new PassageReference({book: 'gen', start_chapter: 1,
+            start_verse: 1, end_chapter: 2, end_verse: 4}))).toBe(false)
+        // Starts just after ref ends
+        expect(ref.overlaps(new PassageReference({book: 'gen', start_chapter: 3,
+            start_verse: 11, end_chapter: 4, end_verse: 1}))).toBe(false)
+    })
+
+    it("Returns false for different books", ({expect}) => {
+        expect(new PassageReference('gen').overlaps(new PassageReference('mat'))).toBe(false)
+    })
+
+    it("Expands book/chapter types to full range", ({expect}) => {
+        // Book type overlaps with a verse within it
+        expect(new PassageReference('gen').overlaps(new PassageReference('gen', 5, 1))).toBe(true)
+        // Chapter type overlaps with a verse within it but not one outside
+        expect(new PassageReference('gen', 1).overlaps(new PassageReference('gen', 1, 15))).toBe(true)
+        expect(new PassageReference('gen', 1).overlaps(new PassageReference('gen', 2, 1))).toBe(false)
+    })
 })
 
 

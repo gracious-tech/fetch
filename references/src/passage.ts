@@ -9,6 +9,10 @@
     As for the other types, anything with a hyphen is obviously a range (1:1-2, 1-2, 1:1-2:2)
     That only leaves single verses (1:1) which are identifiers and can never be a range
     So it makes sense to consider books and chapters (no hyphens) as identifiers as well
+
+    However, when using methods that expect ranges, book/chapter types ARE interpreted as ranges.
+    For example: get_end(), is_after(), includes(), etc.
+    These methods treat book as a whole book range, and chapter as a whole chapter range.
 */
 
 
@@ -421,21 +425,53 @@ export class PassageReference {
             && this.end_verse === ref.end_verse
     }
 
-    // Whether this reference ends before the given chapter/verse or not
-    is_before(chapter:number, verse:number):boolean{
-        return this.end_chapter < chapter ||
-            (this.end_chapter === chapter && this.end_verse < verse)
+    // Whether this reference ends before the given reference starts (no overlap)
+    // NOTE 'book'/'chapter' types are interpreted as ranges for this
+    is_before(chapter:number, verse:number):boolean
+    is_before(ref:PassageReference):boolean
+    is_before(chapter_or_ref:number|PassageReference, verse?:number):boolean{
+        const ref = typeof chapter_or_ref === 'number'
+            ? new PassageReference(this.book, chapter_or_ref, verse) : chapter_or_ref
+        if (this.book !== ref.book){
+            return books_ordered.indexOf(this.book) < books_ordered.indexOf(ref.book)
+        }
+        const this_end = this.get_end()  // Treat book/chapter types as ranges
+        return this_end.end_chapter < ref.start_chapter
+            || (this_end.end_chapter === ref.start_chapter && this_end.end_verse < ref.start_verse)
     }
 
-    // Whether this reference starts after the given chapter/verse or not
-    is_after(chapter:number, verse:number):boolean{
-        return this.start_chapter > chapter ||
-            (this.start_chapter === chapter && this.start_verse > verse)
+    // Whether this reference starts after the given reference ends (no overlap)
+    // NOTE 'book'/'chapter' types are interpreted as ranges for this
+    is_after(chapter:number, verse:number):boolean
+    is_after(ref:PassageReference):boolean
+    is_after(chapter_or_ref:number|PassageReference, verse?:number):boolean{
+        const ref = typeof chapter_or_ref === 'number'
+            ? new PassageReference(this.book, chapter_or_ref, verse) : chapter_or_ref
+        if (this.book !== ref.book){
+            return books_ordered.indexOf(this.book) > books_ordered.indexOf(ref.book)
+        }
+        const ref_end = ref.get_end()  // Treat book/chapter types as ranges
+        return this.start_chapter > ref_end.end_chapter
+            || (this.start_chapter === ref_end.end_chapter && this.start_verse > ref_end.end_verse)
     }
 
-    // Whether this reference includes the given chapter/verse or not
-    includes(chapter:number, verse:number):boolean{
-        return !this.is_before(chapter, verse) && !this.is_after(chapter, verse)
+    // Whether this reference includes all verses of given reference
+    // NOTE 'book'/'chapter' types are interpreted as ranges for this
+    includes(chapter:number, verse:number):boolean
+    includes(ref:PassageReference):boolean
+    includes(chapter_or_ref:number|PassageReference, verse?:number):boolean{
+        const ref = typeof chapter_or_ref === 'number'
+            ? new PassageReference(this.book, chapter_or_ref, verse) : chapter_or_ref
+        // ref must not start before `this`, and must not end after `this`
+        // NOTE get_start/get_end needed — without them is_before/is_after compares ref's end/start,
+        //      so a ref that overlaps but isn't fully contained would pass the check incorrectly
+        return !ref.get_start().is_before(this) && !ref.get_end().is_after(this)
+    }
+
+    // Whether this reference shares any verses with the given reference
+    // NOTE 'book'/'chapter' types are interpreted as ranges for this
+    overlaps(ref:PassageReference):boolean{
+        return !this.is_before(ref) && !this.is_after(ref)
     }
 
     // Get the total number of verses included in the range
@@ -472,6 +508,7 @@ export class PassageReference {
     }
 
     // Get a reference for just the end verse of this reference (no effect if single verse)
+    // NOTE 'book'/'chapter' types are interpreted as ranges for this
     get_end(){
         const last_verse_book = last_verse[this.book]!
         if (this.type === 'book'){
@@ -498,11 +535,13 @@ export class PassageReference {
 
     // Get a reference for the verse previous to this one (accounting for chapters)
     // It can optionally be relative to the end verse, but a range is never returned (single verse)
+    // NOTE 'book'/'chapter' types are interpreted as ranges for this
     get_prev_verse(prev_to_end=false):PassageReference|null{
 
-        // Optionally relative to end rather than start
-        let chapter = prev_to_end ? this.end_chapter : this.start_chapter
-        let verse = prev_to_end ? this.end_verse : this.start_verse
+        // Optionally relative to end rather than start (use get_end() in case book/chapter type)
+        const end = prev_to_end ? this.get_end() : null
+        let chapter = end ? end.end_chapter : this.start_chapter
+        let verse = end ? end.end_verse : this.start_verse
 
         // Ensure action possible
         if (chapter === 1 && verse === 1){
@@ -526,11 +565,13 @@ export class PassageReference {
 
     // Get a reference for the verse after this one (accounting for chapters)
     // It can optionally be relative to the end verse, but a range is never returned (single verse)
+    // NOTE 'book'/'chapter' types are interpreted as ranges for this
     get_next_verse(after_end=false):PassageReference|null{
 
-        // Optionally relative to end rather than start
-        let chapter = after_end ? this.end_chapter : this.start_chapter
-        let verse = after_end ? this.end_verse : this.start_verse
+        // Optionally relative to end rather than start (use get_end() in case book/chapter type)
+        const end = after_end ? this.get_end() : null
+        let chapter = end ? end.end_chapter : this.start_chapter
+        let verse = end ? end.end_verse : this.start_verse
 
         // Ensure action possible
         const last_verse_book = last_verse[this.book]!

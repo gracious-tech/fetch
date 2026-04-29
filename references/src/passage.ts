@@ -358,13 +358,15 @@ export class PassageReference {
     }
 
     // Return a new reference that extends from start of first ref to end of second ref
+    // NOTE get_end() used so that book/chapter types are treated as ranges
     static from_refs(start:PassageReference, end:PassageReference){
+        const actual_end = end.get_end()  // Treat book/chapter types as ranges
         return new PassageReference({
             book: start.book,
             start_chapter: start.start_chapter,
             start_verse: start.start_verse,
-            end_chapter: end.end_chapter,
-            end_verse: end.end_verse,
+            end_chapter: actual_end.end_chapter,
+            end_verse: actual_end.end_verse,
         })
     }
 

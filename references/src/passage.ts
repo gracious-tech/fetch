@@ -594,4 +594,25 @@ export class PassageReference {
             start_verse: verse,
         })
     }
+
+    // Return new object that collapses ranges to a book/chapter type if possible
+    // NOTE This is not done automatically in constructor since book/chapter types are identifiers
+    //      and can refer to e.g. navigating to a chapter rather than selecting its contents
+    simplify():PassageReference {
+        const last_verse_book = last_verse[this.book]!
+
+        // If range_verses (single chapter) covers whole chapter, convert to chapter type
+        if (this.type === 'range_verses' && this.start_verse === 1
+                && this.end_verse === last_verse_book[this.start_chapter-1]){
+            return new PassageReference(this.book, this.start_chapter)
+        }
+
+        // If range_chapters covers whole book, convert to book type
+        if (this.type === 'range_chapters' && this.start_chapter === 1
+                && this.end_chapter === last_verse_book.length){
+            return new PassageReference(this.book)
+        }
+
+        return this
+    }
 }

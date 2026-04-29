@@ -607,6 +607,45 @@ describe('overlaps', () => {
 })
 
 
+describe('simplify', () => {
+
+    it("Collapses a whole-chapter range_verses to a chapter identifier", ({expect}) => {
+        // Gen 1 has 31 verses
+        const ref = PassageReference.from_string('Gen 1:1-31')!
+        expect(ref.type).toBe('range_verses')
+        const simplified = ref.simplify()
+        expect(simplified.type).toBe('chapter')
+        expect(simplified.to_serialized()).toBe('gen1')
+    })
+
+    it("Collapses a whole-book range_chapters to a book identifier", ({expect}) => {
+        // Genesis has 50 chapters
+        const ref = PassageReference.from_string('Gen 1-50')!
+        expect(ref.type).toBe('range_chapters')
+        const simplified = ref.simplify()
+        expect(simplified.type).toBe('book')
+        expect(simplified.to_serialized()).toBe('gen')
+    })
+
+    it("Leaves a partial chapter range unchanged", ({expect}) => {
+        const ref = PassageReference.from_string('Gen 1:1-30')!
+        expect(ref.simplify()).toBe(ref)
+    })
+
+    it("Leaves a partial book range unchanged", ({expect}) => {
+        const ref = PassageReference.from_string('Gen 1-49')!
+        expect(ref.simplify()).toBe(ref)
+    })
+
+    it("Returns the same reference when already an identifier", ({expect}) => {
+        expect(PassageReference.from_string('Gen 1')!.simplify().type).toBe('chapter')
+        expect(PassageReference.from_string('Gen')!.simplify().type).toBe('book')
+        expect(PassageReference.from_string('Gen 1:1')!.simplify().type).toBe('verse')
+    })
+
+})
+
+
 const book_name_abbreviations = {
     "gen": ["Gen.", "Ge.", "Gn."],
     "exo": ["Ex.", "Exod.", "Exo."],

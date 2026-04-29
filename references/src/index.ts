@@ -1,7 +1,7 @@
 
 export {PassageReference} from './passage.js'
 export {detect_references} from './detect.js'
-export {simplify_references, sort_references} from './lists.js'
+export {simplify_references, sort_references, references_to_string} from './lists.js'
 export {get_chapters, get_verses} from './stats.js'
 export {book_names_english, book_abbrev_english, books_ordered, english_abbrev_include,
     english_abbrev_exclude} from './data.js'

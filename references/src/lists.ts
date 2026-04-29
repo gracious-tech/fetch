@@ -77,3 +77,51 @@ export function simplify_references(refs:PassageReference[]):PassageReference[]{
 
     return result
 }
+
+
+// Render a list of references to string, making representation succinct where possible
+// E.g. Matt 1:1-2, Matt 1:5, Matt 5, Gen 1 -> Matt 1:1-2, 5; 5; Gen 1
+export function references_to_string(refs:PassageReference[], book_names:Record<string, string>={},
+        verse_sep=':', range_sep='-', chapter_sep='; '):string{
+
+    let result = ''
+    let current_book:string|null = null
+    let current_chapter:number|null = null
+
+    for (const ref of refs){
+
+        const same_book = ref.book === current_book
+        const verse_level = ref.type === 'verse' || ref.type === 'range_verses'
+        const same_chapter = same_book && ref.start_chapter === current_chapter && verse_level
+
+        // Determine separator and display string based on shared context with previous ref
+        let sep:string
+        let display:string
+        if (result === ''){
+            sep = ''
+            display = ref.toString(book_names, verse_sep, range_sep)
+        } else if (same_chapter){
+            // Same book and chapter — show only the verse(s), no chapter prefix
+            sep = ', '
+            display = ref.type === 'verse'
+                ? `${ref.start_verse}`
+                : `${ref.start_verse}${range_sep}${ref.end_verse}`
+        } else if (same_book){
+            // Same book, different chapter — omit book name
+            sep = chapter_sep
+            display = ref.get_verses_string(verse_sep, range_sep)
+        } else {
+            // Different book — show full reference
+            sep = chapter_sep
+            display = ref.toString(book_names, verse_sep, range_sep)
+        }
+
+        result += sep + display
+
+        // Update context to track what was last rendered
+        current_book = ref.book
+        current_chapter = ref.start_chapter
+    }
+
+    return result
+}

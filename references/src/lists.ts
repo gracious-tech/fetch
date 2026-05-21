@@ -1,5 +1,5 @@
 
-import {PassageReference} from './passage'
+import {PassageReference} from './passage.js'
 import {books_ordered} from './data.js'
 
 

@@ -11,12 +11,12 @@ interface ParserState {
     chapter:number
     verse:number
     prev_para_type:'para'|'break'|null
-    unknown_owner:string[]
+    unknown_owner:string
     contents:BibleJsonTypst['contents']
 }
 
 
-export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTypst{
+export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst{
 
     // Parse USX
     const {usx_element, num_verses, book_code, book_name} = parse_usx(xml, parser)
@@ -27,25 +27,25 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTypst{
         chapter: 0,
         verse: 0,
         prev_para_type: null,  // Whether previous para was not actually a para (e.g. poetry)
-        unknown_owner: [],  // Content that should be prepended to next verse if current verse done
-        // Prepare output with empty array for every verse
+        unknown_owner: '',  // Content that should be prepended to next verse if current verse done
+        // Prepare output with empty string for every verse
         contents: [
             [],  // Chapter 0
             ...num_verses.map(num_verses_in_ch => {
-                const array = []
+                const array:string[] = []
                 // NOTE +1 for verse 0
                 for (let i = 0; i < num_verses_in_ch + 1; i++){
-                    array.push([])
+                    array.push('')
                 }
                 return array
             }),
-        ] as BibleJsonTypst['contents'],
+        ],
     }
 
     // Iterate over <usx> children (elements only, text nodes not allowed at root level)
     for (const child of Array.from(usx_element.children)){
 
-        // Get style for <para> in advance, as linebreaking logic needs it
+        // Get style for <para> in advance, as break logic needs it
         const style = child.getAttribute('style') || ''
 
         // Only know how many newlines to add once know next <para> type
@@ -82,6 +82,8 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTypst{
             }
             state.chapter = chapter_number
             state.verse = 0
+            // Add chapter marker to unknown_owner so it flows to the first verse
+            add_content(state, `#c(${state.chapter})\n`, true)
             continue
         }
 
@@ -99,20 +101,22 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTypst{
 
         // Ignore extra-biblical content
         // NOTE <para style=b> only useful for forcing gap between poetry
-        //      This is already achieved in newline logic above, so can now ignore it
+        //      This is already achieved in break logic above, so can now ignore it
         if (ignored_para_styles.includes(style) || style === 'b'){
             continue
         }
 
         // Detect major headings
         if (headings_major.includes(style)){
-            add_content(state, {type: 'heading', contents: child.textContent!, level: 1}, true)
+            const text = escape_typst(child.textContent!)
+            add_content(state, `= ${text}\n`, true)
             continue
         }
 
         // Detect section headings
         if (headings_regular.includes(style)){
-            add_content(state, {type: 'heading', contents: child.textContent!, level: 2}, true)
+            const text = escape_typst(child.textContent!)
+            add_content(state, `== ${text}\n`, true)
             continue
         }
 
@@ -120,7 +124,8 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTypst{
         // NOTE Also classifying original superscriptions in psalms (`d`) as a minor heading
         //      Since most users wouldn't want them quoted as part of first verse
         if (headings_minor.includes(style) || (book_code === 'psa' && style === 'd')){
-            add_content(state, {type: 'heading', contents: child.textContent!, level: 3}, true)
+            const text = escape_typst(child.textContent!)
+            add_content(state, `=== ${text}\n`, true)
             continue
         }
 
@@ -130,6 +135,15 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTypst{
         state.prev_para_type = non_para_para.includes(style) ? 'break' : 'para'
     }
 
+    // Clear verses that only contain a marker and no actual text
+    for (let ch = 1; ch < state.contents.length; ch++){
+        for (let v = 1; v < state.contents[ch]!.length; v++){
+            if (/^#v\(\d+\)\s*$/.test(state.contents[ch]![v]!)){
+                state.contents[ch]![v] = ''
+            }
+        }
+    }
+
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
@@ -137,7 +151,7 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTypst{
     }
     for (let ch = 1; ch < state.contents.length; ch++){
         if (state.contents[ch]![0]!.length){
-            state.contents[ch]![0] = []
+            state.contents[ch]![0] = ''
             console.warn(`Content exists before verse 1 marker for chapter ${ch} (${book_code})`)
         }
     }
@@ -165,13 +179,13 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
         // If first node is not a verse element, then any headings/etc being held in unknown_owner
         //     belong to current verse and not the next one
         if (index === 0 && node.nodeName !== 'verse'){
-            state.contents[state.chapter]![state.verse]!.push(...state.unknown_owner)
-            state.unknown_owner = []
+            state.contents[state.chapter]![state.verse]! += state.unknown_owner
+            state.unknown_owner = ''
         }
 
         // Handle text nodes
         if (node.nodeType === 3){
-            add_content(state, node.textContent!)
+            add_content(state, escape_typst(node.textContent!))
         }
 
         // Ignore all other node types that aren't elements (e.g. comments), or on ignored list
@@ -209,8 +223,11 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
             state.verse = new_number
 
             // Any unknown owner data is now known to belong to the new verse
-            state.contents[state.chapter]![state.verse]!.push(...state.unknown_owner)
-            state.unknown_owner = []
+            state.contents[state.chapter]![state.verse]! += state.unknown_owner
+            state.unknown_owner = ''
+
+            // Add verse marker inline (must come after reseting unknown_owner above
+            add_content(state, `#v(${state.verse})`)
         }
 
         // Recurse through char elements
@@ -223,13 +240,14 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
             process_contents(state, element.childNodes)
         }
 
-        // Transform note elements to note objects
+        // Transform note elements to inline Typst footnotes
         if (element.nodeName === 'note'){
             if (ignored_note_styles.includes(element.getAttribute('style') ?? '')){
                 continue
             }
             // NOTE textContent will include all elements (so is immune to ignore lists)
-            add_content(state, {type: 'note', contents: element.textContent!})
+            const text = escape_typst(element.textContent!)
+            add_content(state, `#footnote[${text}]`)
         }
     }
 }
@@ -238,31 +256,34 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
 // Add content to current verse, possibly buffering if may belong to next verse
 function add_content(state:ParserState, content:string, may_belong_to_next_verse=false):void{
 
-    // Strip any newlines that might be present in the HTML but not intended to be a line break
-    if (typeof content !== 'string'){
-        content.contents = single_space(content.contents)
-    }
-
     // Decide whether to add to unknown_owner or actual verse
-    if (state.unknown_owner.length || may_belong_to_next_verse){
-        add_or_join(state.unknown_owner, content)
+    if (state.unknown_owner || may_belong_to_next_verse){
+        state.unknown_owner += content
     } else {
-        add_or_join(state.contents[state.chapter]![state.verse]!, content)
+        state.contents[state.chapter]![state.verse]! += content
     }
 }
 
 
-// Add verse content to an array, but join if it is a string and so was the previous item
-function add_or_join(array:string[], item:string){
-    if (typeof array.at(-1) === 'string' && typeof item === 'string'){
-        array[array.length - 1] += item
-    } else {
-        array.push(item)
-    }
-}
+// Escape characters that have special meaning in Typst content mode
+// \     Character escape / line break
+// #     Code expression
+// []    Content block
+// $     Math mode
+// *     Strong emphasis
+// _     Emphasis
+// `     Raw text
+// <>    Label
+// @     Reference
+// ~     Symbol shorthand (non-breaking space)
+// /     Term list / comment
+// +     Numbered list
+// -     Bullet list / symbol shorthand (dashes)
+function escape_typst(text:string):string{
 
+    // First condense whitespace to single space (XML parser preserves source whitespace)
+    text = text.replaceAll(/\s+/g, ' ').trim()
 
-// Ensure words are separated by a single space only
-function single_space(text:string){
-    return text.replaceAll('\n', ' ').replaceAll(/\s{2,}/g, ' ').trim()
+    // eslint-disable-next-line no-useless-escape
+    return text.replace(/[\\#\[\]$*_`<>@~/+-]/g, '\\$&')
 }

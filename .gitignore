@@ -1,7 +1,5 @@
 
-# Want to keep everything at root to avoid internal version mismatches so don't hide
-#     when subcomponents install their own node_modules so can deal with it
-/node_modules/
+node_modules/
 dist/
 
 /app/.deployments/

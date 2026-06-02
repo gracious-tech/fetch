@@ -5,7 +5,7 @@ import {existsSync, mkdirSync} from 'fs'
 import {parse as csv_parse} from 'csv-parse/sync'
 
 import {request, concurrent, write_json, read_json} from '../parts/utils.js'
-import {LICENSES, detect_year} from '../parts/license.js'
+import {license_from_text, detect_year} from '../parts/license.js'
 import {get_language_data} from '../parts/languages.js'
 import type {TranslationSourceMeta} from '../parts/types'
 
@@ -115,7 +115,6 @@ export async function discover(existing:string[], discover_specific_id?:string):
             fcbhid_end = 'wft'  // eBible is inconsistent and sometimes uses 'twf' for same org
         }
         let trans_id = `${lang_code ?? ''}_${fcbhid_end}`
-        const log_ids = `${trans_id}/${ebible_id}`
 
         // Skip if only want to discover a single translation
         if (discover_specific_id && ebible_id !== discover_specific_id){
@@ -149,17 +148,11 @@ export async function discover(existing:string[], discover_specific_id?:string):
         // Detect the license
         let license:string|null = null
         let license_url = ebible_url
-        const cc_url = /creativecommons.org\/licenses\/([a-z-]+)\/(\d+\.\d+)/i.exec(page_resp)
-        if (cc_url){
-            license = `cc-${cc_url[1]!}`
-            if (license in LICENSES){
-                license_url = `https://creativecommons.org/licenses/${cc_url[1]!}/${cc_url[2]!}/`
-            } else {
-                console.warn(`Failed to detect CC license "${license}" (${log_ids})`)
-                license = null
-            }
-        } else if (/public domain/i.test(page_resp) && !/not public domain/i.test(page_resp)){
-            license = 'public'
+        const detected = license_from_text(page_resp)
+        if (detected){
+            license = detected.license
+            if (detected.url)
+                license_url = detected.url
         } else if (IGNORE_UNLICENSED.includes(ebible_id)){
             return
         }

@@ -9,6 +9,7 @@ import {JSDOM} from 'jsdom'
 
 import {pre_usx_to_json} from '../integrations/patches.js'
 import {update_manifest} from '../parts/manifest.js'
+import {add_unpublished} from '../parts/unpublished.js'
 import {concurrent, PKG_PATH, read_json, write_json, list_files, list_dirs} from '../parts/utils.js'
 import {extract_sections, generate_chapter_headings} from '../parts/sections.js'
 import {rm_mark_second_ending} from '../parts/mark_ending.js'
@@ -105,6 +106,7 @@ export async function update_dist(trans_id?:string){
         // Update assets for the translation
         try {
             await _update_dist_single(id, force)
+            add_unpublished([`bibles/${id}`])
         } catch (error){
             console.error(`FAILED update dist assets for: ${id}`)
             console.error(error instanceof Error ? error.stack : error)

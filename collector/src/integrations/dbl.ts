@@ -1,57 +1,106 @@
 
 import {join} from 'node:path'
 import {existsSync, mkdirSync} from 'node:fs'
+import {createHmac} from 'node:crypto'
 
 import {request, concurrent, write_json, read_json} from '../parts/utils.js'
-import {LICENSES} from '../parts/license.js'
+import {license_from_text, license_from_url} from '../parts/license.js'
 import {get_language_data} from '../parts/languages.js'
 
 import type {TranslationSourceMeta} from '../parts/types'
 
 
+// Base URL for the DBL API
+const DBL_API = 'https://api.library.bible/v1'
+
+
+// Build the X-DBL-Authorization header value for a DBL API request
+export function dbl_headers(url:string, method='GET'):Record<string, string> {
+
+    // WARN DBL gives out keys in uppercase but actually need to be lowercase :/
+    const api_key = (process.env['DBL_API_KEY'] ?? '').toLowerCase()
+    const api_secret = (process.env['DBL_API_SECRET'] ?? '').toLowerCase()
+    if (!api_key || !api_secret){
+        throw new Error('DBL_API_KEY and DBL_API_SECRET env vars required'
+            + ' — see https://care.library.bible/article/147-add-and-manage-access-tokens')
+    }
+
+    const path = new URL(url).pathname
+    const date = new Date().toUTCString()
+    const signing = `${method} ${path}\n\n${date}\n`
+    const sig = createHmac('sha1', api_key).update(signing + api_secret).digest('hex')
+    return {
+        'Accept': 'application/json',
+        'Date': date,
+        'X-DBL-Authorization': `version=v1,token=${api_key},signature=${sig}`,
+    }
+}
+
+
 // Translations that can be sourced from a better location (or other issue)
 const IGNORE:string[] = [
     '69ffe7eecd894e52',  // Only second half of genesis
+    '3ea0147e32eebe47',  // Older version of 3847624917e94649 (mal_irv)
 ]
 
 // Some language codes are outdated
-const OUTDATED_LANG:Record<string, string> = {cug: 'cnq'}
+const OUTDATED_LANG:Record<string, string> = {cug: 'cnq', plj: 'zlu'}
 
 
-interface ListItem {
-    // NOTE Only relevant items included
-    id:string  // A random chars id
-    entrytype:string  // 'text' or other...
-    revision:string  // Incrementing number that identifies if an update has been issued
-    dateUpdated:string // YYYY-MM-DD[T...] Date of latest update
-    dateArchived:string  // YYYY-MM-DD[T...] First date added to DBL
-    dateCompleted:string  // YYYY-MM-DD[T...] This is often blank for partial translations
-    rightsHolder:{link:string, name:string}[]  // Link for API request for org, not URL of org
-    languageCode:string  // 3 char
-    nameCommon:string
-    nameCommonLocal:string
-    nameAbbreviation:string
-    nameAbbreviationLocal:string
-    languageScriptDirection:string
-    copyrightStatement:string
-    confidential:'true'|'false'  // Whether can view HTML meta or not (can still download, lol)
+
+interface ListContentEntriesResponse {
+    items:ContentEntryDetailed[]
+    totalCount:number
 }
 
-
-interface ListResp {
-    entries:ListItem[]
+interface ContentEntry {
+    uid:string
+    countries?:{name:string, isoCode?:string}[]
+    isConfidential?:boolean
+    isLatest?:boolean
+    isObsolete?:boolean
+    language?:{isoCode?:string, name?:string}
+    latestRevision:number
+    medium?:'audio'|'braille'|'paratextZipResource'|'print'|'text'|'video'
+    name:string
+    providedByOrg?:{uid:string, name:string}
+    primaryLicensorOrg?:{uid:string, name:string}
 }
 
-
-interface OrgItem {
-    full_name:string
-    local_name:string
-    contact_url:string
+interface ContentEntryDetailed extends ContentEntry {
+    // Fields only present when include_full_details=true or from details endpoint
+    // NOTE Haven't included some fields that are unlikely to be of use
+    language?:{
+        isoCode?:string
+        name?:string
+        nameLocal?:string
+        numeralSystem?:string
+        scriptCode?:string
+        scriptDirection?:'LTR'|'RTL'
+        scriptName?:string
+    }
+    copyrightStatement?:string
+    dateFirstSubmitted?:string  // ISO 8601 datetime e.g. "2014-04-24T11:18:58.804614"
+    dateUpdated?:string  // ISO 8601 datetime e.g. "2014-04-24T20:18:57.819830"
+    dateTranslationFinished?:string  // ISO 8601 datetime (absent if not set)
+    description?:string
+    nameLocal?:string
+    nameAbbreviation?:string
+    nameAbbreviationLocal?:string
+    promotionInfo?:string
+    revision?:number
+    revisionComment?:string
+    scope?:string  // E.g. OT, NT, etc. (lookup codes if needed)
+    translationType?:string  // First, New, Revision
 }
 
+interface LicenseAgreementsResponse {
+    items:{licenseTemplateRevisionID?:number}[]
+}
 
-interface OrgResp {
-    orgs: OrgItem[]
+interface LicenseTemplateRevision {
+    isExternalLicense:boolean
+    externalURL:string
 }
 
 
@@ -70,46 +119,43 @@ const org_abbreviations:Record<string, string> = {
 export async function discover(existing:string[], discover_specific_id?:string):Promise<void>{
     // Discover translations that are available
 
-    // Get list of translations
-    // NOTE Alternate URL with `_list` appended only gets basic info, not all required props
-    const url = 'https://app.thedigitalbiblelibrary.org/api/open_access_entries'
-    const resp = await request<ListResp>(url, 'json')
+    // Fetch all open-access text entries with full details
+    const items = await fetch_all_entries()
 
-    // Filter out non-text entries (if any)
-    let items = resp.entries.filter(item => item.entrytype === 'text')
+    // Filter out non-text entries (if any slipped through)
+    let filtered = items.filter(item => item.medium === 'text')
 
     // Filter out translations from eBible as better to get straight from eBible
-    items = items.filter(item => item.rightsHolder[0]!.name !== 'eBible.org')
+    filtered = filtered.filter(item => item.providedByOrg?.name !== 'eBible.org')
 
     // Prepare to record stats for rest of tests
-    const num_total = items.length
+    const num_total = filtered.length
     let num_existing = 0
     let num_added = 0
 
     // Filter out ignored translations
-    items = items.filter(item => !IGNORE.includes(item.id))
-    let num_ignored = num_total - items.length
+    filtered = filtered.filter(item => !IGNORE.includes(item.uid))
+    let num_ignored = num_total - filtered.length
 
     // Load language data
     const language_data = get_language_data()
 
     // Process each translation
-    // Do concurrently since each involves a network request
-    await concurrent(items.map(item => async () => {
+    await concurrent(filtered.map(item => async () => {
 
         // Skip if only want to discover a single translation
-        if (discover_specific_id && item.id !== discover_specific_id){
+        if (discover_specific_id && item.uid !== discover_specific_id){
             return
         }
 
         // Get org abbrev if any
-        const org_id = item.rightsHolder[0]!.link.split('/').at(-1) ?? ''
-        const org_abbrev = org_abbreviations[org_id]
+        const org_uid = item.providedByOrg?.uid ?? ''
+        const org_abbrev = org_abbreviations[org_uid]
 
         // Prepare english abbreviation first as may need to use for id
-        const lang_code = language_data.normalise(
-            OUTDATED_LANG[item.languageCode] ?? item.languageCode)
-        let eng_abbrev = item.nameAbbreviation.toLowerCase().replace(/[^a-z]/gi, '')
+        const raw_lang = item.language?.isoCode ?? ''
+        const lang_code = language_data.normalise(OUTDATED_LANG[raw_lang] ?? raw_lang)
+        let eng_abbrev = (item.nameAbbreviation ?? '').toLowerCase().replace(/[^a-z]/gi, '')
         if (lang_code && eng_abbrev.includes(lang_code)){
             // Some translations include the language code in the abbreviation which isn't helpful
             eng_abbrev = eng_abbrev.replace(lang_code, '')
@@ -119,16 +165,15 @@ export async function discover(existing:string[], discover_specific_id?:string):
         // NOTE Use org abbreviation when available (fallback on 'a' for later manual correction)
         let trans_id = `${lang_code ?? ''}_${org_abbrev || eng_abbrev || 'a'}`
 
-
         // Skip if already exists
-        if (existing.includes(item.id)){
+        if (existing.includes(item.uid)){
             num_existing += 1
             return
         }
 
         // Ignore if invalid language
         if (!lang_code){
-            console.error(`INVALID ${item.languageCode} (unknown language)`)
+            console.error(`INVALID ${raw_lang} (unknown language)`)
             num_ignored += 1
             return
         }
@@ -140,7 +185,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
             const existing_meta = read_json<TranslationSourceMeta>(meta_file)
             if (!existing_meta.ids.dbl){
                 // Already added via another service so add dbl id to it
-                existing_meta.ids.dbl = item.id
+                existing_meta.ids.dbl = item.uid
                 write_json(meta_file, existing_meta, true)
                 num_existing += 1
                 return
@@ -151,83 +196,58 @@ export async function discover(existing:string[], discover_specific_id?:string):
                 meta_file = join(trans_dir, 'meta.json')
             }
         }
-        const log_ids = `${trans_id}/${item.id}`
 
-        // Search for the license
-        const html_url = `https://app.thedigitalbiblelibrary.org/entry?id=${item.id}`
-        const html_resp = await request(html_url, 'text')
+        // Detect the license from the copyright statement
+        const copyright_html = item.copyrightStatement ?? ''
         let license:string|null = null
-        let license_url = html_url
+        const entry_url = `https://app.library.bible/content/${item.uid}`
+        let license_url = entry_url
 
-        // Get unique CC license types mentioned
-        // WARN Won't detect some versions which have "confidential" true yet still appear in list
-        //      As these require logging into the DBL despite having an open license
-        const cc_abbrev =
-            new Set([...html_resp.matchAll(/cc (by[a-z-]*)/ig)].map(r => r[1]!.toLowerCase()))
-
-        // Determine what the license is
-        if (/public domain/i.test(html_resp) && !/not public domain/i.test(html_resp)){
-            license = 'public'
-            if (html_resp.includes('creativecommons.org/publicdomain/zero/1.0')){
-                license_url = 'https://creativecommons.org/publicdomain/zero/1.0/'
-            }
-        } else if (cc_abbrev.size === 1){
-            // Only auto-add if one license type (otherwise manually review which is best)
-            const conditions = [...cc_abbrev.values()][0]!
-            license = `cc-${conditions}`
-            if (license in LICENSES){
-                // NOTE DBL doesn't specify license version so 4.0 can only be assumed
-                license_url = `https://creativecommons.org/licenses/${conditions}/4.0/`
-            } else {
-                console.warn(`Failed to detect CC license "${license}" (${log_ids})`)
-                license = null
-            }
+        // Try URL and public domain text detection on the copyright statement
+        const text_detected = license_from_text(copyright_html)
+        if (text_detected){
+            license = text_detected.license
+            if (text_detected.url)
+                license_url = text_detected.url
         }
 
-        // Get owner details
-        let org:OrgItem = {contact_url: '', full_name: '', local_name: ''}
-        try {
-            org = (await request<OrgResp>(item.rightsHolder[0]!.link, 'json')).orgs[0]!
-            // Some entries have a domain without a scheme
-            if (org.contact_url && !org.contact_url.startsWith('http')){
-                org.contact_url = 'https://' + org.contact_url
+        // Fallback: look up license via the license agreements and template revision APIs
+        if (!license){
+            const template_license = await fetch_license_from_template(item.uid)
+            if (template_license){
+                license = template_license.license
+                license_url = template_license.url
             }
-        } catch {
-            // Some orgs will throw 403 (not related to translation's `confidential` prop)
         }
-
-        // Determine most useful URL for a user to learn more about the translation
-        const attr_url = item.confidential === 'true' ? org.contact_url : html_url
 
         // Work out earliest year of publication
-        const date_archived = parseInt(item.dateArchived.slice(0, 4)) || 9999
-        const date_completed = parseInt(item.dateCompleted.slice(0, 4)) || 9999
+        const date_submitted = parseInt((item.dateFirstSubmitted ?? '').slice(0, 4)) || 9999
+        const date_finished = parseInt((item.dateTranslationFinished ?? '').slice(0, 4)) || 9999
 
         // Prepare the meta data
         const meta:TranslationSourceMeta = {
             name: {
-                local: item.nameCommonLocal,
-                local_abbrev: item.nameAbbreviationLocal,
-                english: item.nameCommon,
+                local: item.nameLocal ?? '',
+                local_abbrev: item.nameAbbreviationLocal ?? '',
+                english: item.name ?? '',
                 english_abbrev: eng_abbrev.toUpperCase(),
             },
-            year: Math.min(date_archived, date_completed),
-            direction: item.languageScriptDirection.toLowerCase() === 'rtl' ? 'rtl' : 'ltr',
+            year: Math.min(date_submitted, date_finished),
+            direction: item.language?.scriptDirection?.toLowerCase() === 'rtl' ? 'rtl' : 'ltr',
             copyright: {
                 licenses: license ? [{license, url: license_url}] : [],
-                attribution: org.full_name || org.local_name || item.rightsHolder[0]!.name,
-                attribution_url: attr_url,
+                attribution: item.primaryLicensorOrg?.name || item.providedByOrg?.name || '',
+                attribution_url: entry_url,
             },
             ids: {
-                dbl: item.id,
+                dbl: item.uid,
             },
             source: {
                 service: 'dbl',
                 format: 'usx',
-                url: 'https://app.thedigitalbiblelibrary.org/entry/download_archive'
-                    + `?id=${item.id}&type=release`,
-                updated: item.dateUpdated.slice(0, 10),
-                revision: parseInt(item.revision),
+                url: `${DBL_API}/content-entries/${item.uid}/zip`,
+                updated: item.dateUpdated!.slice(0, 10),
+                revision: item.revision!,
             },
             tags: [],
         }
@@ -236,7 +256,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
         mkdirSync(trans_dir, {recursive: true})
         write_json(meta_file, meta, true)
         num_added += 1
-        existing.push(item.id)
+        existing.push(item.uid)
     }))
 
     // Report stats
@@ -244,4 +264,81 @@ export async function discover(existing:string[], discover_specific_id?:string):
     console.info(`DBL existing: ${num_existing}`)
     console.info(`DBL ignored: ${num_ignored}`)
     console.info(`DBL total: ${num_total}`)
+}
+
+
+// Known licenses for template revisions that are inaccessible via the API
+// NOTE Looked up manually via the DBL website when API returns 404 due to faulty permissions config
+const KNOWN_TEMPLATE_LICENSES:Record<number, {license:string, url:string}> = {
+    2162: {license: 'cc-by-sa', url: 'https://creativecommons.org/licenses/by-sa/4.0/'},
+    2486: {license: 'cc-by-sa', url: 'https://creativecommons.org/licenses/by-sa/4.0/'},
+}
+
+// Cache template revision results to avoid re-fetching for the same template
+const template_revision_cache = new Map<number, Promise<{license:string, url:string}|null>>()
+
+
+// Fetch license info by looking up the entry's license agreement and then the template revision
+async function fetch_license_from_template(
+        entry_uid:string):Promise<{license:string, url:string}|null> {
+
+    // Get the license agreement for this entry
+    const agreements_url = `${DBL_API}/license-agreements?content_entry_uid=${entry_uid}`
+    const agreements = await request<LicenseAgreementsResponse>(
+        agreements_url, 'json', dbl_headers(agreements_url))
+    const revision_id = agreements.items[0]?.licenseTemplateRevisionID
+    if (!revision_id){
+        return null
+    }
+
+    // Use cached promise if already fetched for this template revision
+    if (!template_revision_cache.has(revision_id)){
+        template_revision_cache.set(revision_id, (async () => {
+            const template_url = `${DBL_API}/license-template-revisions/${revision_id}`
+            let template:LicenseTemplateRevision
+            try {
+                template = await request<LicenseTemplateRevision>(
+                    template_url, 'json', dbl_headers(template_url))
+            } catch {
+                // Revision not accessible to our org — check hardcoded fallbacks first
+                if (revision_id in KNOWN_TEMPLATE_LICENSES){
+                    return KNOWN_TEMPLATE_LICENSES[revision_id]!
+                }
+                throw new Error(`License template revision ${revision_id} not accessible via API.`
+                    + ` Look up the license at https://app.library.bible/content/${entry_uid}`
+                    + ` and add it to KNOWN_TEMPLATE_LICENSES in dbl.ts`)
+            }
+            if (!template.isExternalLicense || !template.externalURL){
+                return null
+            }
+            return license_from_url(template.externalURL)
+        })())
+    }
+
+    return template_revision_cache.get(revision_id)!
+}
+
+
+// Fetch all open-access text entries, paginating through results
+async function fetch_all_entries():Promise<ContentEntryDetailed[]> {
+    const all_items:ContentEntry[] = []
+    const limit = 500
+    let offset = 0
+
+    while (true) {
+        // Build the request URL with filters
+        const url = `${DBL_API}/content-entries?is_open_access=true&medium=text`
+            + `&include_full_details=true&limit=${limit}&offset=${offset}`
+        const headers = dbl_headers(url)
+        const resp = await request<ListContentEntriesResponse>(url, 'json', headers)
+        all_items.push(...resp.items)
+
+        // Fewer items than requested means this was the last page
+        if (resp.items.length < limit){
+            break
+        }
+        offset += limit
+    }
+
+    return all_items
 }

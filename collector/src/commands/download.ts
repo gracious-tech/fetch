@@ -7,6 +7,7 @@ import {last_verse} from '@gracious.tech/bible-references'
 
 import {books_ordered} from '../parts/bible.js'
 import {clean_dir, concurrent, request, read_json, list_dirs, list_files} from '../parts/utils.js'
+import {dbl_headers} from '../integrations/dbl.js'
 import {TranslationSourceMeta} from '../parts/types.js'
 
 
@@ -95,7 +96,16 @@ async function _update_source(id:string, meta:TranslationSourceMeta):Promise<voi
 
     // Download zip (unless manually saved to repo)
     if (meta.source.url){
-        const zip = await request(meta.source.url, 'arrayBuffer')
+        let download_url = meta.source.url
+
+        if (meta.source.service === 'dbl'){
+            // DBL zip endpoint returns JSON with a presigned URL, not the zip directly
+            const dbl_resp = await request<{presignedURL:string}>(
+                meta.source.url, 'json', dbl_headers(meta.source.url))
+            download_url = dbl_resp.presignedURL
+        }
+
+        const zip = await request(download_url, 'arrayBuffer')
         writeFileSync(zip_path, Buffer.from(zip))
     }
 

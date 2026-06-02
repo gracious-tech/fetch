@@ -59,16 +59,8 @@ await yargs(process.argv.slice(2))
         argv => serve(argv['port'] ? parseInt(argv['port'] as string) : undefined))
 
     // Publish
-    .command('publish', "Publish all changes to server", {},
-        argv => publish())
-    .command('publish-bibles [ids]', "Publish translations to server", {},
-        argv => publish('bibles', argv['ids'] as string))
-    .command('publish-notes [ids]', "Publish study notes to server", {},
-        argv => publish('notes', argv['ids'] as string))
-    .command('publish-glosses [ids]', "Publish glosses to server", {},
-        argv => publish('glosses', argv['ids'] as string))
-    .command('publish-data', "Publish other data to server", {},
-        argv => publish('data'))
+    .command('publish', "Sync all resources", {force: {type: 'boolean'}},
+        argv => publish(!!argv['force']))
 
     // Maintenance
     .command('clean', "Remove any unnecessary files from the collection", {},

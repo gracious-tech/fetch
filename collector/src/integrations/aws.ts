@@ -3,7 +3,7 @@ import {sep} from 'node:path'
 import {readFileSync} from 'node:fs'
 
 import {parse as parse_yaml} from 'yaml'
-import {S3} from '@aws-sdk/client-s3'
+import {S3, ListObjectsV2Command, DeleteObjectsCommand} from '@aws-sdk/client-s3'
 import {CloudFront} from '@aws-sdk/client-cloudfront'
 
 import {Publisher} from '../parts/publisher.js'
@@ -37,6 +37,26 @@ export class PublisherAWS extends Publisher {
             Body: body,
             ContentType: type,
         })
+    }
+
+    override async delete_dir(server_path:string):Promise<void>{
+        // Delete all objects on S3 under the given path prefix (paginated)
+        let continuation_token:string|undefined
+        do {
+            const response = await this._s3.send(new ListObjectsV2Command({
+                Bucket: this._bucket,
+                Prefix: `${server_path}/`,
+                ...(continuation_token && {ContinuationToken: continuation_token}),
+            }))
+            const keys = (response.Contents ?? []).map(o => ({Key: o.Key ?? ''}))
+            if (keys.length){
+                await this._s3.send(new DeleteObjectsCommand({
+                    Bucket: this._bucket,
+                    Delete: {Objects: keys},
+                }))
+            }
+            continuation_token = response.NextContinuationToken
+        } while (continuation_token)
     }
 
     override async invalidate(paths:string[]){

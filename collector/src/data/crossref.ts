@@ -4,6 +4,7 @@ import {join} from 'node:path'
 import {books_ordered} from '../parts/bible.js'
 import {download_data} from '../integrations/openbible.js'
 import {mkdir_exist, write_json} from '../parts/utils.js'
+import {add_unpublished} from '../parts/unpublished.js'
 
 import type {BookCrossReferences} from '../integrations/openbible'
 import type {CrossrefData, CrossrefRange, CrossrefSingle} from '../parts/shared_types'
@@ -29,6 +30,8 @@ export async function crossref_process(){
         write_json(join(dir_medium, `${book}.json`), filter_refs_by_relevance(book_refs, 2))
         write_json(join(dir_large, `${book}.json`), filter_refs_by_relevance(book_refs, 3))
     }
+
+    add_unpublished(['crossref/small', 'crossref/medium', 'crossref/large'])
 }
 
 

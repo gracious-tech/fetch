@@ -137,5 +137,5 @@ export async function update_manifest(){
         .filter(([, three]) => included_languages.has(three)))
 
     // Save the manifest to dist dir
-    write_json(join('dist', 'manifest.json'), manifest)
+    write_json(join('dist', 'manifest.json'), manifest, true)
 }

@@ -91,26 +91,40 @@ async function _update_source(id:string, meta:TranslationSourceMeta):Promise<voi
 
     // Paths
     const src_dir = join('sources', 'bibles', id)
-    const zip_path = join(src_dir, 'source.zip')
     const format_dir = join(src_dir, meta.source.format)
 
-    // Download zip (unless manually saved to repo)
-    if (meta.source.url){
-        let download_url = meta.source.url
+    // Normalise url to an array (a translation may be split across multiple zips to merge)
+    const urls = meta.source.url === null ? []
+        : (Array.isArray(meta.source.url) ? meta.source.url : [meta.source.url])
 
+    // Download zip(s) — skip if no urls (manually saved to repo)
+    for (const [index, url] of urls.entries()){
+        let download_url = url
         if (meta.source.service === 'dbl'){
             // DBL zip endpoint returns JSON with a presigned URL, not the zip directly
             const dbl_resp = await request<{presignedURL:string}>(
-                meta.source.url, 'json', dbl_headers(meta.source.url))
+                url, 'json', dbl_headers(url))
             download_url = dbl_resp.presignedURL
         }
-
         const zip = await request(download_url, 'arrayBuffer')
-        writeFileSync(zip_path, Buffer.from(zip))
+        writeFileSync(join(src_dir, `source${index || ''}.zip`), Buffer.from(zip))
     }
 
     // Empty format dir
     clean_dir(format_dir)
+
+    // Extract from each zip into format_dir (merging contents; later zips override earlier)
+    // NOTE Falls back to a single source.zip when no urls (manually saved to repo)
+    const num_zips = urls.length || 1
+    for (let i = 0; i < num_zips; i++){
+        await _extract_source_zip(join(src_dir, `source${i || ''}.zip`), format_dir, meta)
+    }
+}
+
+
+async function _extract_source_zip(zip_path:string, format_dir:string,
+        meta:TranslationSourceMeta):Promise<void>{
+    // Extract the format files from a single source zip into the format dir
 
     // Util for getting normalized extension
     const norm_ext = (name:string) => name.toLowerCase().split('.').at(-1)!

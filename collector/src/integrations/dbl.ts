@@ -4,7 +4,7 @@ import {existsSync, mkdirSync} from 'node:fs'
 import {createHmac} from 'node:crypto'
 
 import {request, concurrent, write_json, read_json} from '../parts/utils.js'
-import {LICENSES} from '../parts/license.js'
+import {license_from_text, license_from_url} from '../parts/license.js'
 import {get_language_data} from '../parts/languages.js'
 
 import type {TranslationSourceMeta} from '../parts/types'
@@ -91,6 +91,15 @@ interface ContentEntryDetailed extends ContentEntry {
     revisionComment?:string
     scope?:string  // E.g. OT, NT, etc. (lookup codes if needed)
     translationType?:string  // First, New, Revision
+}
+
+interface LicenseAgreementsResponse {
+    items:{licenseTemplateRevisionID?:number}[]
+}
+
+interface LicenseTemplateRevision {
+    isExternalLicense:boolean
+    externalURL:string
 }
 
 
@@ -186,7 +195,6 @@ export async function discover(existing:string[], discover_specific_id?:string):
                 meta_file = join(trans_dir, 'meta.json')
             }
         }
-        const log_ids = `${trans_id}/${item.uid}`
 
         // Detect the license from the copyright statement
         const copyright_html = item.copyrightStatement ?? ''
@@ -194,26 +202,20 @@ export async function discover(existing:string[], discover_specific_id?:string):
         const entry_url = `https://app.library.bible/content/${item.uid}`
         let license_url = entry_url
 
-        // Get unique CC license types mentioned
-        const cc_abbrev =
-            new Set([...copyright_html.matchAll(/cc (by[a-z-]*)/ig)].map(r => r[1]!.toLowerCase()))
+        // Try URL and public domain text detection on the copyright statement
+        const text_detected = license_from_text(copyright_html)
+        if (text_detected){
+            license = text_detected.license
+            if (text_detected.url)
+                license_url = text_detected.url
+        }
 
-        // Determine what the license is
-        if (/public domain/i.test(copyright_html) && !/not public domain/i.test(copyright_html)){
-            license = 'public'
-            if (copyright_html.includes('creativecommons.org/publicdomain/zero/1.0')){
-                license_url = 'https://creativecommons.org/publicdomain/zero/1.0/'
-            }
-        } else if (cc_abbrev.size === 1){
-            // Only auto-add if one license type (otherwise manually review which is best)
-            const conditions = [...cc_abbrev.values()][0]!
-            license = `cc-${conditions}`
-            if (license in LICENSES){
-                // NOTE DBL doesn't specify license version so 4.0 can only be assumed
-                license_url = `https://creativecommons.org/licenses/${conditions}/4.0/`
-            } else {
-                console.warn(`Failed to detect CC license "${license}" (${log_ids})`)
-                license = null
+        // Fallback: look up license via the license agreements and template revision APIs
+        if (!license){
+            const template_license = await fetch_license_from_template(item.uid)
+            if (template_license){
+                license = template_license.license
+                license_url = template_license.url
             }
         }
 
@@ -261,6 +263,58 @@ export async function discover(existing:string[], discover_specific_id?:string):
     console.info(`DBL existing: ${num_existing}`)
     console.info(`DBL ignored: ${num_ignored}`)
     console.info(`DBL total: ${num_total}`)
+}
+
+
+// Known licenses for template revisions that are inaccessible via the API
+// NOTE Looked up manually via the DBL website when API returns 404 due to faulty permissions config
+const KNOWN_TEMPLATE_LICENSES:Record<number, {license:string, url:string}> = {
+    2162: {license: 'cc-by-sa', url: 'https://creativecommons.org/licenses/by-sa/4.0/'},
+    2486: {license: 'cc-by-sa', url: 'https://creativecommons.org/licenses/by-sa/4.0/'},
+}
+
+// Cache template revision results to avoid re-fetching for the same template
+const template_revision_cache = new Map<number, Promise<{license:string, url:string}|null>>()
+
+
+// Fetch license info by looking up the entry's license agreement and then the template revision
+async function fetch_license_from_template(
+        entry_uid:string):Promise<{license:string, url:string}|null> {
+
+    // Get the license agreement for this entry
+    const agreements_url = `${DBL_API}/license-agreements?content_entry_uid=${entry_uid}`
+    const agreements = await request<LicenseAgreementsResponse>(
+        agreements_url, 'json', dbl_headers(agreements_url))
+    const revision_id = agreements.items[0]?.licenseTemplateRevisionID
+    if (!revision_id){
+        return null
+    }
+
+    // Use cached promise if already fetched for this template revision
+    if (!template_revision_cache.has(revision_id)){
+        template_revision_cache.set(revision_id, (async () => {
+            const template_url = `${DBL_API}/license-template-revisions/${revision_id}`
+            let template:LicenseTemplateRevision
+            try {
+                template = await request<LicenseTemplateRevision>(
+                    template_url, 'json', dbl_headers(template_url))
+            } catch {
+                // Revision not accessible to our org — check hardcoded fallbacks first
+                if (revision_id in KNOWN_TEMPLATE_LICENSES){
+                    return KNOWN_TEMPLATE_LICENSES[revision_id]!
+                }
+                throw new Error(`License template revision ${revision_id} not accessible via API.`
+                    + ` Look up the license at https://app.library.bible/content/${entry_uid}`
+                    + ` and add it to KNOWN_TEMPLATE_LICENSES in dbl.ts`)
+            }
+            if (!template.isExternalLicense || !template.externalURL){
+                return null
+            }
+            return license_from_url(template.externalURL)
+        })())
+    }
+
+    return template_revision_cache.get(revision_id)!
 }
 
 

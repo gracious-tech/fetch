@@ -23,16 +23,21 @@ export interface DirectoryEntry {
 }
 
 
-export async function request<T>(url:string, type?:'json'):Promise<T>
-export async function request(url:string, type:'text'):Promise<string>
-export async function request(url:string, type:'blob'):Promise<Blob>
-export async function request(url:string, type:'arrayBuffer'):Promise<ArrayBuffer>
-export async function request(url:string, type:'json'|'blob'|'arrayBuffer'|'text'='json'):
-        Promise<unknown>{
-    // Simple wrapper around fetch
-    const resp = await fetch(url)
+export async function request<T>(url:string, type?:'json', headers?:Record<string, string>):
+    Promise<T>
+export async function request(url:string, type:'text', headers?:Record<string, string>):
+    Promise<string>
+export async function request(url:string, type:'blob', headers?:Record<string, string>):
+    Promise<Blob>
+export async function request(url:string, type:'arrayBuffer', headers?:Record<string, string>):
+    Promise<ArrayBuffer>
+export async function request(url:string, type:'json'|'blob'|'arrayBuffer'|'text'='json',
+        headers?:Record<string, string>):Promise<unknown>{
+    // Simple wrapper around fetch with optional custom headers
+    const resp = await fetch(url, headers ? {headers} : undefined)
     if (!resp.ok){
-        throw new Error(`${resp.status} ${resp.statusText}: ${url}`)
+        const body = await resp.text().catch(() => '')
+        throw new Error(`${resp.status} ${resp.statusText}: ${url}${body ? `\n${body}` : ''}`)
     }
     return resp[type]() as Promise<unknown>
 }

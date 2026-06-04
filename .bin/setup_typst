@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ASSET="typst-x86_64-unknown-linux-musl.tar.xz"
+BIN_DIR="$(dirname "$0")"
+
+URL=$(curl -fsSL https://api.github.com/repos/typst/typst/releases/latest \
+    | grep -o "https://[^\"]*$ASSET")
+
+# Extract only the typst binary directly into the .bin dir
+curl -fsSL "$URL" | tar -xJ -C "$BIN_DIR" --strip-components=1 \
+    "typst-x86_64-unknown-linux-musl/typst"

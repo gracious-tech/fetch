@@ -181,7 +181,7 @@ export interface BibleJsonTxt {
 export interface BibleJsonTypst {
     book:string
     name:BookNames
-    contents: string[][]
+    contents:string[][][]
 }
 
 export type CrossrefSingle = [string, number, number]

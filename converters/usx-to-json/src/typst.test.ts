@@ -1,0 +1,501 @@
+
+import {join} from 'node:path'
+import {readFileSync} from 'node:fs'
+
+import {describe, it} from 'vitest'
+import {last_verse} from '@gracious.tech/bible-references'
+
+import {usx_to_json_typst, default_typst_definitions} from './typst.js'
+
+const test_usx = readFileSync(join(__dirname, '..', '..', 'test.usx'), {encoding: 'utf8'})
+const test_psa_usx = readFileSync(join(__dirname, '..', '..', 'test_web_psa.usx'),
+    {encoding: 'utf8'})
+
+// Concatenate a verse's 3-tuple into a single string
+const cat = (verse:string[]) => (verse[0] ?? '') + (verse[1] ?? '') + (verse[2] ?? '')
+
+/**
+ * @vitest-environment jsdom
+ */
+describe("usx_to_json_typst", () => {
+
+    const output = usx_to_json_typst(test_usx)
+
+    it("returns the correct book code", ({expect}) => {
+        expect(output.book).toEqual('hag')
+    })
+
+    it("returns the book name object", ({expect}) => {
+        expect(output.name.normal).toEqual('Haggai')
+        expect(output.name.long).toEqual('Haggai')
+        expect(output.name.abbrev).toEqual('Haggai')
+    })
+
+    it("adds an empty chapter 0", ({expect}) => {
+        expect(output.contents[0]).toEqual([])
+    })
+
+    it("sets up the contents structure correctly", ({expect}) => {
+        expect(output.contents).toHaveLength(3)
+        expect(output.contents[0]).toHaveLength(0)
+        // Account for verse 0
+        expect(output.contents[1]).toHaveLength((last_verse['hag'][0] as number) + 1)
+        expect(output.contents[2]).toHaveLength((last_verse['hag'][1] as number) + 1)
+    })
+
+    it("uses 3-tuple [open, content, close] per verse", ({expect}) => {
+        for (let ch = 1; ch < output.contents.length; ch++){
+            for (let v = 0; v < output.contents[ch]!.length; v++){
+                const verse = output.contents[ch]![v]!
+                expect(Array.isArray(verse)).toBe(true)
+                expect(verse).toHaveLength(3)
+                expect(typeof verse[0]).toBe('string')
+                expect(typeof verse[1]).toBe('string')
+                expect(typeof verse[2]).toBe('string')
+            }
+        }
+    })
+
+    it("has empty tuple for verse 0 in each chapter", ({expect}) => {
+        expect(output.contents[1]![0]).toEqual(['', '', ''])
+        expect(output.contents[2]![0]).toEqual(['', '', ''])
+    })
+
+    it("includes chapter markers at start of first verse content", ({expect}) => {
+        expect(output.contents[1]![1]![1]).toMatch(/^#c\(1\)\n/)
+        expect(output.contents[2]![1]![1]).toMatch(/^#c\(2\)\n/)
+    })
+
+    it("includes verse markers inline in content", ({expect}) => {
+        expect(output.contents[1]![1]![1]).toContain('#v(1)')
+        expect(output.contents[1]![2]![1]).toContain('#v(2)')
+        expect(output.contents[2]![1]![1]).toContain('#v(1)')
+    })
+
+    it("includes section headings as typst == headings", ({expect}) => {
+        expect(output.contents[1]![1]![1]).toContain('== A Call to Rebuild the Temple\n')
+        expect(output.contents[1]![12]![1]).toContain('== The People Obey\n')
+        expect(output.contents[2]![1]![1]).toContain("== The Coming Glory of God’s House\n")
+        expect(output.contents[2]![10]![1]).toContain('== Blessings for a Defiled People\n')
+        expect(output.contents[2]![20]![1]).toContain("== Zerubbabel the LORD’s Signet Ring\n")
+    })
+
+    it("represents missing verses as an empty 3-tuple", ({expect}) => {
+        // Verse 3 of chapter 1 was removed in the test data
+        expect(output.contents[1]![3]).toEqual(['', '', ''])
+        // Verse 15 of chapter 1 was removed in the test data
+        expect(output.contents[1]![15]).toEqual(['', '', ''])
+    })
+
+    it("includes actual text content for regular verses", ({expect}) => {
+        const joined = cat(output.contents[1]![1]!)
+        expect(joined).toContain('Darius')
+        expect(joined).toContain('Haggai')
+        expect(joined).toContain('prophet')
+    })
+
+    it("converts footnotes to typst footnote syntax", ({expect}) => {
+        const joined = cat(output.contents[1]![1]!)
+        expect(joined).toContain('#footnote[')
+        expect(joined).toContain('Jehozadak')
+    })
+
+    it("preserves char-style formatting inside footnotes", ({expect}) => {
+        // Footnote contents can include FootnoteChar styles (ft, fr, fk, fq, ...) and
+        // generic char styles (it, bd, sc, ...). FootnoteChar styles are pass-through,
+        // but generic char styles inside notes should still render with native shorthand.
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>text<note style="f" caller="+"><char style="fr">1:1 </char><char style="ft">See <char style="it">italic</char> and <char style="bd">bold</char> here.</char></note> more<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        // The footnote should contain the italic and bold portions as native Typst syntax
+        expect(content).toContain('#footnote[')
+        expect(content).toContain('_italic_')
+        expect(content).toContain('*bold*')
+        // The fr/ft wrapper char styles themselves should NOT emit function calls
+        expect(content).not.toContain('#fr[')
+        expect(content).not.toContain('#ft[')
+    })
+
+    it("includes <ref> text inside footnotes (allow_nonbib)", ({expect}) => {
+        // Footnotes can contain <ref> elements pointing to other passages — their text
+        // should survive even though <ref> is in ignored_elements at the para level.
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>text<note style="f" caller="+"><char style="ft">see <ref loc="MAT 1:1">Matt 1:1</ref> for context</char></note><verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        expect(content).toContain('Matt 1:1')
+    })
+
+    it("passes curly quotes through unescaped", ({expect}) => {
+        const verse2 = cat(output.contents[1]![2]!)
+        expect(verse2).toContain('“')  // Opening curly quote
+        expect(verse2).toContain('’')  // Curly apostrophe
+    })
+
+    it("does not repeat section headings", ({expect}) => {
+        const joined = cat(output.contents[1]![12]!)
+        const count = (joined.match(/== The People Obey/g) || []).length
+        expect(count).toEqual(1)
+    })
+
+    it("wraps poetry paragraphs in #q(N)[…]\\n with the level as an argument", ({expect}) => {
+        // Verse 2 of chapter 1 has q1/q2 poetry lines after the prose para ends —
+        // both should emit as #q(1)[…] and #q(2)[…] so the consumer defines one #q
+        // function that takes the indent level
+        const verse2 = cat(output.contents[1]![2]!)
+        expect(verse2).toContain('#q(1)[')
+        expect(verse2).toContain('#q(2)[')
+        expect(verse2).toContain(']\n')
+        // No level-suffixed variants should appear (q1 / q2 become arg-based)
+        expect(verse2).not.toContain('#q1[')
+        expect(verse2).not.toContain('#q2[')
+    })
+
+    it("does not wrap regular prose paragraphs", ({expect}) => {
+        // Verse 1 of chapter 1 is in a <para style="m"> — no #m[ wrapper expected
+        const verse1 = cat(output.contents[1]![1]!)
+        expect(verse1).not.toContain('#m[')
+        // Regular prose ends with a blank line (\n\n)
+        expect(verse1).toContain('\n\n')
+    })
+
+    it("emits an empty line + forced linebreak for <para style='b'/>", ({expect}) => {
+        // <para style="b"/> appears throughout Haggai 1 between poetry stanzas.
+        // Typst collapses multiple newlines to a single paragraph break, so a forced
+        // line break (`\`) on its own line after a blank line is needed for extra space.
+        const all = output.contents.flat().map(cat).join('')
+        expect(all).not.toContain('#b(')
+        // Sequence: previous para close + b's `\n\\\n` → contains `\n\\\n`
+        expect(all).toContain('\n\\\n')
+    })
+
+    it("handles mid-para verse transitions in wrapped paras", ({expect}) => {
+        // Chapter 2 verses 4–9 are in poetry (q1/q2 → #q(1)[…] / #q(2)[…]) —
+        //     mid-poem paragraph splits stay paired, so verse N closes with ] and
+        //     verse N+1 opens with #q(N)[
+        const verse4 = output.contents[2]![4]!
+        const verse5 = output.contents[2]![5]!
+        if (verse5[0] !== ''){
+            expect(verse5[0]).toMatch(/^#q\(\d+\)\[$/)
+            // Then verse 4 should have closed with `]\n`
+            expect(verse4[2]).toBe(']\n')
+        }
+    })
+
+    it("handles mid-para verse transitions in regular paras", ({expect}) => {
+        // Chapter 2 verses 1–3 share one <para style="m"> — mid-prose-paragraph splits
+        //     close prior verse with \n\n and open next verse with empty string
+        const verse1_ch2 = output.contents[2]![1]!
+        const verse2_ch2 = output.contents[2]![2]!
+        const verse3_ch2 = output.contents[2]![3]!
+        // Verse 1 isn't where the para closes (it's the first of the para) — its [2]
+        //     is the para-close
+        expect(verse1_ch2[2]).toBe('\n\n')
+        // Verse 2 and 3 start mid-para, so their [0] should be '' (no wrapper)
+        expect(verse2_ch2[0]).toBe('')
+        expect(verse3_ch2[0]).toBe('')
+        // Each verse 2 and 3 still has its marker in content
+        expect(verse2_ch2[1]).toContain('#v(2)')
+        expect(verse3_ch2[1]).toContain('#v(3)')
+    })
+
+    it("concatenated chapter is balanced Typst", ({expect}) => {
+        const joined = output.contents[1]!.map(v => cat(v)).join('')
+        const opens = (joined.match(/(?<!\\)\[/g) || []).length
+        const closes = (joined.match(/(?<!\\)\]/g) || []).length
+        expect(opens).toBe(closes)
+    })
+
+    it("surfaces kept char styles as #<style>[…]", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>before <char style="wj">red words</char> after<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        expect(out.contents[1]![1]![1]).toContain('#wj[red words]')
+    })
+
+    it("does not wrap non-kept char styles (e.g. qt, w)", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>before <char style="qt">quote</char> and <char style="w" strong="H1">word</char> after<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        expect(content).not.toContain('#qt[')
+        expect(content).not.toContain('#w[')
+        expect(content).toContain('quote')
+        expect(content).toContain('word')
+    })
+
+    it("uses #super[…] for sup and ord char styles", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>1<char style="ord">st</char><verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        expect(out.contents[1]![1]![1]).toContain('#super[st]')
+    })
+
+    it("uses native Typst shorthand for bold and italic", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>plain <char style="bd">bold</char> and <char style="it">italic</char> and <char style="em">emph</char> and <char style="bdit">both</char> and <char style="k">keyword</char> done<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        expect(content).toContain('*bold*')
+        expect(content).toContain('_italic_')
+        expect(content).toContain('_emph_')
+        expect(content).toContain('*_both_*')
+        expect(content).toContain('*_keyword_*')
+        // No #bd[…] / #it[…] etc. — should be native shorthand
+        expect(content).not.toContain('#bd[')
+        expect(content).not.toContain('#it[')
+        expect(content).not.toContain('#em[')
+    })
+
+    it("uses Typst's built-in #smallcaps[…] for sc and nd", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>a <char style="sc">smallcap</char> and <char style="nd">LORD</char><verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        expect(content).toContain('#smallcaps[smallcap]')
+        expect(content).toContain('#smallcaps[LORD]')
+    })
+
+    it("escapes typst special characters in text content", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>uses #hash and [bracket]<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        expect(content).toContain('\\#hash')
+        expect(content).toContain('\\[bracket\\]')
+    })
+
+    it("should throw an error on missing usx tag", ({expect}) => {
+        const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><blah></blah>'
+        expect(() => usx_to_json_typst(xml)).toThrow()
+    })
+
+    it("should throw an error on missing book tag", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx>
+                <para></para>
+        </usx>`
+        expect(() => usx_to_json_typst(xml)).toThrow()
+    })
+
+    it("should throw an error on missing book code attribute", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx>
+            <book style="id">- Berean Study Bible</book>
+                <para></para>
+        </usx>`
+        expect(() => usx_to_json_typst(xml)).toThrow()
+    })
+
+    it("should throw an error on invalid book code", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx>
+            <book code="FAKE" style="id">- Berean Study Bible</book>
+                <para></para>
+        </usx>`
+        expect(() => usx_to_json_typst(xml)).toThrow()
+    })
+
+    it("default_typst_definitions covers every function the converter emits", ({expect}) => {
+        // Each #let must define a function our emitter calls. Conversely, every consumer
+        // function the converter ever emits must have a default definition here so the
+        // joined output compiles standalone when this string is appended.
+        const defs = default_typst_definitions
+        const expected_names = [
+            'c', 'v',  // markers
+            'q', 'qm', 'li', 'lim',  // leveled wrapped paras
+            'qc', 'qr', 'qd', 'lh', 'lf',  // non-leveled wrapped paras
+            'wj', 'qac', 'qs', 'bk', 'tl', 'add', 'sig',  // consumer-defined char styles
+        ]
+        for (const name of expected_names){
+            // Match either `#let name(` (with args) or `#let name =` (alias)
+            expect(defs).toMatch(new RegExp(`#let ${name}\\(`))
+        }
+    })
+
+    it("attaches psalm-style 'd' superscriptions to verse 1 not verse 0", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="PSA" style="id">Test</book>
+                <chapter number="1" style="c" sid="PSA 1"/>
+                <para style="d">A psalm of David</para>
+                <para style="q1"><verse number="1" style="v" sid="PSA 1:1"/>Blessed is the one<verse eid="PSA 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        // Verse 0 should be untouched
+        expect(out.contents[1]![0]).toEqual(['', '', ''])
+        // Verse 1 should contain the superscription text
+        const joined = cat(out.contents[1]![1]!)
+        expect(joined).toContain('A psalm of David')
+    })
+})
+
+
+/**
+ * Exercises element types not present in the Haggai fixture: `ms1` book headings,
+ * `qs` Selah markers, `wh` transliterated Hebrew, ignored `cl`/`mt1`/`h`/`toc*` paras,
+ * psalm superscriptions (`d`), and the full 150-chapter structure.
+ * @vitest-environment jsdom
+ */
+describe("usx_to_json_typst (WEB Psalms)", () => {
+
+    const output = usx_to_json_typst(test_psa_usx)
+    const all_chapters_joined = output.contents.slice(1).map(
+        ch => ch.map(cat).join('')).join('')
+
+    it("returns the correct book code", ({expect}) => {
+        expect(output.book).toEqual('psa')
+    })
+
+    it("produces 150 chapters (plus chapter 0)", ({expect}) => {
+        expect(output.contents).toHaveLength(151)
+        expect(output.contents[0]).toEqual([])
+    })
+
+    it("uses 3-tuple [open, content, close] per verse across all chapters", ({expect}) => {
+        for (let ch = 1; ch < output.contents.length; ch++){
+            for (let v = 0; v < output.contents[ch]!.length; v++){
+                const verse = output.contents[ch]![v]!
+                expect(verse).toHaveLength(3)
+                expect(typeof verse[0]).toBe('string')
+                expect(typeof verse[1]).toBe('string')
+                expect(typeof verse[2]).toBe('string')
+            }
+        }
+    })
+
+    it("emits ms1 book divisions as major (=) headings on the following verse", ({expect}) => {
+        // BOOK 1 sits between Psalm 1's chapter marker and verse 1 — attached to verse 1
+        expect(output.contents[1]![1]![1]).toContain('= BOOK 1\n')
+        // BOOK 2 / 3 / 4 / 5 start at Psalms 42 / 73 / 90 / 107
+        expect(output.contents[42]![1]![1]).toContain('= BOOK 2\n')
+        expect(output.contents[73]![1]![1]).toContain('= BOOK 3\n')
+        expect(output.contents[90]![1]![1]).toContain('= BOOK 4\n')
+        expect(output.contents[107]![1]![1]).toContain('= BOOK 5\n')
+    })
+
+    it("drops ignored para styles (cl, mt1, h, toc1, toc2, toc3)", ({expect}) => {
+        // "The Psalms" comes from mt1 and toc1 — should never appear in output
+        expect(all_chapters_joined).not.toContain('The Psalms')
+        // "Psalm" alone is the cl chapter-label — verify it doesn't leak in as a bare line
+        expect(all_chapters_joined).not.toMatch(/(^|\n)Psalm\n/)
+        // "Psa" comes from toc3 — also dropped
+        expect(all_chapters_joined).not.toMatch(/(^|\n)Psa\n/)
+    })
+
+    it("emits Selah as #qs[Selah.]", ({expect}) => {
+        // Psalm 3:2 ends with Selah
+        expect(cat(output.contents[3]![2]!)).toContain('#qs[Selah.]')
+        // Psalm 3:4 and 3:8 also have it
+        expect(cat(output.contents[3]![4]!)).toContain('#qs[Selah.]')
+        expect(cat(output.contents[3]![8]!)).toContain('#qs[Selah.]')
+    })
+
+    it("emits combined Selah variants without flattening (#qs[Meditation. Selah.])",
+            ({expect}) => {
+        // Psalm 9:16 has "Meditation. Selah." inside a single qs char
+        expect(cat(output.contents[9]![16]!)).toContain('#qs[Meditation. Selah.]')
+    })
+
+    it("passes Hebrew script (wh char style) text through inside footnotes", ({expect}) => {
+        // Psalm 1:2 footnote contains <char style="wh">יהוה</char>
+        const verse = cat(output.contents[1]![2]!)
+        expect(verse).toContain('#footnote[')
+        expect(verse).toContain('יהוה')
+        // wh is not a kept char style — no #wh[ wrapper
+        expect(verse).not.toContain('#wh[')
+    })
+
+    it("attaches psalm 'd' superscription content to verse 1", ({expect}) => {
+        // Psalm 3 has "A Psalm by David, when he fled from Absalom his son."
+        const psalm3_v0 = output.contents[3]![0]!
+        const psalm3_v1 = cat(output.contents[3]![1]!)
+        expect(psalm3_v0).toEqual(['', '', ''])
+        expect(psalm3_v1).toContain('A Psalm by David, when he fled from Absalom his son.')
+        // Psalm 4 superscription
+        expect(cat(output.contents[4]![1]!))
+            .toContain('For the Chief Musician; on stringed instruments. A Psalm by David.')
+    })
+
+    it("handles Psalm 119 acrostic 'd' letter markers", ({expect}) => {
+        // ALEPH (before verse 1) attaches to verse 1
+        expect(cat(output.contents[119]![1]!)).toContain('ALEPH')
+        // Every acrostic letter should appear somewhere in chapter 119
+        const ch119 = output.contents[119]!.map(cat).join('')
+        for (const letter of ['ALEPH', 'BETH', 'GIMEL', 'DALETH', 'TAV']){
+            expect(ch119).toContain(letter)
+        }
+    })
+
+    it("produces balanced Typst brackets across the entire book", ({expect}) => {
+        const opens = (all_chapters_joined.match(/(?<!\\)\[/g) || []).length
+        const closes = (all_chapters_joined.match(/(?<!\\)\]/g) || []).length
+        expect(opens).toBe(closes)
+    })
+
+    it("emits the expected wrapped/leveled poetry forms throughout", ({expect}) => {
+        // Psalms is overwhelmingly q1/q2 poetry
+        expect(all_chapters_joined).toContain('#q(1)[')
+        expect(all_chapters_joined).toContain('#q(2)[')
+        // No level-suffixed forms should leak through
+        expect(all_chapters_joined).not.toContain('#q1[')
+        expect(all_chapters_joined).not.toContain('#q2[')
+    })
+
+    it("emits forced linebreaks for <para style='b'/> stanza separators", ({expect}) => {
+        expect(all_chapters_joined).toContain('\n\\\n')
+        // And never as a function call
+        expect(all_chapters_joined).not.toContain('#b(')
+        expect(all_chapters_joined).not.toContain('#b[')
+    })
+
+    it("default_typst_definitions covers every #fn(... actually emitted in Psalms",
+            ({expect}) => {
+        // Collect every consumer-defined function name actually emitted across the whole book,
+        //     then assert each has a #let definition. Native Typst built-ins are skipped.
+        const native = new Set(['footnote', 'super', 'smallcaps'])
+        const emitted = new Set<string>()
+        for (const match of all_chapters_joined.matchAll(/#([a-z]+)[\[(]/g)){
+            const name = match[1]!
+            if (!native.has(name)){
+                emitted.add(name)
+            }
+        }
+        for (const name of emitted){
+            expect(default_typst_definitions).toMatch(new RegExp(`#let ${name}\\(`))
+        }
+    })
+})

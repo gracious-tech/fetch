@@ -1,0 +1,13 @@
+#!/bin/bash
+# Convert test_web_psa.usx to a full Typst document and render to PDF
+set -e
+cd "$(realpath -m "$0/../..")"
+
+# Generate the Typst source (bundled so internal converter imports resolve)
+npx esbuild --platform=node --bundle --format=esm --log-level=warning \
+    --external:jsdom .bin/test_typst.ts | node --input-type=module > test_typst.typ
+
+# Compile the Typst source to a PDF using the local typst binary
+.bin/typst compile test_typst.typ test_typst.pdf
+
+echo "Wrote test_typst.typ and test_typst.pdf"

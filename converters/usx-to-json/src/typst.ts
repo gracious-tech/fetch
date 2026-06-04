@@ -1,22 +1,133 @@
 
 import {parse_usx} from './common.js'
 import {ignored_elements, ignored_para_styles, ignored_char_styles, ignored_note_styles,
-    headings_major, headings_regular, headings_minor, non_para_para} from './elements.js'
+    headings_major, headings_regular, headings_minor} from './elements.js'
+import type {BibleJsonTypst} from './shared_types.js'
 
-import type {BibleJsonTypst} from './shared_types'
+
+// Para styles wrapped as #<family>(N)[...] (for leveled families) or #<family>[...] so
+// consumers can style with #let definitions. Regular prose paras (p, m, po, etc.) are
+// not wrapped — they emit text + a blank line.
+const wrapped_para_styles = [
+    'q', 'q1', 'q2', 'q3', 'q4',  // Poetry
+    'qc',  // Centered poetry
+    'qr',  // Poetic refrain
+    'qm', 'qm1', 'qm2', 'qm3',  // Embedded poetry
+    'qd',  // Hebrew musical notation
+    'li', 'li1', 'li2', 'li3', 'li4',  // List item
+    'lim', 'lim1', 'lim2', 'lim3', 'lim4',  // Embedded list item
+    'lh',  // List header
+    'lf',  // List footer
+]
+
+
+// Wrapped families that take a level argument (q1/q2/... → #q(2)[…]). Plain `q` defaults
+// to level 1. Other wrapped families (qc, qr, qd, lh, lf) have no level variants and emit
+// #<style>[…] with no argument.
+const leveled_para_families = ['q', 'qm', 'li', 'lim']
+
+
+// Char styles that map directly to native Typst syntax or built-in functions, keyed by
+// USX style and giving [open, close] fragments to wrap around the inner content
+const char_shorthand:Record<string, [string, string]> = {
+    bd: ['*', '*'],  // Strong (bold)
+    em: ['_', '_'],  // Emphasis (italic)
+    it: ['_', '_'],  // Italic
+    bdit: ['*_', '_*'],  // Strong + emphasis
+    k: ['*_', '_*'],  // Keyword (bold italic by convention)
+    sc: ['#smallcaps[', ']'],  // Small caps (built-in)
+    nd: ['#smallcaps[', ']'],  // Name of deity (small caps by convention)
+    sup: ['#super[', ']'],  // Superscript (built-in)
+    ord: ['#super[', ']'],  // Ordinal indicator (superscript)
+}
+
+
+// Char styles surfaced as consumer-defined #<style>[...] — no native Typst equivalent
+const kept_char_styles = [
+    'wj',  // Words of Jesus (red)
+    'qac',  // Acrostic letter
+    'qs',  // Selah
+    'bk',  // Quoted book title
+    'tl',  // Transliterated word
+    'add',  // Translational addition
+    'sig',  // Author's signature
+]
+
+
+// Default Typst definitions for all of the consumer-defined functions emitted by this
+// converter (`#c`, `#v`, `#q`, `#wj`, etc). Append (or prepend) this string to the
+// joined verse output if you don't want to define your own — every function the emitter
+// calls is covered, so the result compiles standalone.
+// Values approximate the Paratext USFM default stylesheet (usfm.sty) — inches for
+// margins/indents, points for vertical spacing, bold/italic/colour as documented there.
+// See https://github.com/ubsicap/usfm/blob/master/sty/usfm.sty
+export const default_typst_definitions = `
+// Chapter number — Bold, FontSize 18, SpaceBefore 8pt, SpaceAfter 4pt
+#let c(n) = block(above: 8pt, below: 4pt, text(size: 18pt, weight: "bold", str(n)))
+
+// Verse number — Superscript
+#let v(n) = super(str(n))
+
+// Poetry — LeftMargin .75in, hanging indent depending on level
+//     q1: first line .25in / wrap .75in
+//     q2: first line .375in / wrap .75in
+//     q3: first line .5in / wrap .75in
+//     q4: first line .625in / wrap .75in
+#let q(n, c) = pad(
+    left: 0.25in + (n - 1) * 0.125in,
+    par(hanging-indent: 0.75in - (0.25in + (n - 1) * 0.125in), c),
+)
+
+// Embedded poetry — LeftMargin 1in, hanging indent depending on level
+#let qm(n, c) = pad(
+    left: 0.25in + (n - 1) * 0.25in,
+    par(hanging-indent: 1in - (0.25in + (n - 1) * 0.25in), c),
+)
+
+// List entry — LeftMargin .5in × level, bullet on first line
+#let li(n, c) = pad(
+    left: (n - 1) * 0.25in + 0.125in,
+    par(hanging-indent: 0.375in, [• #c]),
+)
+
+// Embedded list entry — like li but deeper
+#let lim(n, c) = pad(
+    left: (n - 1) * 0.25in + 0.375in,
+    par(hanging-indent: 0.375in, [• #c]),
+)
+
+// Non-leveled wrapped paragraphs
+#let qc(c) = align(center, c)  // Centered poetry
+#let qr(c) = align(right, c)  // Right-aligned poetry
+#let qd(c) = pad(left: 0.25in, emph(c))  // Hebrew musical notation — Italic
+#let lh(c) = strong(c)  // List header
+#let lf(c) = c  // List footer (no special styling)
+
+// Character styles (no native Typst equivalent)
+#let wj(c) = text(fill: red, c)  // Words of Jesus
+#let qac(c) = emph(c)  // Acrostic letter — Italic
+#let qs(c) = emph(c)  // Selah — Italic
+#let bk(c) = emph(c)  // Quoted book title — Italic
+#let tl(c) = emph(c)  // Transliterated word — Italic
+#let add(c) = emph(c)  // Translational addition — Italic
+#let sig(c) = emph(c)  // Author's signature — Italic
+`
 
 
 interface ParserState {
     book:string
     chapter:number
     verse:number
-    prev_para_type:'para'|'break'|null
+    para_open:string  // Opening fragment for current <para> (e.g. '#q1[' or '' for regular)
+    para_close:string  // Closing fragment for current <para> (e.g. ']\n' or '\n\n')
+    mid_para:boolean  // True once non-verse content has been processed in current para
     unknown_owner:string
     contents:BibleJsonTypst['contents']
 }
 
 
-export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst{
+// Convert USX to Typst-JSON
+export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst {
 
     // Parse USX
     const {usx_element, num_verses, book_code, book_name} = parse_usx(xml, parser)
@@ -26,39 +137,26 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst{
         book: book_code,
         chapter: 0,
         verse: 0,
-        prev_para_type: null,  // Whether previous para was not actually a para (e.g. poetry)
+        para_open: '',
+        para_close: '',
+        mid_para: false,
         unknown_owner: '',  // Content that should be prepended to next verse if current verse done
-        // Prepare output with empty string for every verse
+        // Prepare output with empty strings for every verse
         contents: [
             [],  // Chapter 0
             ...num_verses.map(num_verses_in_ch => {
-                const array:string[] = []
+                const array = []
                 // NOTE +1 for verse 0
                 for (let i = 0; i < num_verses_in_ch + 1; i++){
-                    array.push('')
+                    array.push(['', '', ''])
                 }
                 return array
             }),
-        ],
+        ] as BibleJsonTypst['contents'],
     }
 
     // Iterate over <usx> children (elements only, text nodes not allowed at root level)
     for (const child of Array.from(usx_element.children)){
-
-        // Get style for <para> in advance, as break logic needs it
-        const style = child.getAttribute('style') || ''
-
-        // Only know how many newlines to add once know next <para> type
-        if (state.prev_para_type !== null){
-            // Previously just added a <para> element
-            if (state.prev_para_type === 'para' || !non_para_para.includes(style)){
-                // Either previous was a para or current is, so add extra line break
-                // i.e. Do not have two lines of poetry next to each other
-                add_content(state, '\n')
-            }
-            // Reset para type until know that this para won't be ignored (adding too many newlines)
-            state.prev_para_type = null
-        }
 
         // Ignore extra-biblical elements
         if (ignored_elements.includes(child.nodeName)){
@@ -82,8 +180,8 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst{
             }
             state.chapter = chapter_number
             state.verse = 0
-            // Add chapter marker to unknown_owner so it flows to the first verse
-            add_content(state, `#c(${state.chapter})\n`, true)
+            // Add chapter marker (consumer-defined #c function)
+            add_typst(state, `#c(${state.chapter})\n`, true)
             continue
         }
 
@@ -99,49 +197,65 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst{
             continue
         }
 
+        // Get <para> style, which greatly determines how it should be processed
+        const style = child.getAttribute('style') || ''
+
         // Ignore extra-biblical content
-        // NOTE <para style=b> only useful for forcing gap between poetry
-        //      This is already achieved in break logic above, so can now ignore it
-        if (ignored_para_styles.includes(style) || style === 'b'){
+        if (ignored_para_styles.includes(style)) {
             continue
         }
 
-        // Detect major headings
+        // Convert major headings to `= ...`
+        // TODO Not currently supporting nested elements within heading contents (like <char>)
         if (headings_major.includes(style)){
-            const text = escape_typst(child.textContent!)
-            add_content(state, `= ${text}\n`, true)
+            add_typst(state, `= ${escape_typst(child.textContent ?? '')}\n`, true)
             continue
         }
 
-        // Detect section headings
-        if (headings_regular.includes(style)){
-            const text = escape_typst(child.textContent!)
-            add_content(state, `== ${text}\n`, true)
+        // Convert section headings to `== ...`
+        if (headings_regular.includes(style)) {
+            add_typst(state, `== ${escape_typst(child.textContent ?? '')}\n`, true)
             continue
         }
 
-        // Detect minor headings
-        // NOTE Also classifying original superscriptions in psalms (`d`) as a minor heading
-        //      Since most users wouldn't want them quoted as part of first verse
-        if (headings_minor.includes(style) || (book_code === 'psa' && style === 'd')){
-            const text = escape_typst(child.textContent!)
-            add_content(state, `=== ${text}\n`, true)
+        // Convert minor headings to `=== ...`
+        if (headings_minor.includes(style)) {
+            add_typst(state, `=== ${escape_typst(child.textContent ?? '')}\n`, true)
             continue
         }
 
-        // All other styles are standard <p> elements, so start one
+        // Blank-line marker — Typst collapses multiple newlines down to one paragraph
+        // break, so force an extra blank line with `\` on its own line AFTER an empty
+        // line. Leading `\n` guarantees the empty line regardless of how the prior
+        // paragraph closed (`\n\n` for regular, `]\n` for wrapped, `\n` for headings).
+        if (style === 'b'){
+            add_typst(state, '\n\\\n', true)
+            continue
+        }
+
+        // All other styles are paragraphs — wrapped only for special ones (poetry,
+        // lists). Regular prose paras have no wrapper, just a trailing blank line.
+        // For leveled families (q, qm, li, lim) the digit becomes a function argument:
+        // q1 → #q(1)[…], q4 → #q(4)[…], plain q → #q(1)[…] (defaults to level 1).
+        // Other wrapped styles (qc, qr, qd, lh, lf) emit #<style>[…] with no argument.
+        const wrapped = wrapped_para_styles.includes(style)
+        let para_open = ''
+        if (wrapped){
+            const match = /^([a-z]+?)(\d*)$/.exec(style)!
+            const family = match[1]!
+            const level = match[2] || '1'
+            para_open = leveled_para_families.includes(family)
+                ? `#${family}(${level})[`
+                : `#${family}[`
+        }
+        state.para_open = para_open
+        state.para_close = wrapped ? ']\n' : '\n\n'
+        state.mid_para = false
+        add_typst(state, state.para_open, true)
         process_contents(state, child.childNodes)
-        add_content(state, '\n')  // Always add at least one newline after each <para>
-        state.prev_para_type = non_para_para.includes(style) ? 'break' : 'para'
-    }
-
-    // Clear verses that only contain a marker and no actual text
-    for (let ch = 1; ch < state.contents.length; ch++){
-        for (let v = 1; v < state.contents[ch]!.length; v++){
-            if (/^#v\(\d+\)\s*$/.test(state.contents[ch]![v]!)){
-                state.contents[ch]![v] = ''
-            }
-        }
+        add_typst(state, state.para_close)
+        state.para_open = ''
+        state.para_close = ''
     }
 
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
@@ -150,8 +264,8 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst{
         console.warn(`Content exists before chapter 1 marker (${book_code})`)
     }
     for (let ch = 1; ch < state.contents.length; ch++){
-        if (state.contents[ch]![0]!.length){
-            state.contents[ch]![0] = ''
+        if (state.contents[ch]![0]!.join('')){
+            state.contents[ch]![0] = ['', '', '']
             console.warn(`Content exists before verse 1 marker for chapter ${ch} (${book_code})`)
         }
     }
@@ -165,7 +279,17 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst{
 
 
 // Process the contents of a node (nested or not) within a <para> element
-function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
+function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
+        allow_nonbib=false){
+    /* WARN It's important to call this between modifying state for opening/closing fragments
+        e.g.
+            add_typst(state, '#wj[')
+            process_contents(state, element.childNodes)
+            add_typst(state, ']')
+
+    `allow_nonbib` is set when recursing into footnote contents — it allows <ref>
+    elements (passage references) to contribute their text instead of being dropped.
+    */
 
     // Drop any preceeding whitespace at the beginning of a paragraph as messes up later logic
     const nodes = Array.from(nodes_raw)
@@ -178,14 +302,23 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
 
         // If first node is not a verse element, then any headings/etc being held in unknown_owner
         //     belong to current verse and not the next one
-        if (index === 0 && node.nodeName !== 'verse'){
-            state.contents[state.chapter]![state.verse]! += state.unknown_owner
+        // NOTE Verifying verse != 0 important so superscriptions in psalms prepended to verse 1
+        if (index === 0 && node.nodeName !== 'verse' && state.verse){
+            state.contents[state.chapter]![state.verse]![1] += state.unknown_owner
             state.unknown_owner = ''
         }
 
         // Handle text nodes
         if (node.nodeType === 3){
-            add_content(state, escape_typst(node.textContent!))
+            add_typst(state, escape_typst(node.textContent ?? ''))
+            state.mid_para = true
+            continue
+        }
+
+        // Allow <ref> when in non-biblical content (e.g. footnotes) — passes its text through
+        if (allow_nonbib && node.nodeName === 'ref'){
+            process_contents(state, node.childNodes, true)
+            continue
         }
 
         // Ignore all other node types that aren't elements (e.g. comments), or on ignored list
@@ -219,48 +352,84 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
                     `${new_number} less than ${state.book} ${state.chapter}:${state.verse}`)
             }
 
+            // If mid-paragraph, close the prior verse with the current para's close fragment
+            if (state.mid_para && state.verse > 0){
+                state.contents[state.chapter]![state.verse]![2] = state.para_close
+            }
+
             // Switch to new verse
             state.verse = new_number
 
             // Any unknown owner data is now known to belong to the new verse
-            state.contents[state.chapter]![state.verse]! += state.unknown_owner
+            state.contents[state.chapter]![state.verse]![1] += state.unknown_owner
             state.unknown_owner = ''
 
-            // Add verse marker inline (must come after reseting unknown_owner above
-            add_content(state, `#v(${state.verse})`)
+            // Add verse marker inline (consumer-defined #v function)
+            add_typst(state, `#v(${state.verse})`)
+
+            // If mid-paragraph, the new verse needs the para's open fragment in [0]
+            if (state.mid_para && new_number > 0){
+                state.contents[state.chapter]![state.verse]![0] = state.para_open
+            }
+            continue
         }
 
-        // Recurse through char elements
-        // NOTE Not just getting textContent in case <note> or <verse> elements exist within
+        // Mark that we've now seen real content in this para — used to detect mid-para
+        // when the next verse element arrives
+        state.mid_para = true
+
+        // Handle char elements
         if (element.nodeName === 'char'){
-            // Some chars have non-biblical content
-            if (ignored_char_styles.includes(element.getAttribute('style') ?? '')){
+
+            // Get the char's style
+            const char_style = element.getAttribute('style') ?? ''
+            if (ignored_char_styles.includes(char_style)){
                 continue
             }
-            process_contents(state, element.childNodes)
+
+            const shorthand = char_shorthand[char_style]
+            if (shorthand){
+                // Native Typst syntax or built-in function
+                add_typst(state, shorthand[0])
+                process_contents(state, element.childNodes, allow_nonbib)
+                add_typst(state, shorthand[1])
+            } else if (kept_char_styles.includes(char_style)){
+                // Consumer-defined function (no native equivalent)
+                add_typst(state, `#${char_style}[`)
+                process_contents(state, element.childNodes, allow_nonbib)
+                add_typst(state, ']')
+            } else {
+                // Unknown / semantic-only / wordlist / ruby / footnote-internal
+                //     (fr, ft, fk, fq, fqa, fl, fw, fp, fv, cat) — emit children only
+                process_contents(state, element.childNodes, allow_nonbib)
+            }
         }
 
-        // Transform note elements to inline Typst footnotes
+        // Handle note elements — recurse so char styles inside the note (it, bd, sc, etc.)
+        //     are preserved instead of flattened to text
         if (element.nodeName === 'note'){
-            if (ignored_note_styles.includes(element.getAttribute('style') ?? '')){
+
+            // Get the note's style
+            const note_style = element.getAttribute('style') ?? ''
+            if (ignored_note_styles.includes(note_style)){
                 continue
             }
-            // NOTE textContent will include all elements (so is immune to ignore lists)
-            const text = escape_typst(element.textContent!)
-            add_content(state, `#footnote[${text}]`)
+
+            add_typst(state, '#footnote[')
+            process_contents(state, element.childNodes, true)
+            add_typst(state, ']')
         }
     }
 }
 
 
 // Add content to current verse, possibly buffering if may belong to next verse
-function add_content(state:ParserState, content:string, may_belong_to_next_verse=false):void{
-
-    // Decide whether to add to unknown_owner or actual verse
-    if (state.unknown_owner || may_belong_to_next_verse){
+function add_typst(state:ParserState, content:string, may_belong_to_next_verse=false):void{
+    // NOTE Verifying verse != 0 important so superscriptions in psalms prepended to verse 1
+    if (state.unknown_owner || may_belong_to_next_verse || !state.verse){
         state.unknown_owner += content
     } else {
-        state.contents[state.chapter]![state.verse]! += content
+        state.contents[state.chapter]![state.verse]![1] += content
     }
 }
 
@@ -281,9 +450,9 @@ function add_content(state:ParserState, content:string, may_belong_to_next_verse
 // -     Bullet list / symbol shorthand (dashes)
 function escape_typst(text:string):string{
 
-    // First condense whitespace to single space (XML parser preserves source whitespace)
-    text = text.replaceAll(/\s+/g, ' ').trim()
+    // Condense whitespace runs to single space (XML parser preserves source whitespace)
+    text = text.replaceAll(/\s+/g, ' ')
 
     // eslint-disable-next-line no-useless-escape
-    return text.replace(/[\\#\[\]$*_`<>@~/+-]/g, '\\$&')
+    return text.replace(/[\\#\[\]$*_`<>@~/+\-]/g, '\\$&')
 }

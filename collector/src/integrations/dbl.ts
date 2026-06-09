@@ -41,6 +41,7 @@ export function dbl_headers(url:string, method='GET'):Record<string, string> {
 const IGNORE:string[] = [
     '69ffe7eecd894e52',  // Only second half of genesis
     '3ea0147e32eebe47',  // Older version of 3847624917e94649 (mal_irv)
+    '8dcc89916a0bcd59',  // Included as second zip (OT) for ndj_wft
 ]
 
 // Some language codes are outdated

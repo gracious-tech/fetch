@@ -58,7 +58,10 @@ export function report_invalid_meta(){
                 console.error(`WRONG ATTRIBUTION: ${id}`)
             }
 
-            if(!meta.source.url!.includes(service_id)){
+            // Only first url applies to props like id (when an array of urls)
+            const first_url = Array.isArray(meta.source.url) ? meta.source.url[0]!
+                : meta.source.url!
+            if (!first_url.includes(service_id)){
                 console.error(`WRONG ID IN SOURCE URL: ${id}`)
             }
         }

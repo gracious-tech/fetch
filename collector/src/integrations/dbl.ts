@@ -42,6 +42,9 @@ const IGNORE:string[] = [
     '69ffe7eecd894e52',  // Only second half of genesis
     '3ea0147e32eebe47',  // Older version of 3847624917e94649 (mal_irv)
     '8dcc89916a0bcd59',  // Included as second zip (OT) for ndj_wft
+    '1c18e3bbb2704a35',  // Included as second zip (some OT) for sch_wft
+    '324f457845cb5d21',  // NT already contained in OT+NT ace2eca02cc539c3
+    '355792a03079ccdd',  // NT already contained in OT+NT 4ae38a8d32ca9871
 ]
 
 // Some language codes are outdated

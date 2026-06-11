@@ -81,6 +81,10 @@ export const LICENSES:Record<string, MetaStandardLicense> = {
 // Detect a license from a Creative Commons URL, returning normalized form with trailing slash
 export function license_from_url(url:string):{license:string, url:string}|null {
 
+    // Strip non-ASCII characters (e.g. Unicode directional/formatting chars like U+202A that can
+    // appear in URLs scraped from ebible, making the URL technically invalid)
+    url = url.replace(/[^\x20-\x7E]/g, '')
+
     // Normalize to https with trailing slash
     const normalized = url.replace(/^http:/, 'https:').replace(/\/?$/, '/')
 

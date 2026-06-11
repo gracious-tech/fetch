@@ -8,7 +8,7 @@ import {publish} from './commands/publish.js'
 import {serve} from './commands/serve.js'
 import {update_dist} from './commands/process.js'
 import {download_source} from './commands/download.js'
-import {clean_collection, inspect_manifest} from './commands/maintenance.js'
+import {clean_collection} from './commands/maintenance.js'
 import {discover_translations} from './commands/discover.js'
 import {gen_language_data} from './parts/languages.js'
 import {update_bmc} from './parts/bmc.js'
@@ -65,8 +65,6 @@ await yargs(process.argv.slice(2))
     // Maintenance
     .command('clean', "Remove any unnecessary files from the collection", {},
         argv => clean_collection())
-    .command('inspect-manifest', "Create indented manifest copy in root", {},
-        argv => inspect_manifest())
 
     // Report
     .command('report', "Report the status of included translations", {},

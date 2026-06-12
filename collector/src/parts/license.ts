@@ -113,7 +113,7 @@ export function license_from_text(text:string):{license:string, url:string}|null
 
     // Prefer URL-based detection as it is more precise
     const url_match =
-        /https?:\/\/creativecommons\.org\/(?:licenses|publicdomain)\/[^\s"'>]+/i.exec(text)
+        /https?:\/\/creativecommons\.org\/(?:licenses|publicdomain)\/[^\s"'<>]+/i.exec(text)
     if (url_match){
         const detected = license_from_url(url_match[0])
         if (detected){

@@ -36,6 +36,8 @@ const IGNORE = [
     'hbo',  // Assumed to be same text as hboWLC
     'pon2006a',  // Same as pon2006 but with Apoc.
     'hltmcsb',  // 'hlt' is the same but includes strongs
+    'aeu',  // Same as aeb but LTR formatting?
+    'hebwlc',  // Same text as hboWLC
 
     // Ignored for being too questionable
     'spav1602p',  // A KJV update of the original Valera from 1602

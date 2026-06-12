@@ -4,7 +4,7 @@ import {existsSync, mkdirSync} from 'node:fs'
 import {createHmac} from 'node:crypto'
 
 import {request, concurrent, write_json, read_json} from '../parts/utils.js'
-import {license_from_text, license_from_url} from '../parts/license.js'
+import {license_from_text} from '../parts/license.js'
 import {get_language_data} from '../parts/languages.js'
 
 import type {TranslationSourceMeta} from '../parts/types'
@@ -105,6 +105,8 @@ interface LicenseAgreementsResponse {
 interface LicenseTemplateRevision {
     isExternalLicense:boolean
     externalURL:string
+    summary?:string
+    licenseText?:string
 }
 
 
@@ -312,10 +314,10 @@ async function fetch_license_from_template(
                     + ` Look up the license at https://app.library.bible/content/${entry_uid}`
                     + ` and add it to KNOWN_TEMPLATE_LICENSES in dbl.ts`)
             }
-            if (!template.isExternalLicense || !template.externalURL){
-                return null
-            }
-            return license_from_url(template.externalURL)
+            // Some templates store the CC URL in summary/licenseText rather than externalURL
+            const text_to_check = template.externalURL
+                || template.summary || template.licenseText || ''
+            return license_from_text(text_to_check)
         })())
     }
 

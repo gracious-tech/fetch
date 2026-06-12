@@ -5,7 +5,7 @@ import {existsSync} from 'fs'
 import {books_ordered} from '@gracious.tech/bible-references'
 
 import {read_json, list_dirs, list_files} from '../parts/utils.js'
-import {_missing_meta} from '../parts/manifest.js'
+import {_missing_meta, _missing_meta_fields} from '../parts/manifest.js'
 
 import type {TranslationSourceMeta} from '../parts/types'
 
@@ -44,8 +44,10 @@ export function report_invalid_meta(){
         const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
 
         // See if missing any metadata
-        if (_missing_meta(meta)){
-            console.error(`MISSING METADATA: ${id}`)
+        const missing = _missing_meta_fields(meta)
+        if (missing.length){
+            const meta_path = join('sources', 'bibles', id, 'meta.json')
+            console.error(`MISSING META [${missing.join(', ')}]: ${meta_path}`)
         }
 
         // See if ids not consistent

@@ -11,13 +11,21 @@ import type {DistManifest, DistManifestItem} from './shared_types'
 import type {TranslationSourceMeta} from './types'
 
 
+// Return list of missing required meta field names
+export function _missing_meta_fields(meta:TranslationSourceMeta):string[]{
+    const missing:string[] = []
+    if (!meta.year) missing.push('year')
+    if (!meta.copyright.licenses.length) missing.push('licenses')
+    if (!(meta.name.local || meta.name.english)) missing.push('name')
+    if (!(meta.name.local_abbrev || meta.name.english_abbrev)) missing.push('abbrev')
+    return missing
+}
+
+
 // See if any important meta data missing
 export function _missing_meta(meta:TranslationSourceMeta){
     // True if missing (and so shouldn't publish)
-    return !meta.year
-        || !meta.copyright.licenses.length
-        || !(meta.name.local || meta.name.english)
-        || !(meta.name.local_abbrev || meta.name.english_abbrev)
+    return _missing_meta_fields(meta).length > 0
 }
 
 

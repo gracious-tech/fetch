@@ -22,7 +22,11 @@ export async function clean_collection(){
     // Remove dist books if src books do not exist or are invalid
     for (const id of list_dirs(join('sources', 'bibles'))){
         const src_format = existsSync(join('sources', 'bibles', id, 'usx')) ? 'usx' : 'usfm'
-        const books = list_files(join('sources', 'bibles', id, src_format))
+        const src_dir = join('sources', 'bibles', id, src_format)
+        if (!existsSync(src_dir)){
+            continue
+        }
+        const books = list_files(src_dir)
             .filter(b => !b.endsWith('.invalid'))
             .map(b => b.slice(0, 3))
         let removed = false

@@ -156,8 +156,11 @@ async function _extract_source_zip(zip_path:string, format_dir:string,
         let book:string|undefined = undefined
         if (meta.source.format === 'usfm'){
             book = /^\\id (\w\w\w)/m.exec(contents_str)?.[1]?.toLowerCase()
-        } else if (/<usx/.test(contents_str)){  // Ensure a USX book and not BookNames.xml
+        } else if (/<usx/.test(contents_str)){
+            // Ensure a USX book and not license.xml/metadata.xml/etc (which lack <usx)
             book = /<book[^>]+code="(\w\w\w)"/.exec(contents_str)?.[1]?.toLowerCase()
+        } else {
+            continue  // Probably xml metadata file
         }
 
         // Confirm is in protestant canon

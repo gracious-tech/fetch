@@ -1,5 +1,5 @@
 
-import {existsSync, rmSync, unlinkSync} from 'fs'
+import {existsSync, readdirSync, rmdirSync, rmSync, unlinkSync} from 'fs'
 import {join} from 'path'
 
 import {list_dirs, list_files} from '../parts/utils.js'
@@ -7,6 +7,13 @@ import {add_unpublished} from '../parts/unpublished.js'
 
 
 export async function clean_collection(){
+
+    // Remove empty source dirs
+    for (const id of list_dirs(join('sources', 'bibles'))){
+        if (!readdirSync(join('sources', 'bibles', id)).length){
+            rmdirSync(join('sources', 'bibles', id))
+        }
+    }
 
     const changed_ids:string[] = []
 

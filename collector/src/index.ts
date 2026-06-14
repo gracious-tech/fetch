@@ -11,7 +11,7 @@ import {download_source} from './commands/download.js'
 import {clean_collection} from './commands/maintenance.js'
 import {discover_translations} from './commands/discover.js'
 import {gen_language_data} from './parts/languages.js'
-import {update_bmc} from './parts/bmc.js'
+import {update_usfmtc} from './parts/usfmtc.js'
 import {init_config} from './parts/config.js'
 import {update_manifest} from './parts/manifest.js'
 import {update_notes} from './resources/notes.js'
@@ -29,11 +29,11 @@ await yargs(process.argv.slice(2))
 
     // Setup
     .command('setup', "Setup new collection", {},
-        argv => Promise.all([init_config(), gen_language_data(), update_bmc()]).then(x => {}))
+        argv => Promise.all([init_config(), gen_language_data(), update_usfmtc()]).then(x => {}))
     .command('setup-data', "Update data on world's languages", {},
         argv => gen_language_data())
-    .command('setup-bmc [version]', "Update Bible Multi Converter", {},
-        argv => update_bmc(argv['version'] as string))
+    .command('setup-usfmtc [version]', "Install usfmtc (USFM/USX converter) into a local venv", {},
+        argv => update_usfmtc(argv['version'] as string))
 
     // Bibles
     .command('discover [service] [id]', "Discover what translations are available", {},

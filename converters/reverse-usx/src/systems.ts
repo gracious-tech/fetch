@@ -177,3 +177,151 @@ export const eng_to_org = Object.freeze({
 
     "MAL 4:1-6": "MAL 3:19-24",
 })
+
+// The systems below are composed from Copenhagen Alliance standard mappings (system -> org)
+// combined with the org -> eng data above, keeping only books that:
+//   * are detectable (have a verse ref that doesn't exist in eng numbering)
+//   * only need renumbering (reverse-usx can't move content, e.g. Synodal ROM 14:24-26)
+//   * stay within the protestant 66 books (no deuterocanon cross-book moves)
+// PSA is also excluded for vul/rsc/rso (LXX psalm chapter offsets; no translation needs it yet)
+
+
+// Vulgate versification (also covers several books of mixed European traditions)
+export const eng_to_vul = Object.freeze({
+
+    "NUM 11:35": "NUM 11:34",
+    "NUM 12:16": "NUM 13:1",
+    "NUM 13:1-33": "NUM 13:2-34",
+    "NUM 20:28-29": "NUM 20:29-30",
+    "NUM 29:40": "NUM 30:1",
+    "NUM 30:1-16": "NUM 30:2-17",
+
+    "JOS 4:23-24": "JOS 4:24-25",
+    "JOS 5:14-15": "JOS 5:15-16",
+    "JOS 21:37": "JOS 21:36",
+    "JOS 21:39-45": "JOS 21:37-43",
+
+    "JDG 5:31": "JDG 5:32",
+    "JDG 21:25": "JDG 21:24",
+
+    "1SA 20:42": "1SA 20:43",
+    "1SA 23:29": "1SA 24:1",
+    "1SA 24:1-22": "1SA 24:2-23",
+
+    "1KI 22:43-53": "1KI 22:44-54",
+
+    "JOB 16:4-22": "JOB 16:5-23",
+    "JOB 40:1-5": "JOB 39:31-35",
+    "JOB 40:6-24": "JOB 40:1-19",
+    "JOB 41:1-9": "JOB 40:20-28",
+    "JOB 41:10-34": "JOB 41:1-25",
+    "JOB 42:17": "JOB 42:16",
+
+    "ECC 5:1": "ECC 4:17",
+    "ECC 5:2-20": "ECC 5:1-19",
+    "ECC 6:12": "ECC 7:1",
+    "ECC 7:1-29": "ECC 7:2-30",
+
+    "SNG 1:2-17": "SNG 1:1-16",
+    "SNG 6:1": "SNG 5:17",
+    "SNG 6:2-13": "SNG 6:1-12",
+
+    "HOS 2:23": "HOS 2:24",
+    "HOS 13:16": "HOS 14:1",
+    "HOS 14:1-9": "HOS 14:2-10",
+
+    "AMO 6:10-14": "AMO 6:11-15",
+
+    "JON 2:10": "JON 2:11",
+
+    "HAG 1:15": "HAG 2:1",
+    "HAG 2:1-23": "HAG 2:2-24",
+
+    "MRK 4:41": "MRK 4:40",
+    "MRK 9:1": "MRK 8:39",
+    "MRK 9:2-50": "MRK 9:1-49",
+
+    "JHN 6:51-71": "JHN 6:52-72",
+})
+
+
+// Russian Synodal (canonical) versification
+export const eng_to_rsc = Object.freeze({
+
+    "NUM 12:16": "NUM 13:1",
+    "NUM 13:1-33": "NUM 13:2-34",
+    "NUM 29:40": "NUM 30:1",
+    "NUM 30:1-16": "NUM 30:2-17",
+
+    "JOS 6:1": "JOS 5:16",
+    "JOS 6:2-27": "JOS 6:1-26",
+
+    "JOB 40:1-5": "JOB 39:31-35",
+    "JOB 40:6-24": "JOB 40:1-19",
+    "JOB 41:1-8": "JOB 40:20-27",
+    "JOB 41:9-34": "JOB 41:1-26",
+
+    "SNG 1:2-17": "SNG 1:1-16",
+    "SNG 6:13": "SNG 7:1",
+    "SNG 7:1-13": "SNG 7:2-14",
+
+    "DAN 4:1-3": "DAN 3:31-33",
+    "DAN 4:4-37": "DAN 4:1-34",
+
+    "HOS 13:16": "HOS 14:1",
+    "HOS 14:1-9": "HOS 14:2-10",
+})
+
+
+// Russian Synodal (Orthodox) versification (only books differing from the above)
+export const eng_to_rso = Object.freeze({
+
+    "PRO 13:14-25": "PRO 13:15-26",
+    "PRO 18:8-24": "PRO 18:9-25",
+})
+
+
+// For each book, the order to test systems in, with refs that must all be
+// present for that system's rules to apply (refs chosen to exclude eng files
+// and files of any system listed lower)
+export const book_system_tests:Record<string, [string, string[]][]> = {
+    'GEN': [['org', ['GEN 32:33']]],
+    'EXO': [['org', ['EXO 21:37']]],
+    'LEV': [['org', ['LEV 5:26']]],
+    // NOTE org test relaxed to its unique marker NUM 17:28 (ch16/17 shift is org-only); this also
+    // catches "partial org" files that shift 16/17 + 29/30 but omit the obscure 25:19 (e.g. bba_sim)
+    'NUM': [['org', ['NUM 17:28']], ['vul', ['NUM 30:17', 'NUM 20:30']], ['rsc', ['NUM 30:17']]],
+    'DEU': [['org', ['DEU 28:69']]],
+    'JOS': [['vul', ['JOS 5:16', 'JOS 4:25']], ['rsc', ['JOS 5:16']]],
+    'JDG': [['vul', ['JDG 5:32']]],
+    // org/vul tests relaxed to their unique single markers so "partial" files (that shift only
+    // some of a system's chapters) still match; the renumber maps no-op on absent verses
+    '1SA': [['org', ['1SA 21:16']], ['vul', ['1SA 20:43']]],
+    '2SA': [['org', ['2SA 19:44']]],
+    '1KI': [['org', ['1KI 5:32']], ['vul', ['1KI 22:54']]],
+    '2KI': [['org', ['2KI 12:22']]],
+    '1CH': [['org', ['1CH 12:41']]],
+    '2CH': [['org', ['2CH 13:23']]],
+    'NEH': [['org', ['NEH 10:40']]],
+    'JOB': [['org', ['JOB 40:32']], ['vul', ['JOB 40:28']], ['rsc', ['JOB 40:27']]],
+    // NOTE PSA test hand-tuned to an early psalm so partial psalters are still detected
+    'PSA': [['org', ['PSA 3:9']]],
+    'PRO': [['rso', ['PRO 18:25']]],
+    'ECC': [['vul', ['ECC 7:30']], ['org', ['ECC 4:17']]],
+    'SNG': [['vul', ['SNG 5:17']], ['org', ['SNG 7:14']], ['rsc', ['SNG 7:14']]],
+    'ISA': [['org', ['ISA 8:23']]],
+    'JER': [['org', ['JER 8:23']]],
+    'EZK': [['org', ['EZK 21:37']]],
+    'DAN': [['org', ['DAN 6:29']], ['rsc', ['DAN 3:33']]],
+    'HOS': [['org', ['HOS 14:10', 'HOS 12:15']], ['vul', ['HOS 14:10', 'HOS 2:24']], ['rsc', ['HOS 14:10']]],
+    'JOL': [['org', ['JOL 4:21']]],
+    'AMO': [['vul', ['AMO 6:15']]],
+    'JON': [['org', ['JON 2:11']], ['vul', ['JON 2:11']]],
+    'MIC': [['org', ['MIC 4:14']]],
+    'NAM': [['org', ['NAM 2:14']]],
+    'HAG': [['vul', ['HAG 2:24']]],
+    'ZEC': [['org', ['ZEC 2:17']]],
+    'MAL': [['org', ['MAL 3:24']]],
+    'MRK': [['vul', ['MRK 8:39']]],
+    'JHN': [['vul', ['JHN 6:72']]],
+}

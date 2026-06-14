@@ -6,6 +6,25 @@ import {validate_numbering} from './validate.js'
 export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializer,
         rules=default_rules):string{
 
+    // Apply rules repeatedly until stable, as a book can have multiple independent versification
+    // quirks (e.g. eng_tojb's Job has both the ch2/3 boundary and the ch38-41 boundary, each
+    // handled by a different rule set). Each rule removes its own test marker so it can't re-match,
+    // making this safe; the cap is just a guard against unforeseen ping-ponging rules.
+    let result = xml
+    for (let pass = 0; pass < 5; pass++){
+        const next = reverse_usx_once(result, parser, serializer, rules)
+        if (next === result){
+            break
+        }
+        result = next
+    }
+    return result
+}
+
+
+function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof XMLSerializer,
+        rules:typeof default_rules):string{
+
     // Create parser
     const doc:XMLDocument = new parser().parseFromString(xml, 'application/xml')
     const usx_element = doc.documentElement as Element
@@ -29,8 +48,14 @@ export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializ
     // WARN This prevents reapplying same rules leading to potentially messy results
     let book_rules:BookRuleSet|undefined
     for (const possible_rules of (rules[book_code] ?? [])){
-        // NOTE Must match 'ROM 14:24' and 'ROM 14:24-25'
-        if (new RegExp(`sid="${possible_rules.test}["-]`).test(xml)){
+        // A test may be multiple refs which must all exist (to distinguish similar systems)
+        const tests = Array.isArray(possible_rules.test)
+            ? possible_rules.test : [possible_rules.test]
+        // NOTE Must match 'ROM 14:24' itself and ranges like 'ROM 14:24-25' / 'ROM 14:23-24'
+        if (tests.every(test => {
+            const [ch_part, verse] = test.split(':') as [string, string]
+            return new RegExp(`sid="${ch_part}:(?:\\d+-)?${verse}["-]`).test(xml)
+        })){
             book_rules = possible_rules
             break
         }
@@ -163,7 +188,9 @@ export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializ
         const id_type = chapter.hasAttribute('eid') ? 'eid' : 'sid'
         const ch_num = parseInt(chapter.getAttribute(id_type)!.slice(3))
 
-        if (id_type === 'sid' && chapters_invalid.has(ch_num)){
+        if (id_type === 'sid' && ch_num > 1 && chapters_invalid.has(ch_num)){
+            // NOTE Never remove chapter 1's start marker — it stays at the book start even if its
+            // first verse was renumbered (there's no previous chapter to move it after)
             chapter.remove()
         } else if (id_type === 'eid' && chapters_invalid.has(ch_num + 1)){
             // The ending ids of prev chapters also need moving
@@ -180,7 +207,12 @@ export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializ
         }
 
         // Identify the para that contains the last verse of the previous chapter
-        const last_eid_node = last_eid_for_ch[ch_num - 1]![1]
+        // Skip if there's no previous chapter recorded (e.g. chapter 1, whose marker doesn't move)
+        const prev_ch_eid = last_eid_for_ch[ch_num - 1]
+        if (!prev_ch_eid){
+            continue
+        }
+        const last_eid_node = prev_ch_eid[1]
         const prev_para = last_eid_node.parentElement
         if (prev_para?.nodeName !== 'para'){
             throw new Error(`Expected a <para> (trying to restore chapter ${ch_num})`)

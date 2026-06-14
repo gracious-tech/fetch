@@ -50,7 +50,8 @@ export function validate_numbering(doc:XMLDocument){
 
         // Confirm expected verse number (if a verse)
         // NOTE Verse numbers are allowed to skip forward as long as still sequential
-        if (element.nodeName === 'verse' && v_num! < next_v_num){
+        // NOTE A repeat of the previous number is allowed for verse segments (35a, 35b, etc)
+        if (element.nodeName === 'verse' && v_num! < next_v_num - 1){
             expected(`verse ${next_v_num}`)
         }
 
@@ -76,7 +77,9 @@ export function validate_numbering(doc:XMLDocument){
             next_pos = 'eid'
         } else {  // verse with eid
             next_pos = 'sid'
-            next_v_num += 1
+            // Advance to just past this verse's own number, so segments of one verse
+            // (35, 35a, 35b all parse to 35) don't each inflate the counter
+            next_v_num = Math.max(next_v_num, v_num! + 1)
         }
     }
 }

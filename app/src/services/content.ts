@@ -3,6 +3,7 @@ import {FetchClient} from '@gracious.tech/fetch-client'
 import {strip_tags_and_commentary} from '@gracious.tech/fetch-search'
 
 import {state} from './state'
+import {escape_html} from './utils'
 
 import type {BibleIndex} from '@gracious.tech/fetch-search'
 import type {FetchCollection, GetResourcesItem, GetLanguagesItem, SearchWords,
@@ -62,7 +63,8 @@ export async function search_orig(){
         // Get text from book
         const orig_html = glosses[book]!.get_words(result.verse).map((word, i) => {
             const prop = state.original_chars ? 'original' : 'word'
-            return result.word_indexes.includes(i) ? `<mark>${word[prop]}</mark>` : word[prop]
+            const escaped = escape_html(word[prop])
+            return result.word_indexes.includes(i) ? `<mark>${escaped}</mark>` : escaped
         }).join(' ')
         const verse_html = strip_tags_and_commentary(
                 books[book]!.get_passage_from_ref(result.verse, {attribute: false}))

@@ -22,7 +22,7 @@ div.content(ref='content_div' :class='fetch_classes' @click='on_click'
 
 <script lang='ts' setup>
 
-import {ref, onMounted, watch, computed} from 'vue'
+import {ref, onMounted, onBeforeUnmount, watch, computed} from 'vue'
 
 import {PassageReference} from '@gracious.tech/bible-references'
 import {substantial_poetry, wrap_verse_parts, add_passage_class, rm_passage_class}
@@ -291,6 +291,14 @@ onMounted(() => {
             update_dom()
         }
     }, {immediate: true, flush: 'post'})  // Trigger after DOM updated
+})
+
+
+// Disconnect observer on unmount so stale callbacks don't overwrite state.chapter/verse
+onBeforeUnmount(() => {
+    if (observer){
+        observer.disconnect()
+    }
 })
 
 

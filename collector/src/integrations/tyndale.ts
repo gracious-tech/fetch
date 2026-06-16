@@ -302,10 +302,17 @@ export function clean_note(body: string): string {
         'sub': '<sub>$1</sub>',
         'sup': '<sup>$1</sup>',
     }
-    Object.entries(elements).forEach(([klass, replacement]) => {
-        const pattern = new RegExp(`<span class="fbn-${klass}">(.*?)</span>`, 'g')
-        cleaned = cleaned.replace(pattern, replacement)
-    })
+    // Iterate until no more replacements occur so nested spans are handled (innermost first)
+    // NOTE Non-greedy (.*?) on nested spans only consumes through the inner </span>; repeated
+    //      passes peel off each layer until all are resolved.
+    let prev:string
+    do {
+        prev = cleaned
+        Object.entries(elements).forEach(([klass, replacement]) => {
+            const pattern = new RegExp(`<span class="fbn-${klass}">((?:(?!<span).)*?)</span>`, 'g')
+            cleaned = cleaned.replace(pattern, replacement)
+        })
+    } while (cleaned !== prev)
 
     // convert reference links to data tags
     let pattern = /<a href="\?bref=([^"]*)">([^<]*)<\/a>/g

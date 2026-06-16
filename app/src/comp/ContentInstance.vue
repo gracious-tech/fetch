@@ -82,6 +82,7 @@ function intentional_swipe_distance(){
     if (y_distance > 100){
         // Have moved too much vertically to be intentional swipe so ignore until next touch
         cancel_swipe()
+        return 0
     }
 
     // Reduce x distance by how ever long y distance is

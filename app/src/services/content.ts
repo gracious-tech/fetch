@@ -39,6 +39,10 @@ export async function search_orig(){
     // WARN Decouple var so if search changes it will not update the new array if still going
     state.search_results = []
     const results = state.search_results
+    const state_search_orig = state.search_orig
+    if (!state_search_orig){
+        return
+    }
 
     // Collect books as they load to avoid refetching
     const books:Record<string, BibleBookHtml> = {}
@@ -46,10 +50,10 @@ export async function search_orig(){
 
     // Work out which index to look through
     const testament =
-        await (state.search_orig?.ot ? content.search_orig_ot : content.search_orig_nt)
+        await (state_search_orig.ot ? content.search_orig_ot : content.search_orig_nt)
 
     // Fetch text for each result
-    const tokens = state.search_orig!.words.map(w => w[state.search_orig_mode])
+    const tokens = state_search_orig.words.map(w => w[state.search_orig_mode])
     // TODO Work out how to virtual scroll for unlimited results
     for (const result of testament.search(...tokens).slice(0, 25)){
 

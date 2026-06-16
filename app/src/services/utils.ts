@@ -20,3 +20,16 @@ export function parse_int(input:string|number, min?:number, max?:number):number{
     }
     return int
 }
+
+
+// Escape text for safe inclusion in HTML
+export function escape_html(text:string):string{
+    const escapes:Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    }
+    return text.replace(/[&<>"']/g, char => escapes[char]!)
+}

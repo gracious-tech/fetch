@@ -3,6 +3,7 @@ import {FetchClient} from '@gracious.tech/fetch-client'
 import {strip_tags_and_commentary} from '@gracious.tech/fetch-search'
 
 import {state} from './state'
+import {escape_html} from './utils'
 
 import type {BibleIndex} from '@gracious.tech/fetch-search'
 import type {FetchCollection, GetResourcesItem, GetLanguagesItem, SearchWords,
@@ -38,6 +39,10 @@ export async function search_orig(){
     // WARN Decouple var so if search changes it will not update the new array if still going
     state.search_results = []
     const results = state.search_results
+    const state_search_orig = state.search_orig
+    if (!state_search_orig){
+        return
+    }
 
     // Collect books as they load to avoid refetching
     const books:Record<string, BibleBookHtml> = {}
@@ -45,10 +50,10 @@ export async function search_orig(){
 
     // Work out which index to look through
     const testament =
-        await (state.search_orig?.ot ? content.search_orig_ot : content.search_orig_nt)
+        await (state_search_orig.ot ? content.search_orig_ot : content.search_orig_nt)
 
     // Fetch text for each result
-    const tokens = state.search_orig!.words.map(w => w[state.search_orig_mode])
+    const tokens = state_search_orig.words.map(w => w[state.search_orig_mode])
     // TODO Work out how to virtual scroll for unlimited results
     for (const result of testament.search(...tokens).slice(0, 25)){
 
@@ -62,7 +67,8 @@ export async function search_orig(){
         // Get text from book
         const orig_html = glosses[book]!.get_words(result.verse).map((word, i) => {
             const prop = state.original_chars ? 'original' : 'word'
-            return result.word_indexes.includes(i) ? `<mark>${word[prop]}</mark>` : word[prop]
+            const escaped = escape_html(word[prop])
+            return result.word_indexes.includes(i) ? `<mark>${escaped}</mark>` : escaped
         }).join(' ')
         const verse_html = strip_tags_and_commentary(
                 books[book]!.get_passage_from_ref(result.verse, {attribute: false}))

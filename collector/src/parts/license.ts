@@ -137,7 +137,7 @@ export function detect_year(...sources:string[]):number|null{
         // Find all candidates in the source
         const candidates:number[] = []
         // NOTE regex ensures 4 digits are not next to any other digits
-        for (const match of source.matchAll(/^(?:.*[^\d])?(\d\d\d\d)(?:[^\d].*)?$/g)){
+        for (const match of source.matchAll(/^(?:.*[^\d])?(\d\d\d\d)(?:[^\d].*)?$/gm)){
             candidates.push(parseInt(match[1]!))
         }
 

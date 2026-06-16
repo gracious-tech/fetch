@@ -79,7 +79,8 @@ export class BibleIndex {
     async index_books(books:string[]):Promise<void>{
 
         // Do all network requests simultaneously, but must add items to index synchronously
-        let latest_item_promise:Promise<unknown> = Promise.resolve()
+        // NOTE Use a single shared chain so concurrent book handlers don't drop each other
+        let chain:Promise<unknown> = Promise.resolve()
         const requests = books.map(async book_id => {
 
             // Get book
@@ -88,19 +89,17 @@ export class BibleIndex {
             const book = await this._collection.bibles.fetch_book(
                 this._bible, book_id, this._format as 'txt')
 
-            // Add items as a chain of promises to keep synchronous
-            for (const item of this._get_items_for_book(book)){
-                // Flexsearch expects additions to be synchronous
-                latest_item_promise =
-                    latest_item_promise.then(() => this._flexsearch.addAsync(item))
-            }
+            // Append all items for this book to the shared chain, capturing the new tail
+            const items = this._get_items_for_book(book)
+            const book_tail = items.reduce((prev, item) => {
+                return prev.then(() => this._flexsearch.addAsync(item))
+            }, chain)
+            chain = book_tail
+            await book_tail
         })
 
-        // Wait for all requests to complete
+        // Wait for all requests (and their indexing work) to complete
         await Promise.all(requests)
-
-        // Wait for all items to be added to index
-        await latest_item_promise
     }
 
     // Convenience method for indexing all books

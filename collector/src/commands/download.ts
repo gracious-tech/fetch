@@ -73,15 +73,23 @@ export async function download_source(recheck:boolean, trans_id?:string){
             if (!recheck){
                 continue  // Never re-download without --recheck
             }
-            if (new_version
-                    && new_version.updated === meta.source.updated
-                    && new_version.revision === meta.source.revision){
-                continue  // Source unchanged since last download
-            }
-            if (new_version){
+            // Version-tracked services (eBible/DBL) only re-download for a confirmed newer version
+            // NOTE Without this, an id renamed/removed upstream has no new_version and would fall
+            //      through to re-download via its now-stale url, failing with a 404 every recheck
+            if (meta.source.service === 'ebible' || meta.source.service === 'dbl'){
+                if (!new_version){
+                    console.warn(`Skipping ${id}: source no longer listed by `
+                        + `${meta.source.service} (keeping existing files)`)
+                    continue
+                }
+                if (new_version.updated === meta.source.updated
+                        && new_version.revision === meta.source.revision){
+                    continue  // Source unchanged since last download
+                }
                 console.info(`Re-downloading ${id}: source updated `
                     + `(${meta.source.updated} → ${new_version.updated})`)
             }
+            // NOTE manual/door43 sources have no version api, so recheck always re-fetches them
         }
 
         // Allocate to correct service (carrying the version to record after download)
@@ -137,7 +145,8 @@ async function _update_source(id:string, meta:TranslationSourceMeta,
     const src_dir = join('sources', 'bibles', id)
 
     // Normalise url to an array (a translation may be split across multiple zips to merge)
-    const urls = meta.source.url === null ? []
+    // NOTE A null or empty url means the source is committed to the repo (nothing to download)
+    const urls = !meta.source.url ? []
         : (Array.isArray(meta.source.url) ? meta.source.url : [meta.source.url])
 
     // Download zip(s) — skip if no urls (manually saved to repo)

@@ -1,6 +1,50 @@
 
 import {BookRuleSet, default_rules} from './rules.js'
+import {eng_psa_max} from './systems.js'
+import {strip_subverses} from './strip_subverses.js'
 import {validate_numbering} from './validate.js'
+
+
+// Build a per-psalm title-offset rule for a Psalms file that counts the Hebrew superscription as
+// verse 1 (so each titled psalm has one more verse than eng). Such translations do this
+// INCONSISTENTLY, so the org title-offset is filtered to only the psalms whose actual verse count
+// matches org's title-counted length; the rest are left untouched.
+function build_psa_title_rule(doc:XMLDocument):BookRuleSet|undefined{
+
+    // Actual max verse number present per psalm in this file
+    const actual:Record<number, number> = {}
+    for (const verse of doc.getElementsByTagName('verse')){
+        const sid = verse.getAttribute('sid')
+        if (!sid){
+            continue
+        }
+        const [ch, v] = sid.slice(4).split(':').map(n => parseInt(n)) as [number, number]
+        actual[ch] = Math.max(actual[ch] ?? 0, v)
+    }
+
+    // For each psalm with more verses than eng, treat the leading `shift` verses as the (1- or
+    // 2-verse) superscription and renumber the rest down. shift is read from THIS file, so a
+    // psalter counting a title as 1 verse where another uses 2 is still handled. Returns undefined
+    // when no psalm has extra verses, so eng-numbered Psalters are left untouched.
+    const renumber:Record<string, string> = {}
+    const subtitle:Record<string, number> = {}
+    for (let ch = 1; ch <= eng_psa_max.length; ch++){
+        const shift = (actual[ch] ?? 0) - eng_psa_max[ch - 1]!
+        // Titles are 1-2 verses; a larger gap is some other issue (leave it to fail validation)
+        if (shift < 1 || shift > 2){
+            continue
+        }
+        subtitle[`PSA ${ch}`] = shift
+        for (let v = shift + 1; v <= actual[ch]!; v++){
+            renumber[`PSA ${ch}:${v}`] = `PSA ${ch}:${v - shift}`
+        }
+    }
+
+    if (!Object.keys(renumber).length){
+        return undefined
+    }
+    return {test: '', renumber, subtitle}
+}
 
 
 export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializer,
@@ -10,15 +54,27 @@ export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializ
     // quirks (e.g. eng_tojb's Job has both the ch2/3 boundary and the ch38-41 boundary, each
     // handled by a different rule set). Each rule removes its own test marker so it can't re-match,
     // making this safe; the cap is just a guard against unforeseen ping-ponging rules.
+    const max_passes = 5
     let result = xml
-    for (let pass = 0; pass < 5; pass++){
+    let stable = false
+    for (let pass = 0; pass < max_passes; pass++){
         const next = reverse_usx_once(result, parser, serializer, rules)
         if (next === result){
+            stable = true
             break
         }
         result = next
     }
-    return result
+
+    // If still changing after the cap, a rule is ping-ponging — throw so it can be diagnosed
+    if (!stable){
+        throw new Error(`reverse_usx did not stabilise after ${max_passes} passes (likely a `
+            + `rule that keeps re-matching its own output)`)
+    }
+
+    // Finally strip any sub-verse markers so all distributed formats use consistent integer
+    // numbering (runs on every file, independent of whether a versification rule matched)
+    return strip_subverses(result, parser, serializer)
 }
 
 
@@ -60,6 +116,19 @@ function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof
             break
         }
     }
+
+    // Psalms: unless this is an LXX psalter (handled by the lxx merge rule above), apply a
+    // per-psalm title-offset. It supersedes the static org rule and runs even when no static rule
+    // matched, because translations that count the Hebrew superscription as verse 1 do so
+    // inconsistently. It is a no-op when no psalm has extra verses, so eng-numbered Psalters are
+    // untouched.
+    if (book_code === 'PSA' && !/sid="PSA 146:11/.test(xml)){
+        const dynamic = build_psa_title_rule(doc)
+        if (dynamic){
+            book_rules = dynamic
+        }
+    }
+
     if (!book_rules){
         return xml
     }
@@ -206,9 +275,16 @@ function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof
             continue
         }
 
+        // Identify the previous present chapter — psalters may skip chapters (a selection of
+        // psalms), so the previous chapter isn't always ch_num - 1
+        let prev_ch = ch_num - 1
+        while (prev_ch >= 1 && !last_eid_for_ch[prev_ch]){
+            prev_ch -= 1
+        }
+
         // Identify the para that contains the last verse of the previous chapter
         // Skip if there's no previous chapter recorded (e.g. chapter 1, whose marker doesn't move)
-        const prev_ch_eid = last_eid_for_ch[ch_num - 1]
+        const prev_ch_eid = last_eid_for_ch[prev_ch]
         if (!prev_ch_eid){
             continue
         }
@@ -221,9 +297,19 @@ function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof
         // If para contains verses of the next chapter then need to split it
         force_para_end(prev_para, last_eid_node)
 
+        // Remove any existing markers we're about to recreate. When chapters are skipped the
+        // removal loop above (keyed on ch_num + 1) won't have caught the real previous chapter's
+        // eid, so clear it here to avoid leaving a duplicate behind
+        for (const ch of [...doc.getElementsByTagName('chapter')]){
+            if (ch.getAttribute('eid') === `${book_code} ${prev_ch}`
+                    || ch.getAttribute('sid') === `${book_code} ${ch_num}`){
+                ch.remove()
+            }
+        }
+
         // Create new chapter eid and sid elements
         const prev_ch_end = doc.createElement('chapter')
-        prev_ch_end.setAttribute('eid', `${book_code} ${ch_num - 1}`)
+        prev_ch_end.setAttribute('eid', `${book_code} ${prev_ch}`)
         const ch_start = doc.createElement('chapter')
         ch_start.setAttribute('sid', `${book_code} ${ch_num}`)
         ch_start.setAttribute('number', String(ch_num))

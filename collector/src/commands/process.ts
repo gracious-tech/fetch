@@ -4,9 +4,10 @@ import {join} from 'node:path'
 
 import {usx_to_json_html, usx_to_json_txt} from 'usx-to-json'
 import {reverse_usx} from 'reverse-usx'
+import {books_ordered} from '@gracious.tech/bible-references'
 import {JSDOM} from 'jsdom'
 
-import {pre_usx_to_json} from '../integrations/patches.js'
+import {pre_convert, pre_reverse, post_reverse} from '../patches/generic.js'
 import {update_manifest} from '../parts/manifest.js'
 import {add_unpublished} from '../parts/unpublished.js'
 import {concurrent, read_json, write_json, list_files, list_dirs} from '../parts/utils.js'
@@ -96,7 +97,11 @@ async function _update_dist_single(id:string, force:boolean){
         converted_any = true
 
         try {
-            const src_text = fs.readFileSync(join(format_dir, file), {encoding: 'utf8'})
+            // Read the unmodified source and apply any quirk fixes that must run before conversion
+            // (e.g. inject hil_bib's missing chapter-1 marker). Patching here keeps the stored
+            // source pristine while still correcting the dist output.
+            const src_text = pre_convert(id, book, fs.readFileSync(
+                join(format_dir, file), {encoding: 'utf8'}))
 
             // Produce USX3: keep source as-is if already USX3, else convert (adding verse end
             // markers). WARN Re-adding esids to already-esid'd USX makes usfmtc emit stray
@@ -106,6 +111,9 @@ async function _update_dist_single(id:string, force:boolean){
             let usx = source_is_usx3
                 ? src_text
                 : await convert(src_text, src_fmt, 'usx', true)
+
+            // Apply any quirk fixes that must run before reversing (e.g. LXX Jeremiah truncation)
+            usx = pre_reverse(id, book, usx)
 
             // Normalise versification to the standard 66-book numbering
             let reversed:string
@@ -125,18 +133,23 @@ async function _update_dist_single(id:string, force:boolean){
             }
             const did_reverse = reversed !== usx
             usx = reversed
+
+            // Apply any quirk fixes that must run after reversing on the normalised USX (e.g. LXX
+            // Proverbs over-range merge), so every dist format below shares the corrected text
+            const post = post_reverse(id, book, usx)
+            const did_post_reverse = post !== usx
+            usx = post
             fs.writeFileSync(dst_usx, usx)
 
-            // Produce USFM: copy unchanged source USFM, else derive from the (re-versed) USX
-            const usfm = src_fmt === 'usfm' && !did_reverse
+            // Produce USFM: copy unchanged source USFM, else derive from the patched re-versed USX
+            const usfm = src_fmt === 'usfm' && !did_reverse && !did_post_reverse
                 ? src_text
                 : await convert(usx, 'usx', 'usfm')
             fs.writeFileSync(dst_usfm, usfm)
 
-            // Convert USX to HTML and plain text JSON (after applying source-quirk patches)
-            const patched = pre_usx_to_json(id, book, usx)
-            write_json(dst_txt, usx_to_json_txt(patched, DOMParser))
-            write_json(dst_html, usx_to_json_html(patched, false, DOMParser))
+            // Convert the fully-patched USX (same text written to the usx/usfm formats) to JSON
+            write_json(dst_txt, usx_to_json_txt(usx, DOMParser))
+            write_json(dst_html, usx_to_json_html(usx, false, DOMParser))
         } catch (error){
             console.warn(`INVALID BOOK: failed to convert '${book}' for ${id}`)
             console.error(error instanceof Error ? error.message : error)
@@ -154,6 +167,7 @@ async function _update_dist_single(id:string, force:boolean){
 
     // Extract names/headings for all books into single file for translation
     const trans_extra:DistTranslationExtra = {book_names: {}, chapter_headings: {}, sections: {}}
+    const partial_books:string[] = []
     for (const filename of list_files(join(dist_dir, 'txt'))){
 
         // Determine paths and read data from txt format output
@@ -167,6 +181,35 @@ async function _update_dist_single(id:string, force:boolean){
         // WARN Below also sets any chapter start sections to null to reduce data transfer
         trans_extra.chapter_headings[book] =
             generate_chapter_headings(json_txt, trans_extra.sections[book]!)
+
+        // Flag the book as partial if it is missing whole chapters of content
+        if (_book_is_partial(json_txt)){
+            partial_books.push(book)
+        }
     }
     write_json(join(dist_dir, 'extra.json'), trans_extra)
+
+    // Record which books have only partial content in the source meta so it ends up in the
+    // manifest and apps can warn users. This run iterates every dist book, so partial_books is the
+    // full picture; only rewrite meta.json when the value actually changes.
+    partial_books.sort((a, b) => books_ordered.indexOf(a) - books_ordered.indexOf(b))
+    if (JSON.stringify(meta.partial ?? []) !== JSON.stringify(partial_books)){
+        if (partial_books.length){
+            meta.partial = partial_books
+        } else {
+            delete meta.partial
+        }
+        write_json(join(src_dir, 'meta.json'), meta, true)
+    }
+}
+
+
+function _book_is_partial(json_txt:BibleJsonTxt):boolean{
+    // A book is partial if any standard chapter has no verse content at all (a missing chapter)
+    for (let ch = 1; ch < json_txt.contents.length; ch++){
+        if (!json_txt.contents[ch]?.some(verse => verse.length > 0)){
+            return true
+        }
+    }
+    return false
 }

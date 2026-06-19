@@ -5,6 +5,8 @@ import {readFileSync} from 'node:fs'
 import {describe, it} from 'vitest'
 
 import {reverse_usx} from './reverse.js'
+import {strip_subverses} from './strip_subverses.js'
+import {eng_psa_max} from './systems.js'
 
 
 const samples_dir = join(__dirname, '..', 'samples')
@@ -127,6 +129,14 @@ describe("reverse_usx versification systems", () => {
         ['nld', 'NEH', [5, 5, 5, 5, 5, 5, 72, 19], [5, 5, 5, 5, 5, 5, 73, 18]],
         // nld_nbg style ROM (7:25 split into 7:25-26)
         ['nld', 'ROM', [5, 5, 5, 5, 5, 5, 26], [5, 5, 5, 5, 5, 5, 25]],
+        // spa_rv/ita_db style JOB (Serbian 38/39 boundary only; ch41 keeps its full eng 34 verses)
+        ['srp-partial', 'JOB',
+            [22, 13, 26, 21, 27, 30, 21, 22, 35, 22, 20, 25, 28, 22, 35, 22, 16, 21, 29, 29,
+                34, 30, 17, 25, 6, 14, 23, 28, 25, 31, 40, 22, 33, 37, 16, 33, 24, 38, 38, 19,
+                34, 17],
+            [22, 13, 26, 21, 27, 30, 21, 22, 35, 22, 20, 25, 28, 22, 35, 22, 16, 21, 29, 29,
+                34, 30, 17, 25, 6, 14, 23, 28, 25, 31, 40, 22, 33, 37, 16, 33, 24, 41, 30, 24,
+                34, 17]],
     ]
 
     for (const [system, book, input_counts, expected_counts] of cases){
@@ -135,5 +145,155 @@ describe("reverse_usx versification systems", () => {
             expect(profile_usx(result)).toEqual(expected_counts)
         })
     }
+
+    it("Merges pes_pbs single-verse splits (EXO 29:36, 2CH 14:7)", async ({expect}) => {
+        // EXO 29 has 47 verses (eng 46) because the source splits eng 29:36 into 36-37
+        const exo = Array<number>(29).fill(2)
+        exo[28] = 47
+        expect(profile_usx(reverse_usx(make_usx('EXO', exo)))[28]).toEqual(46)
+        // 2CH 14 has 16 verses (eng 15) because the source splits eng 14:7 into 7-8
+        const two_ch = Array<number>(14).fill(2)
+        two_ch[13] = 16
+        expect(profile_usx(reverse_usx(make_usx('2CH', two_ch)))[13]).toEqual(15)
+    })
+
+    it("Folds rus_syn Septuagint-plus endings into the preceding verse", async ({expect}) => {
+        // JOS 24 has 36 verses (eng 33); the LXX-plus 34-36 fold into 24:33
+        const jos = Array<number>(24).fill(2)
+        jos[23] = 36
+        expect(profile_usx(reverse_usx(make_usx('JOS', jos)))[23]).toEqual(33)
+        // PRO 4 has 29 verses (eng 27) and PRO 13 has 26 (eng 25); both LXX-plus, folded down
+        const pro = Array<number>(13).fill(2)
+        pro[3] = 29
+        pro[12] = 26
+        const pro_res = profile_usx(reverse_usx(make_usx('PRO', pro)))
+        expect(pro_res[3]).toEqual(27)
+        expect(pro_res[12]).toEqual(25)
+    })
+
+    it("Applies spa_rv/ita_db single-chapter split and boundary rules", async ({expect}) => {
+        // Build a book sized to the highest chapter mentioned, fill chapters with 2 verses except
+        // the given ones, reverse, and assert the resulting per-chapter counts
+        const check = (book:string, counts_map:Record<number, number>,
+                expected_map:Record<number, number>) => {
+            const max_ch = Math.max(...Object.keys(counts_map).map(Number))
+            const counts = Array<number>(max_ch).fill(2)
+            for (const [ch, n] of Object.entries(counts_map)){
+                counts[+ch - 1] = n
+            }
+            const res = profile_usx(reverse_usx(make_usx(book, counts)))
+            for (const [ch, n] of Object.entries(expected_map)){
+                expect(res[+ch - 1]).toEqual(n)
+            }
+        }
+        check('1CH', {21: 31}, {21: 30})  // spa_rv splits 21:15
+        check('2CH', {16: 15}, {16: 14})  // spa_rv splits 16:14
+        check('JDG', {14: 21}, {14: 20})  // spa_rv splits 14:18
+        check('GAL', {3: 30}, {3: 29})  // ita_db splits 3:28
+        check('GEN', {35: 30}, {35: 29})  // ita_db splits 35:22
+        check('COL', {3: 26, 4: 17}, {3: 25, 4: 18})  // ita_db boundary eng 4:1 as 3:26
+        check('EXO', {35: 36, 36: 37}, {35: 35, 36: 38})  // ita_db boundary eng 36:1 as 35:36
+        check('NUM', {12: 15, 13: 34}, {12: 16, 13: 33})  // ita_db boundary eng 12:16 as 13:1
+        check('1CH', {19: 20}, {19: 19})  // bis_obb splits 19:19
+        check('2CH', {12: 17}, {12: 16})  // cab_sblg splits 12:15
+        check('2SA', {2: 33}, {2: 32})  // ukr splits 2:4
+        check('ISA', {9: 22}, {9: 21})  // ukr splits 9:21
+        check('NUM', {23: 31}, {23: 30})  // ukr splits 23:17
+        // ukr LEV: eng 6:1-7 numbered as 5:20-26 with eng 6:5 split into 5:24-25 (ch5=27); reversed
+        // ch5 returns to 19 and the moved verses land in ch6 (here ch6 source=23 → eng 6:8-30)
+        check('LEV', {5: 27, 6: 23}, {5: 19, 6: 30})
+    })
+
+    it("Removes inconsistently-counted Psalm superscriptions", async ({expect}) => {
+        // A psalter that counts the Hebrew title as verse 1 for SOME titled psalms but not others.
+        // Psalm 3 gets a 1-verse title (eng+1), psalm 51 a 2-verse title (eng+2); every other psalm
+        // already matches eng and must be left untouched.
+        const variant = [...eng_psa_max]
+        variant[2] = eng_psa_max[2]! + 1   // psalm 3
+        variant[50] = eng_psa_max[50]! + 2  // psalm 51
+        const result = reverse_usx(make_usx('PSA', variant))
+        expect(profile_usx(result)).toEqual([...eng_psa_max])
+    })
+
+})
+
+
+// Build a single-chapter USX book from a list of verse number strings (e.g. ['1', '6a', '6b-11'])
+function make_subverse_usx(numbers:string[]){
+    let out = '<usx version="3.0">\n<book code="MAT" style="id">Test</book>\n'
+    out += '<chapter number="1" style="c" sid="MAT 1"/>\n<para style="p">'
+    for (const num of numbers){
+        out += `<verse number="${num}" style="v" sid="MAT 1:${num}"/>`
+            + `text ${num}<verse eid="MAT 1:${num}"/> `
+    }
+    out += '</para>\n<chapter eid="MAT 1"/>\n</usx>\n'
+    return out
+}
+
+
+// Extract the ordered list of remaining verse number attributes from a USX string
+function verse_numbers(xml:string){
+    return [...xml.matchAll(/<verse number="([^"]+)"/g)].map(m => m[1]!)
+}
+
+
+/**
+ * @vitest-environment jsdom
+ */
+describe("strip_subverses", () => {
+
+    it("Merges a simple sub-verse split (1a 1b -> 1)", async ({expect}) => {
+        const result = strip_subverses(make_subverse_usx(['1a', '1b', '2']))
+        expect(verse_numbers(result)).toEqual(['1', '2'])
+        // 1b's text must survive (appended to verse 1)
+        expect(result).toContain('text 1a')
+        expect(result).toContain('text 1b')
+    })
+
+    it("Renumbers a sub-verse-start range (6a 6b-11 -> 6 7-11)", async ({expect}) => {
+        const result = strip_subverses(make_subverse_usx(['5', '6a', '6b-11', '12']))
+        expect(verse_numbers(result)).toEqual(['5', '6', '7-11', '12'])
+    })
+
+    it("Handles a range that begins mid-verse (1a 1b-2 -> 1 2)", async ({expect}) => {
+        const result = strip_subverses(make_subverse_usx(['1a', '1b-2', '3']))
+        expect(verse_numbers(result)).toEqual(['1', '2', '3'])
+    })
+
+    it("Collapses multi-letter sub-verses (17a 17b 17c -> 17)", async ({expect}) => {
+        const result = strip_subverses(make_subverse_usx(['16', '17a', '17b', '17c', '18']))
+        expect(verse_numbers(result)).toEqual(['16', '17', '18'])
+    })
+
+    it("Leaves a clean integer file untouched (byte-for-byte)", async ({expect}) => {
+        const clean = make_subverse_usx(['1', '2', '3'])
+        expect(strip_subverses(clean)).toEqual(clean)
+    })
+
+    it("Repoints paragraph vids onto the merged/renumbered verse", async ({expect}) => {
+        // A continuation para carrying vid="MAT 1:1b" must follow 1b's text into verse 1
+        let xml = '<usx version="3.0">\n<book code="MAT" style="id">Test</book>\n'
+        xml += '<chapter number="1" style="c" sid="MAT 1"/>\n'
+        xml += '<para style="p"><verse number="1a" style="v" sid="MAT 1:1a"/>partA</para>\n'
+        xml += '<para style="p" vid="MAT 1:1a">more A<verse eid="MAT 1:1a"/></para>\n'
+        xml += '<para style="p"><verse number="1b" style="v" sid="MAT 1:1b"/>partB</para>\n'
+        xml += '<para style="p" vid="MAT 1:1b">more B<verse eid="MAT 1:1b"/></para>\n'
+        xml += '<chapter eid="MAT 1"/>\n</usx>\n'
+        const result = strip_subverses(xml)
+        expect(verse_numbers(result)).toEqual(['1'])
+        // No vid may reference the removed sub-verse id
+        expect(result).not.toContain('MAT 1:1a')
+        expect(result).not.toContain('MAT 1:1b')
+        expect(result).toContain('vid="MAT 1:1"')
+    })
+
+    it("Leaves plain out-of-order verses untouched (real reorders stay detectable)",
+            async ({expect}) => {
+        // bjr_wbt-style reorder: 30 appears before 28. These are plain integers, not sub-verses, so
+        // strip_subverses must not merge them — the file should be returned unchanged
+        const reordered = make_subverse_usx(['26', '27', '30', '28', '29', '31'])
+        // No alpha markers present, so it is a no-op passthrough
+        expect(strip_subverses(reordered)).toEqual(reordered)
+    })
 
 })

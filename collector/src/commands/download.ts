@@ -3,7 +3,6 @@ import {join} from 'path'
 import {existsSync, writeFileSync} from 'fs'
 
 import StreamZip from 'node-stream-zip'
-import {last_verse} from '@gracious.tech/bible-references'
 
 import {books_ordered} from '../parts/bible.js'
 import {clean_dir, concurrent, request, read_json, list_dirs, list_files} from '../parts/utils.js'
@@ -171,55 +170,38 @@ async function _extract_source_zip(zip_path:string, format_dir:string,
             continue  // Probably Apoc.
         }
 
-        // Append '.invalid' to file name if a partial book
+        // Append '.invalid' to file name if chapter 1 is missing or empty
         // NOTE File still extracted so can debug easier, but won't be used in platform
         let file_name = `${book}.${meta.source.format}`
-        let regex:RegExp
+        let chapter_regex:RegExp
+        let verse_regex:RegExp
         if (meta.source.format === 'usfm'){
-            regex = /^\c (\d+)/mg
+            chapter_regex = /^\c (\d+)/mg
+            verse_regex = /^\\v /m
         } else {
-            regex = /<chapter[^>]+number="(\d+)"/g
+            chapter_regex = /<chapter[^>]+number="(\d+)"/g
+            verse_regex = /<verse\b/
         }
 
-        // Identify place of chapters
-        const chapters:[number, number][] = []  // [chapter number, index]
-        while (true){
-            const result = regex.exec(contents_str)
-            if (!result){
+        // Find where chapter 2 begins (the first chapter marker numbered 2+); chapter 1's content
+        // is everything before it. A chapter-1 START marker isn't required — some sources (e.g.
+        // hil_bib) omit it — so rather than rely on the marker, treat chapter 1 as present if a
+        // verse appears before chapter 2 begins.
+        let ch2_index = contents_str.length
+        let result = chapter_regex.exec(contents_str)
+        while (result){
+            if (parseInt(result[1] ?? '') >= 2){
+                ch2_index = result.index
                 break
             }
-            chapters.push([parseInt(result[1] ?? ''), regex.lastIndex])
+            result = chapter_regex.exec(contents_str)
         }
 
-        // Ensure all expected chapters are present
-        /* WARN Shouldn't mark as invalid if different versification
-            Some systems have longer books which won't be affected
-                e.g. LXX Adds Nehemiah to end of Ezra making it longer
-                Also Psalm 151, Joel 4, 2 Chron 37, Dan 14
-            Only book that may get shorter is Malachi (English 4, others 3)
-        */
-        for (let ch=1; ch <= last_verse[book]!.length; ch++){
-            if (book === 'mal' && ch === 4){
-                continue  // Malachi only has 3 chapters in some versification systems
-            }
-            if (chapters[ch-1]?.[0] !== ch){
-                file_name += '.invalid'
-                break
-            }
-
-            // If chapter is just full of empty verse references, mark book as invalid
-            // NOTE Only testing USFM for now as haven't found any issues with USX sources yet
-            if (meta.source.format !== 'usfm'){
-                continue
-            }
-            const ch_contents = contents_str.slice(chapters[ch-1]![1], chapters[ch]?.[1])
-            const max_line_len = Math.max(...ch_contents.split('\n').map(l => l.trim().length))
-            if (max_line_len < 10){
-                file_name += '.invalid'
-                break
-            }
+        // Mark invalid if chapter 1 has no verses (whether missing entirely or present but empty)
+        if (!verse_regex.test(contents_str.slice(0, ch2_index))){
+            file_name += '.invalid'
         }
 
-        writeFileSync(join(format_dir, file_name), contents)
+        writeFileSync(join(format_dir, file_name), contents_str)
     }
 }

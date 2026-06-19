@@ -44,7 +44,13 @@ export function validate_numbering(doc:XMLDocument){
         // Confirm expected chapter number
         const [ch_num, v_num] = element.getAttribute(pos!)!.slice(3).split(':')
             .map(n => parseInt(n)) as [number, number|undefined]
-        if (ch_num !== next_ch_num){
+        // Allow chapters to skip forward (missing chapters) but never repeat or go backward.
+        if (element.nodeName === 'chapter' && pos === 'sid'){
+            if (ch_num < next_ch_num){
+                expected(`chapter ${next_ch_num} or later`)
+            }
+            next_ch_num = ch_num
+        } else if (ch_num !== next_ch_num){
             expected(`chapter ${next_ch_num}`)
         }
 

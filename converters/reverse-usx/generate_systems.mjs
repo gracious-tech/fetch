@@ -31,7 +31,7 @@ async function load(name){
 }
 
 const cop = {}
-for (const name of ['eng', 'org', 'vul', 'rsc', 'rso']){
+for (const name of ['eng', 'org', 'vul', 'rsc', 'rso', 'lxx']){
     cop[name] = await load(name)
 }
 
@@ -41,8 +41,8 @@ const BOOKS_66 = ['GEN','EXO','LEV','NUM','DEU','JOS','JDG','RUT','1SA','2SA','1
     'ACT','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB',
     'JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV']
 
-// Skip generating composed maps for these (huge and no failing translation needs them yet)
-const SKIP_COMPOSED = ['PSA']
+// Skip generating composed maps for these (none currently)
+const SKIP_COMPOSED = []
 
 function expand(range){
     const book = range.slice(0, 3)
@@ -115,7 +115,12 @@ function compose(sys_name){
         const pairs = []
         const subtitles = {}
         let drop = ''
+        const eng_chapters = cop.eng.maxVerses[book]?.length ?? 0
         for (let ch = 1; ch <= counts.length && !drop; ch++){
+            // Skip deuterocanon overflow chapters with no 66-book equivalent (e.g. LXX Psalm 151)
+            if (ch > eng_chapters){
+                continue
+            }
             for (let v = 1; v <= parseInt(counts[ch - 1]); v++){
                 const sref = `${book} ${ch}:${v}`
                 const oref = s2o.get(sref) ?? sref
@@ -185,8 +190,9 @@ const systems = {
     vul: compose('vul'),
     rsc: compose('rsc'),
     rso: compose('rso'),
+    lxx: compose('lxx'),
 }
-const order = ['org', 'vul', 'rsc', 'rso']
+const order = ['org', 'vul', 'rsc', 'rso', 'lxx']
 
 // Drop non-monotonic books (reverse-usx can renumber but not move content)
 // Walk ALL verses of the variant system in file order (mapped or identity); the eng

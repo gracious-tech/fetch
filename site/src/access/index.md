@@ -78,6 +78,18 @@ Most modern translations use the same system for numbering chapters and verses, 
 
 Careful research into the original manuscripts has led many modern bibles to drop some verses that were originally included in older translations. However, to avoid confusing readers, the numbers of later verses remained the same, which is why some verses are "missing" today.
 
-Bibles based on other manuscripts (such as the Septuagint) or from other Christian traditions (such as Orthodox and Catholic) were given somewhat [different systems of numbering verses](https://github.com/Copenhagen-Alliance/versification-specification/tree/master/versification-mappings/standard-mappings).
+Bibles based on other manuscripts or from other Christian traditions were given somewhat [different systems of numbering verses](https://github.com/Copenhagen-Alliance/versification-specification/tree/master/versification-mappings/standard-mappings).
 
 This platform uses the standard "KJV" numbering for all distributed formats. This allows developers to not have to deal with versification issues. If you do want the original versification for a certain translation, you can access its [source format](https://github.com/gracious-tech/fetch_collection).
+
+In most cases, renumbering is simple and no text is modified. For example, if a chapter usually ends at verse 10 but some translations split the last verse and so have 11 verses, then the 11th marker is removed, appending its contents to verse 10.
+
+
+### Septuagint
+
+Texts based on the Septuagint have some books with very different ordering of content. Comparing how these texts order their content to most other translations is outside the scope of this platform. Most books are published as is, however, some books have such different content that they have been trimmed as it would be impossible to number them correctly.
+
+The following sections are omitted from LXX-based translations :
+
+ - Exodus 35:1 - 40:38 (eng_bstj, eng_bstjb, grc_lxx)
+ - Jeremiah 25:14 - 52:34 (eng_bst, eng_bstb, eng_bstj, eng_bstjb, grc_bre, grc_lxx)

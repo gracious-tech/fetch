@@ -85,6 +85,7 @@ export interface DistManifestItem {
     copyright:MetaCopyright
     direction:'ltr'|'rtl'
     tags:MetaTag[]
+    partial?:string[]  // Book ids that have only partial content (so apps can warn users)
 }
 
 export interface DistTranslation extends DistManifestItem {

@@ -7,6 +7,7 @@ import {report_invalid_books, report_incomplete, report_items, report_unprocesse
 import {publish} from './commands/publish.js'
 import {serve} from './commands/serve.js'
 import {update_dist} from './commands/process.js'
+import {debug_convert} from './commands/debug.js'
 import {download_source} from './commands/download.js'
 import {clean_collection} from './commands/maintenance.js'
 import {discover_translations} from './commands/discover.js'
@@ -43,6 +44,9 @@ await yargs(process.argv.slice(2))
         argv => download_source(!!argv['recheck'], !!argv['force'], argv['id'] as string))
     .command('process [id]', "Convert source files to distributable formats", {},
         argv => update_dist(argv['id'] as string))
+    .command('debug-convert [id] [book] [stage]', "Dump a source book at a pipeline stage", {},
+        argv => debug_convert(argv['id'] as string, argv['book'] as string,
+            argv['stage'] as string))
 
     // Other
     .command('notes', "Download and update study notes", {redownload: {type: 'boolean'}},

@@ -90,7 +90,7 @@ references  ──────────────────────�
 | **flexsearch** | Full-text search indexing |
 | **AWS S3 + CloudFront** | Hosting for collections, app, and site |
 | **Workbox** | Service worker / PWA support in the app |
-| **Bible Multi Converter** | External Java tool used by collector for format conversion |
+| **usfmtc** | Python tool (SIL) used by collector for USFM↔USX format conversion |
 | **@xmldom/xmldom + xpath** | XML parsing in collector for USX processing |
 
 
@@ -438,11 +438,12 @@ If you add a new collection directory, add it to the exclusion list.
 The lint script sets `NODE_OPTIONS="--max-old-space-size=4096"` because ESLint with TypeScript
 type-checking enabled consumes a lot of memory. If linting crashes, increase this value.
 
-### Bible Multi Converter (Java dependency)
+### usfmtc (Python dependency)
 
-The collector's `process` command uses an external Java tool (Bible Multi Converter) downloaded
-during `collector setup`. It's stored in `collector/bmc/` (gitignored). If processing fails,
-ensure Java is installed and the BMC jar was downloaded.
+The collector's `process` command uses **usfmtc** (a Python USFM/USX toolchain) for USFM↔USX
+conversion. It's installed into a project-local venv at `collector/usfmtc-venv/` (gitignored) by
+`collector setup` (or `collector setup-usfmtc`), which runs `python3 -m venv` + `pip install
+usfmtc`. If processing fails, ensure `python3` is available and re-run `collector setup-usfmtc`.
 
 ### Shared types symlink
 
@@ -510,10 +511,11 @@ collection data (external origins) and precaching for app assets.
 Used for stylesheets in client, enhancer, and app. The `.sass` indented syntax (not `.scss`)
 is preferred throughout the project.
 
-### Bible Multi Converter
+### usfmtc
 
-An external Java tool (JAR file) downloaded during collector setup. Used to convert between
-USFM and USX formats. Not a Node.js dependency — requires a JRE to be installed on the system.
+SIL's reference Python USFM/USX toolchain (`pip install usfmtc`), installed into a project-local
+venv during collector setup. Used to convert between USFM and USX formats. Not a Node.js
+dependency — requires `python3` on the system.
 
 ### cldr-localenames-full / cldr-misc-full
 
@@ -534,8 +536,7 @@ metadata.
 ### Collector performance
 
 - The publish script (`publish.ts`) uses a concurrent upload queue (limit 10) for S3 uploads
-- Processing translations involves shelling out to the Java-based Bible Multi Converter,
-  which can be slow for large translations
+- Processing converts each book in-memory via Python module
 - The collection can contain thousands of files; the vitest watcher is configured to exclude
   collection directories to avoid file descriptor exhaustion
 

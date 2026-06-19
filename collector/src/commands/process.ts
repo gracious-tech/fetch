@@ -57,6 +57,7 @@ export async function update_dist(trans_id?:string){
 
 async function _update_dist_single(id:string, force:boolean){
     // Update distributable files for given translation, converting each book in-memory
+    console.info(`Processing ${id}`)
 
     // Determine paths
     const src_dir = join('sources', 'bibles', id)

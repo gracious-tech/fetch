@@ -101,6 +101,12 @@ function rm_mark_second_ending(usx:string):string{
 }
 
 
+// Note left in place of LXX Exodus's missing tabernacle recension (see pre_convert below)
+const lxx_exo_note = '[Chapters 35-40 are not included for LXX-based translations due to major '
+    + 'differences in the Septuagint text. Please search online for "Septuagint Exodus '
+    + 'differences" to learn more about this.]'
+
+
 // Note left in place of LXX Jeremiah's reordered material (see pre_reverse below)
 const lxx_jeremiah_note = '[Verse 25:14 onwards is not included for LXX-based translations due to '
     + 'the major differences in verse numbering. Please search online for "Septuagint Jeremiah '
@@ -113,9 +119,13 @@ const lxx_jeremiah_note = '[Verse 25:14 onwards is not included for LXX-based tr
 // validity check (otherwise the book would be wrongly marked .invalid and never reach processing).
 export function pre_convert(translation:string, book:string, contents:string):string{
 
-    // LXX Exodus: drop the Septuagint tabernacle recension (ch35-40) so EXO is published as 1-34
+    // LXX Exodus: drop the Septuagint tabernacle recension (ch35-40), then leave a note at ch35:1
     if (lxx_exo_translations.includes(translation) && book === 'exo'){
+        const before = contents
         contents = usfm_drop_from_chapter(contents, 35)
+        if (contents !== before){
+            contents = contents.trimEnd() + '\n\\c 35\n\\p\n\\v 1 ' + lxx_exo_note + '\n'
+        }
     }
 
     // LXX 1 Kings prints the Naboth-vineyard narrative (eng ch21) before the Aramean-war narrative

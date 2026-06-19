@@ -6,6 +6,30 @@
 // carrying text, so once it is an empty placeholder (or absent) they are no-ops. The USX3-level
 // counterparts live in ./usx.ts.
 
+// USFM: empty a chapter's body — keep its \c marker line, drop everything up to the next \c (or end
+// of book). Used to drop a thematic-summary chapter whose verse ranges overlap/reorder so it can't
+// map to standard numbering; the partial flag records the now-empty chapter while the rest of the
+// book still publishes. Idempotent: no-op if the chapter is absent or already has no verses.
+export function usfm_empty_chapter(usfm:string, chapter:number):string{
+    const bounds = usfm_chapter_bounds(usfm, chapter)
+    if (!bounds){
+        return usfm
+    }
+    const [s, e] = bounds
+    const chap = usfm.slice(s, e)
+    if (!/\\v /.test(chap)){
+        return usfm  // already empty
+    }
+    // Keep the \c marker line (at the start of the slice); drop the body that follows it
+    const marker = new RegExp(`\\\\c ${chapter}(?!\\d)[^\\n]*\\n`).exec(chap)
+    if (!marker){
+        return usfm
+    }
+    const keep = chap.slice(0, marker.index + marker[0].length)
+    return usfm.slice(0, s) + keep + usfm.slice(e)
+}
+
+
 
 // Find the position just past a verse's content within a chapter slice: its \v line plus any
 // following body-continuation lines that CARRY TEXT (poetry \q, \p with text, …). Stops before an
@@ -26,7 +50,9 @@ function usfm_chapter_bounds(usfm:string, chapter:number):[number, number]|null{
         return null
     }
     const rest = usfm.slice(start.index + start[0].length)
-    const next = new RegExp(`\\\\c ${chapter + 1}(?!\\d)`).exec(rest)
+    // The next chapter marker of ANY number (books may number chapters non-sequentially or with
+    // gaps, e.g. thematic paraphrases) — not `chapter + 1`, which would over-run when it is absent
+    const next = /\\c \d/.exec(rest)
     const end = next ? start.index + start[0].length + next.index : usfm.length
     return [start.index, end]
 }
@@ -146,34 +172,6 @@ export function usfm_swap_chapters(usfm:string, a:number, b:number):string{
     }
     return usfm.slice(0, m.index) + ca! + content_b! + cb! + content_a!
         + usfm.slice(m.index + full.length)
-}
-
-
-// USFM: move a verse that was misplaced earlier in the chapter to its correct slot (right after
-// `after_verse`). Relocates the verse's text block (\v … up to the next \v). Idempotent: no-op once
-// the verse already sits after `after_verse`.
-export function usfm_move_verse(usfm:string, chapter:number, verse:number,
-        after_verse:number):string{
-    const bounds = usfm_chapter_bounds(usfm, chapter)
-    if (!bounds){
-        return usfm
-    }
-    const [s, e] = bounds
-    let chap = usfm.slice(s, e)
-    const vpos = new RegExp(`\\\\v ${verse}(?!\\d)`).exec(chap)
-    const apos = new RegExp(`\\\\v ${after_verse}(?!\\d)`).exec(chap)
-    if (!vpos || !apos || vpos.index > apos.index){
-        return usfm
-    }
-    const block_m = new RegExp(`\\\\v ${verse}(?!\\d)[\\s\\S]*?(?=\\\\v \\d)`).exec(chap)
-    if (!block_m){
-        return usfm
-    }
-    chap = chap.slice(0, block_m.index) + chap.slice(block_m.index + block_m[0].length)
-    const a2 = new RegExp(`\\\\v ${after_verse}(?!\\d)`).exec(chap)!
-    const nextv = /\\v \d/.exec(chap.slice(a2.index + a2[0].length))
-    const pos = nextv ? a2.index + a2[0].length + nextv.index : chap.length
-    return usfm.slice(0, s) + chap.slice(0, pos) + block_m[0] + chap.slice(pos) + usfm.slice(e)
 }
 
 

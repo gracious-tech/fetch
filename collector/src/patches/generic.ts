@@ -42,7 +42,7 @@ const ezra_nehemiah_translations = ['eng_bst', 'eng_bstb', 'grc_bre']
 
 // Translations whose Psalter appends the deuterocanonical Psalm 151, which the standard 150-psalm
 // structure can't hold (so it is pruned, flagged via meta.json `partial`)
-const psalm_151_translations = ['eng_bst', 'eng_bstb', 'grc_bre']
+const psalm_151_translations = ['eng_bst', 'eng_bstb', 'grc_bre', 'grc_lxx']
 
 
 // Strip the deuterocanonical additions from Daniel so the canonical text fits standard numbering:
@@ -81,6 +81,22 @@ function omit_daniel_deuterocanon(usx:string):string{
         usx = usx.slice(0, ch13.index) + '</usx>'
     }
 
+    return usx
+}
+
+
+// Remove a second ending of Mark if present (16:21+). Including either the long (16:9-20) or short
+// ending is fine, but carrying both is illogical, so keep only through 16:20. Generic: applies to
+// any translation's Mark. Idempotent — once trimmed there are no verse markers after 16:20 so it is
+// a no-op (and a future upstream-corrected source with a single ending is left untouched).
+function rm_mark_second_ending(usx:string):string{
+    // Match end marker for 16:20 regardless of serialization (usfmtc uses ` />`, jsdom uses `/>`)
+    const last_eid = /<verse\s[^>]*eid="MRK 16:20"[^>]*\/>/.exec(usx)
+    if (last_eid && usx.slice(last_eid.index + last_eid[0].length).includes('<verse')){
+        // Verse markers exist after the long ending (whether 16:21 or a repeat of 16:9)
+        const ending = '</para>\n  <chapter eid="MRK 16"/>\n</usx>'
+        usx = usx.slice(0, last_eid.index + last_eid[0].length) + ending
+    }
     return usx
 }
 
@@ -189,6 +205,11 @@ export function post_reverse(translation:string, book:string, usx:string):string
     // Append that material to the last valid verse rather than dropping the book (no text moved).
     if (lxx_translations.includes(translation) && book === 'pro'){
         usx = merge_overrange_verses(book, usx)
+    }
+
+    // Drop a second/short ending of Mark appended after the long ending (16:20)
+    if (book === 'mrk'){
+        usx = rm_mark_second_ending(usx)
     }
 
     // Remove only TRAILING empty chapter markers (no verses at all), usually a trailing chapter of

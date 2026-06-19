@@ -11,11 +11,13 @@ import {
     append_empty_verses,
     collapse_para_leading_ws,
     drop_chapter_tail,
+    empty_chapter,
     fold_verse,
     insert_empty_verse,
     merge_overrange_verses,
     relabel_verse,
     remove_verse_span,
+    renumber_chapter,
     renumber_chapter_range,
 } from './usx.js'
 import {
@@ -23,7 +25,7 @@ import {
     usfm_drop_chapter_tail,
     usfm_fold_verse,
     usfm_insert_empty_verse,
-    usfm_move_verse,
+    usfm_empty_chapter,
     usfm_reorder_verse,
     usfm_super_to_title,
 } from './usfm.js'
@@ -257,10 +259,11 @@ export function pre_convert_specific(translation:string, book:string, contents:s
         contents = usfm_reorder_verse(contents, 14, 2, 1)
     }
 
-    // wrk_wbt JHN 9:14 was printed several verses too early (between v1 and v2) — move it back to
-    // its correct position after v13
+    // wrk_wbt JHN 9:14 is printed too early (between v1 and v2). Rather than relocate the text
+    // (which would override the edition's ordering), fold it into the verse it physically follows
+    // (v1) and add an empty placeholder 14 at its canonical slot after v13 so the chapter ascends.
     if (translation === 'wrk_wbt' && book === 'jhn'){
-        contents = usfm_move_verse(contents, 9, 14, 13)
+        contents = usfm_reorder_verse(contents, 9, 14, 13)
     }
 
     // hrv_iva prints single verses out of sequence in several books (and folds a couple of split
@@ -290,6 +293,95 @@ export function pre_convert_specific(translation:string, book:string, contents:s
         }
     }
 
+    // cbu_wbt DEU 10 prints the parenthetical about Aaron's death and the Levites (vv6-9) after
+    // vv10-11. Rather than swap the blocks (which would override the edition's ordering), fold the
+    // displaced vv6-9 into the verse they follow (v11) and add empty placeholders 6-9 after v5 so
+    // the chapter reads ascending.
+    if (translation === 'cbu_wbt' && book === 'deu'){
+        contents = usfm_displace_range(contents, 10, [6, 7, 8, 9], 5)
+    }
+
+    // dji_wbt GEN 7 has an extra summary verse 25 (ch7 has only 24 verses) — fold it into v24
+    if (translation === 'dji_wbt' && book === 'gen'){
+        contents = usfm_fold_verse(contents, 7, 25)
+    }
+
+    // eng_nna (a simplified portion edition using verse ranges and a/b sub-verse splits) prints
+    // many passages reordered for narrative flow. Rather than relocate the text (which would
+    // override the edition's deliberate ordering), fold each displaced verse into the verse it
+    // follows; numeric verses also get an empty placeholder at their canonical slot so the
+    // chapter reads ascending. Sub-verse tokens (a/b) fold without a placeholder.
+    if (translation === 'eng_nna'){
+        if (book === 'gen'){
+            contents = usfm_reorder_verse(contents, 6, 17, 16)
+            contents = usfm_reorder_verse(contents, 13, 3, 2)
+            contents = usfm_fold_verse(contents, 13, '7b')
+            contents = usfm_reorder_verse(contents, 15, 15, 14)
+        }
+        if (book === 'mrk'){
+            contents = usfm_fold_verse(contents, 2, '15b')
+            contents = usfm_reorder_verse(contents, 5, 8, 7)
+            contents = usfm_fold_verse(contents, 5, '21a')
+            contents = usfm_reorder_verse(contents, 6, 44, 43)
+            contents = usfm_reorder_verse(contents, 15, 8, 7)
+        }
+    }
+
+    // gvn_wbt GEN: two merged cross-chapter portions are mislabelled with a low verse number used
+    // earlier in the chapter (4:25–5:26 as "\v 4"; 6:22–7:9 as "\v 6") — relabel each to the range
+    // of the current chapter it covers (4:25-26, 6:22) so the chapter reads ascending (the
+    // absorbed next chapter is then absent, which the partial flag records). Keyed on the "(C.V"
+    // reference printed at the start of the verse text, so the fix is a no-op once relabelled.
+    if (translation === 'gvn_wbt' && book === 'gen'){
+        contents = contents
+            .replace(/\\v 4 (?=\(4\.25)/, '\\v 25-26 ')
+            .replace(/\\v 6 (?=\(6\.22)/, '\\v 22 ')
+    }
+
+    // lit_tpv PSA 24 prints v10 (the climactic "Who is this King of glory") out of order after v2;
+    // this edition omits vv6-9. Rather than relocate the text, fold v10 into the verse it follows
+    // (v2) and add an empty placeholder 10 after v5 (the last present verse) so it reads ascending.
+    if (translation === 'lit_tpv' && book === 'psa'){
+        contents = usfm_reorder_verse(contents, 24, 10, 5)
+    }
+
+    // grc_lxx PRO 20 follows the Septuagint ordering, printing vv20-22 before vv10-13 (vv14-19 are
+    // absent in the LXX). Rather than swap the blocks, fold the displaced vv20-22 into the
+    // preceding verse and add empty placeholders 20-22 after v13 so the chapter reads ascending.
+    if (translation === 'grc_lxx' && book === 'pro'){
+        contents = usfm_displace_range(contents, 20, [20, 21, 22], 13)
+    }
+
+    // gnn_bsa (a thematic paraphrase) groups scattered verses from several canonical chapters under
+    // one heading in its OT books (e.g. Leviticus "ch3" spans canonical Lev 3–15). These chapters'
+    // verse ranges overlap/reorder so they can't map to standard numbering — empty them (the
+    // partial flag records the gap) while the book's genuinely single-chapter sections still
+    // publish. Listed explicitly (not auto-detected) so a merely-disordered chapter isn't dropped.
+    if (translation === 'gnn_bsa'){
+        const summary_chapters:Record<string, number[]> = {
+            gen: [30],
+            exo: [26, 29, 36],
+            lev: [3],
+            num: [1],
+            '1ki': [4, 13],
+        }
+        for (const chapter of summary_chapters[book] ?? []){
+            contents = usfm_empty_chapter(contents, chapter)
+        }
+        // deu "ch19" is a clean ascending passage (15-21) whose final range 22-23 spills one verse
+        // past the canonical end — fold it into v21 rather than dropping the whole chapter
+        if (book === 'deu'){
+            contents = usfm_fold_verse(contents, 19, '22-23')
+        }
+    }
+
+    // grc_lxx PSA has a spurious empty "\c 2" marker (followed only by an empty \q1) immediately
+    // before the real Psalm 2 — drop it so the chapter sequence has no duplicate (reverse_usx then
+    // applies the LXX psalm renumbering). Idempotent: no match once the duplicate is gone.
+    if (translation === 'grc_lxx' && book === 'psa'){
+        contents = contents.replace(/\\c 2 *\n(?:\\[qb]\d* *\n)*(?=\\c 2[^\d])/, '')
+    }
+
     return contents
 }
 
@@ -312,6 +404,28 @@ export function pre_reverse_specific(translation:string, book:string, usx:string
         usx = usx.replace(
             /<verse number="3" style="v" sid="JHN 5:3"\/>(\s*Some ancient manuscripts add verse 4[\s\S]*?)<verse eid="JHN 5:3"\/>/,
             '$1')
+    }
+
+    // nyy_wft ACT 23 is a verbatim duplicate of ACT 10 (the Cornelius narrative), giving the chapter
+    // 48 verses against the canonical 35 — empty it so Acts publishes (the chapter is recorded as
+    // partial; the real content remains in ACT 10).
+    if (translation === 'nyy_wft' && book === 'act'){
+        usx = empty_chapter(usx, 'ACT 23')
+    }
+
+    // tkr_ibtr PSA is a sparse selection (11 psalms) using LXX/Slavonic chapter numbers. The LXX
+    // system can't auto-apply (its gate, Psalm 146, isn't in the selection), so renumber present
+    // psalms to English numbers (1,2,6,8,150 already match; the rest are the LXX +1 offset).
+    // reverse_usx's superscription-offset rule then handles the title-as-verse-1 psalms (6, 8, 18).
+    // Renumber high->low so the 112->113/111->112 pair can't collide; gated on the still-LXX marker
+    // PSA 15:6 (English Psalm 15 has only 5 verses) so the whole block runs exactly once.
+    if (translation === 'tkr_ibtr' && book === 'psa' && /sid="PSA 15:6"/.test(usx)){
+        usx = renumber_chapter(usx, 'psa', 112, 113)
+        usx = renumber_chapter(usx, 'psa', 111, 112)
+        usx = renumber_chapter(usx, 'psa', 89, 90)
+        usx = renumber_chapter(usx, 'psa', 31, 32)
+        usx = renumber_chapter(usx, 'psa', 17, 18)
+        usx = renumber_chapter(usx, 'psa', 15, 16)
     }
 
     // cmn_bib / cmn_bibs / cab_sblg print ISA 38:21-22 out of order between v6 and v7 — fold them

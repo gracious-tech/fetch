@@ -12,7 +12,6 @@ import {update_manifest} from '../parts/manifest.js'
 import {add_unpublished} from '../parts/unpublished.js'
 import {concurrent, read_json, write_json, list_files, list_dirs} from '../parts/utils.js'
 import {extract_sections, generate_chapter_headings} from '../parts/sections.js'
-import {rm_mark_second_ending} from '../parts/mark_ending.js'
 import {convert} from '../parts/usfmtc.js'
 
 import type {TranslationSourceMeta} from '../parts/types.js'
@@ -119,9 +118,6 @@ async function _update_dist_single(id:string, force:boolean){
             let reversed:string
             try {
                 reversed = reverse_usx(usx, DOMParser, XMLSerializer)
-                if (book === 'mrk'){
-                    reversed = rm_mark_second_ending(reversed)
-                }
             } catch (error){
                 // Drop the book rather than publish possibly-wrong numbering (as before)
                 console.error(`Failed to re-verse ${id}/${book} — dropping book`)

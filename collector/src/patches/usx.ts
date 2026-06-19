@@ -200,6 +200,43 @@ export function renumber_chapter_range(usx:string, book_ch:string, from_start:nu
 }
 
 
+// USX3: renumber a whole chapter `from` -> `to` (e.g. an LXX-numbered psalm to its English number),
+// updating the chapter marker's number plus every chapter/verse sid, eid and continuation-paragraph
+// vid for that chapter. `to` must not already exist (the CALLER must order chained renumbers so they
+// don't collide, and gate the set on a still-present un-fixed marker — this is not self-idempotent).
+export function renumber_chapter(usx:string, book:string, from:number, to:number):string{
+    const b = book.toUpperCase()
+    return usx
+        // The chapter start marker's number attribute (only <chapter> carries `<chapter number=`)
+        .replace(new RegExp(`(<chapter number=")${from}(")`, 'g'), `$1${to}$2`)
+        // Every sid/eid/vid reference: "BOOK <from>:" (verses) or "BOOK <from>" (chapter markers)
+        .replace(new RegExp(`((?:sid|eid|vid)="${b} )${from}(:|")`, 'g'), `$1${to}$2`)
+}
+
+
+// USX3: empty a chapter's body (everything between its start and end markers), e.g. to drop a
+// chapter that merely duplicates another. The chapter markers stay so the sequence is intact and the
+// now-empty chapter is recorded by the partial flag. Idempotent: no-op once no verse remains.
+export function empty_chapter(usx:string, chapter_sid:string):string{
+    const start = new RegExp(`<chapter [^>]*sid="${esc(chapter_sid)}"[^>]*/>`)
+    const sm = start.exec(usx)
+    if (!sm){
+        return usx
+    }
+    const body_start = sm.index + sm[0].length
+    const end = new RegExp(`<chapter eid="${esc(chapter_sid)}"\\s*/>`)
+    const em = end.exec(usx.slice(body_start))
+    if (!em){
+        return usx
+    }
+    const body = usx.slice(body_start, body_start + em.index)
+    if (!/<verse\b/.test(body)){
+        return usx  // already empty
+    }
+    return usx.slice(0, body_start) + usx.slice(body_start + em.index)
+}
+
+
 // Drop a chapter and everything after it (closing the document), e.g. to remove an appended
 // alternate recension. No-op if the chapter marker is absent.
 export function drop_from_chapter(usx:string, book:string, chapter:number):string{

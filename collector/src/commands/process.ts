@@ -79,8 +79,27 @@ async function _update_dist_single(id:string, force:boolean){
         fs.mkdirSync(join(dist_dir, format), {recursive: true})
     }
 
-    // Convert each source book through the in-memory pipeline
+    // Build set of books with valid source files (excludes .invalid-marked and absent books)
+    const valid_src_books = new Set(
+        list_files(format_dir)
+            .filter(f => !f.endsWith('.invalid'))
+            .map(f => f.split('.')[0]!))
+
+    // Remove dist files for any book that is no longer valid in source (deleted or marked .invalid)
+    // Without this, stale dist files keep being published after a book is dropped or invalidated
     let converted_any = false
+    for (const format of ['usx', 'usfm', 'html', 'txt']){
+        for (const filename of list_files(join(dist_dir, format))){
+            const book = filename.split('.')[0]!
+            if (!valid_src_books.has(book)){
+                console.info(`Removing stale dist file: ${id}/${format}/${filename}`)
+                fs.rmSync(join(dist_dir, format, filename))
+                converted_any = true
+            }
+        }
+    }
+
+    // Convert each source book through the in-memory pipeline
     for (const file of list_files(format_dir).filter(f => !f.endsWith('.invalid'))){
         const book = file.split('.')[0]!
         const dst_usx = join(dist_dir, 'usx', `${book}.usx`)

@@ -7,6 +7,7 @@ import {S3, ListObjectsV2Command, DeleteObjectsCommand} from '@aws-sdk/client-s3
 import {CloudFront} from '@aws-sdk/client-cloudfront'
 
 import {Publisher} from '../parts/publisher.js'
+import {generate_dir_index_content} from '../parts/indexes.js'
 
 import type {CollectionConfig} from '../parts/types'
 
@@ -15,6 +16,7 @@ export class PublisherAWS extends Publisher {
 
     _s3:S3
     _bucket:string
+    _region:string
     _cf:CloudFront
     _cf_id:string
 
@@ -25,6 +27,7 @@ export class PublisherAWS extends Publisher {
             (parse_yaml(readFileSync('config.yaml', 'utf-8')) as CollectionConfig).integrations.aws
         this._s3 = new S3({region: config.region})
         this._bucket = config.bucket
+        this._region = config.region
         this._cf = new CloudFront({region: config.region})
         this._cf_id = config.cloudfront
     }
@@ -37,6 +40,11 @@ export class PublisherAWS extends Publisher {
             Body: body,
             ContentType: type,
         })
+    }
+
+    override generate_dynamic_index():string{
+        // Generate the S3 API-powered directory index page for this bucket
+        return generate_dir_index_content(this._bucket, this._region)
     }
 
     override async delete_dir(server_path:string):Promise<void>{

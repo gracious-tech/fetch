@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import {join, sep} from 'node:path'
 
 import {concurrent, type_from_path, read_dir_deep} from '../parts/utils.js'
-import {generate_index_content} from '../parts/indexes.js'
 import {read_unpublished, clear_unpublished, mark_all_unpublished} from './unpublished.js'
 
 
@@ -13,6 +12,8 @@ export abstract class Publisher {
     abstract upload(key:string, body:Buffer|string, type:string): Promise<void>
     abstract invalidate(paths:string[]): Promise<void>
     abstract delete_dir(path:string):Promise<void>
+    // Return HTML for the dynamic directory index page (S3 API-powered)
+    abstract generate_dynamic_index():string
 
     // Upload a single file
     // WARN This doesn't update the parent dir's index (since should do after all children done)
@@ -21,7 +22,7 @@ export abstract class Publisher {
         await this.upload(server_path, fs.readFileSync(path), type_from_path(path))
     }
 
-    // Upload all files in dir and also upload generated indexes for the dir and subdirs
+    // Upload all files in dir
     // WARN This doesn't update the parent dir's index (since should do after all children done)
     async upload_dir(dir:string):Promise<void>{
         const dir_contents = read_dir_deep(dir)
@@ -29,12 +30,6 @@ export abstract class Publisher {
         // Upload files
         await concurrent(dir_contents.files.map(path => async () => {
             await this.upload_file(path)
-        }))
-
-        // Upload dir indexes
-        await concurrent(dir_contents.dirs.map(path => async () => {
-            const server_path = join(path.slice('dist/'.length), 'index.html')
-            await this.upload(server_path, generate_index_content(path), 'text/html')
         }))
     }
 
@@ -85,21 +80,17 @@ export abstract class Publisher {
             invalidations.push(`/${server_path}/*`)
         }
 
-        // Refresh dir indexes for any category that changed
+        // Add category paths to invalidations (CloudFront will serve the dynamic index page)
         for (const category of touched_categories){
-            const category_dist = join('dist', category)
-            if (fs.existsSync(category_dist)){
-                const index_content = generate_index_content(category_dist)
-                await this.upload(`${category}/index.html`, index_content, 'text/html')
-            }
             invalidations.push(`/${category}/`)
         }
 
         // All resources are now synced — safe to upload manifest
         invalidations.push(...await this.publish_manifest())
 
-        // Always update root index in case any changes
-        await this.upload('index.html', generate_index_content('dist'), 'text/html')
+        // Upload the single dynamic directory index page (served by CloudFront for all 404s)
+        await this.upload('_dynamic_index.html', this.generate_dynamic_index(), 'text/html')
+        invalidations.push('/_dynamic_index.html')
         invalidations.push('/')
 
         await this.invalidate(invalidations)

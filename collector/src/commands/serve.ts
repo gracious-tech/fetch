@@ -5,7 +5,6 @@ import fs from 'node:fs'
 import {join} from 'node:path'
 
 import {type_from_path} from '../parts/utils.js'
-import {generate_index_content} from '../parts/indexes.js'
 
 
 export async function serve(port=8430){
@@ -38,24 +37,13 @@ export async function serve(port=8430){
         let path = decodeURIComponent(req.url.split('?')[0]!).slice(1)
         path = path ? join('dist', path) : 'dist/'  // Ensure dist ends with slash if no subpath
 
-        // Serve if path exists
-        if (fs.existsSync(path)){
-
-            // Serve as-is if a file
-            if (fs.statSync(path).isFile()){
-                res.setHeader('Content-Type', type_from_path(path))
-                fs.createReadStream(path).pipe(res)
-                return
-            }
-
-            // Generate an index for dirs, but only if path ends with '/' (to mimic S3 deployment)
-            if (path.endsWith('/')){
-                res.setHeader('Content-Type', 'text/html')
-                return send(200, generate_index_content(path))
-            }
+        // Serve file if it exists
+        if (fs.existsSync(path) && fs.statSync(path).isFile()){
+            res.setHeader('Content-Type', type_from_path(path))
+            fs.createReadStream(path).pipe(res)
+            return
         }
 
-        // Couldn't find
         return send(404, `Not found: ${req.url}`)
     })
 

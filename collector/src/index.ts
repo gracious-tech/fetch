@@ -7,6 +7,7 @@ import {report_invalid_books, report_incomplete, report_items, report_unprocesse
 import {publish} from './commands/publish.js'
 import {serve} from './commands/serve.js'
 import {update_dist} from './commands/process.js'
+import {build_extra_overlay} from './parts/extra_overlay.js'
 import {debug_convert} from './commands/debug.js'
 import {download_source} from './commands/download.js'
 import {clean_collection} from './commands/maintenance.js'
@@ -57,6 +58,8 @@ await yargs(process.argv.slice(2))
         argv => crossref_process())
     .command('manifest', "Update manifest (without updating actual translations)", {},
         argv => update_manifest())
+    .command('extra', "Fill missing extra.json data from sibling translations", {},
+        argv => build_extra_overlay())
 
     // Serve
     .command('serve [port]', "Serve the collection for testing", {},

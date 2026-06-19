@@ -40,8 +40,8 @@ await yargs(process.argv.slice(2))
     .command('discover [service] [id]', "Discover what translations are available", {},
         argv => discover_translations(argv['service'] as TransServiceId, argv['id'] as string))
     .command('download [id]', "Download source files (--recheck for updating existing)",
-        {recheck: {type: 'boolean'}, force: {type: 'boolean'}},
-        argv => download_source(!!argv['recheck'], !!argv['force'], argv['id'] as string))
+        {recheck: {type: 'boolean'}},
+        argv => download_source(!!argv['recheck'], argv['id'] as string))
     .command('process [id]', "Convert source files to distributable formats", {},
         argv => update_dist(argv['id'] as string))
     .command('debug-convert [id] [book] [stage]', "Dump a source book at a pipeline stage", {},

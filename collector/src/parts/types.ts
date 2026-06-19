@@ -40,7 +40,6 @@ export interface CommonSourceMeta
     ids:Partial<Record<ServiceIds, string>>
     source:SourceProps<ServiceIds, PossibleFormats>
     notes?:string  // Notes relevant to sourcing the translation and any issues that came up
-    modified?:boolean  // Whether have modified source files (e.g. to fix bugs)
     partial?:string[]  // Book ids whose content is only partially included (pruned or in progress)
 }
 

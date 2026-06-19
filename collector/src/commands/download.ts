@@ -10,7 +10,7 @@ import {dbl_headers} from '../integrations/dbl.js'
 import {TranslationSourceMeta} from '../parts/types.js'
 
 
-export async function download_source(recheck:boolean, force:boolean, trans_id?:string){
+export async function download_source(recheck:boolean, trans_id?:string){
     // Update the source files for all translations (or single if given)
     // TODO Don't update if update date unchanged
 
@@ -33,12 +33,6 @@ export async function download_source(recheck:boolean, force:boolean, trans_id?:
         const src_dir = join('sources', 'bibles', id, meta.source.format)
         if (!recheck && existsSync(src_dir) && list_files(src_dir).length){
             continue  // Already downloaded
-        }
-
-        // Don't download or re-extract from zip if have modified source (unless forcing)
-        if (meta.modified && !force){
-            console.warn(`Skipping ${id} as source has been modified (--force if needed)`)
-            continue
         }
 
         // Allocate to correct service

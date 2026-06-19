@@ -5,45 +5,95 @@ import {existsSync, writeFileSync} from 'fs'
 import StreamZip from 'node-stream-zip'
 
 import {books_ordered} from '../parts/bible.js'
-import {clean_dir, concurrent, request, read_json, list_dirs, list_files} from '../parts/utils.js'
-import {dbl_headers} from '../integrations/dbl.js'
+import {clean_dir, concurrent, request, read_json, write_json,
+    list_dirs, list_files} from '../parts/utils.js'
+import {dbl_headers, get_remote_versions as dbl_remote_versions} from '../integrations/dbl.js'
+import {get_remote_versions as ebible_remote_versions} from '../integrations/ebible.js'
 import {TranslationSourceMeta} from '../parts/types.js'
+
+
+// A translation queued for downloading, with the remote version to record once downloaded
+interface DownloadEntry {
+    meta:TranslationSourceMeta
+    new_version?:{updated:string, revision:number}
+}
 
 
 export async function download_source(recheck:boolean, trans_id?:string){
     // Update the source files for all translations (or single if given)
-    // TODO Don't update if update date unchanged
 
-    // Collect meta files by service to better manage concurrency
-    const manual_sourced:Record<string, TranslationSourceMeta> = {}
-    const door43_sourced:Record<string, TranslationSourceMeta> = {}
-    const ebible_sourced:Record<string, TranslationSourceMeta> = {}
-    const dbl_sourced:Record<string, TranslationSourceMeta> = {}
-
+    // Load all candidate translations (respecting single-id filter)
+    const candidates:{id:string, meta:TranslationSourceMeta, downloaded:boolean}[] = []
     for (const id of list_dirs(join('sources', 'bibles'))){
-
         if (trans_id && id !== trans_id){
             continue  // Only updating a single translation
         }
-
-        // Get translation's meta data
         const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
+        const format_dir = join('sources', 'bibles', id, meta.source.format)
+        const downloaded = existsSync(format_dir) && list_files(format_dir).length > 0
+        candidates.push({id, meta, downloaded})
+    }
 
-        // Don't redownload if already downloaded (unless --recheck enabled)
-        const src_dir = join('sources', 'bibles', id, meta.source.format)
-        if (!recheck && existsSync(src_dir) && list_files(src_dir).length){
-            continue  // Already downloaded
+    // When rechecking, fetch latest remote versions for any service with downloaded translations
+    // NOTE Only fetch per-service when needed (e.g. DBL requires API credentials)
+    let ebible_versions:Map<string, {updated:string}>|undefined
+    let dbl_versions:Map<string, {updated:string, revision:number}>|undefined
+    if (recheck){
+        const services = new Set(
+            candidates.filter(c => c.downloaded).map(c => c.meta.source.service))
+        if (services.has('ebible')){
+            ebible_versions = await ebible_remote_versions()
+        }
+        if (services.has('dbl')){
+            dbl_versions = await dbl_remote_versions()
+        }
+    }
+
+    // Collect meta files by service to better manage concurrency
+    const manual_sourced:Record<string, DownloadEntry> = {}
+    const door43_sourced:Record<string, DownloadEntry> = {}
+    const ebible_sourced:Record<string, DownloadEntry> = {}
+    const dbl_sourced:Record<string, DownloadEntry> = {}
+
+    for (const {id, meta, downloaded} of candidates){
+
+        // Determine the latest remote version (only known when rechecking eBible/DBL)
+        let new_version:{updated:string, revision:number}|undefined
+        if (meta.source.service === 'ebible' && meta.ids.ebible){
+            const remote = ebible_versions?.get(meta.ids.ebible)
+            if (remote){
+                new_version = {updated: remote.updated, revision: 0}
+            }
+        } else if (meta.source.service === 'dbl' && meta.ids.dbl){
+            new_version = dbl_versions?.get(meta.ids.dbl)
         }
 
-        // Allocate to correct service
+        // Don't redownload if already downloaded and unchanged
+        if (downloaded){
+            if (!recheck){
+                continue  // Never re-download without --recheck
+            }
+            if (new_version
+                    && new_version.updated === meta.source.updated
+                    && new_version.revision === meta.source.revision){
+                continue  // Source unchanged since last download
+            }
+            if (new_version){
+                console.info(`Re-downloading ${id}: source updated `
+                    + `(${meta.source.updated} → ${new_version.updated})`)
+            }
+        }
+
+        // Allocate to correct service (carrying the version to record after download)
+        const entry:DownloadEntry = {meta, ...(new_version && {new_version})}
         if (meta.source.service === 'manual'){
-            manual_sourced[id] = meta
+            manual_sourced[id] = entry
         } else if (meta.source.service === 'door43'){
-            door43_sourced[id] = meta
+            door43_sourced[id] = entry
         } else if (meta.source.service === 'ebible'){
-            ebible_sourced[id] = meta
+            ebible_sourced[id] = entry
         } else if (meta.source.service === 'dbl'){
-            dbl_sourced[id] = meta
+            dbl_sourced[id] = entry
         }
     }
 
@@ -65,12 +115,12 @@ export async function download_source(recheck:boolean, trans_id?:string){
 }
 
 
-async function generic_update_sources(sources:Record<string, TranslationSourceMeta>){
+async function generic_update_sources(sources:Record<string, DownloadEntry>){
     // Update the source files for given translation
-    await concurrent(Object.entries(sources).map(([id, meta]) => async () => {
+    await concurrent(Object.entries(sources).map(([id, entry]) => async () => {
         console.info(`Downloading source files for ${id}`)
         try {
-            await _update_source(id, meta)
+            await _update_source(id, entry.meta, entry.new_version)
         } catch (error){
             console.error(`FAILED to update source for: ${id}`)
             console.error(`${error as string}`)
@@ -79,7 +129,8 @@ async function generic_update_sources(sources:Record<string, TranslationSourceMe
 }
 
 
-async function _update_source(id:string, meta:TranslationSourceMeta):Promise<void>{
+async function _update_source(id:string, meta:TranslationSourceMeta,
+        new_version?:{updated:string, revision:number}):Promise<void>{
     // Update the source files for the given translation
 
     // Paths
@@ -111,6 +162,14 @@ async function _update_source(id:string, meta:TranslationSourceMeta):Promise<voi
     const num_zips = urls.length || 1
     for (let i = 0; i < num_zips; i++){
         await _extract_source_zip(join(src_dir, `source${i || ''}.zip`), format_dir, meta)
+    }
+
+    // Record the downloaded version in meta so future rechecks can detect updates
+    // NOTE meta.source.updated is the single source of truth for what's currently on disk
+    if (new_version){
+        meta.source.updated = new_version.updated
+        meta.source.revision = new_version.revision
+        write_json(join(src_dir, 'meta.json'), meta, true)
     }
 }
 

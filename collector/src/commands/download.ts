@@ -1,6 +1,6 @@
 
 import {join} from 'path'
-import {existsSync, writeFileSync} from 'fs'
+import {existsSync, writeFileSync, rmSync} from 'fs'
 
 import StreamZip from 'node-stream-zip'
 
@@ -135,7 +135,6 @@ async function _update_source(id:string, meta:TranslationSourceMeta,
 
     // Paths
     const src_dir = join('sources', 'bibles', id)
-    const format_dir = join(src_dir, meta.source.format)
 
     // Normalise url to an array (a translation may be split across multiple zips to merge)
     const urls = meta.source.url === null ? []
@@ -154,14 +153,31 @@ async function _update_source(id:string, meta:TranslationSourceMeta,
         writeFileSync(join(src_dir, `source${index || ''}.zip`), Buffer.from(zip))
     }
 
+    // Detect the actual format from the zip contents and correct meta if it was wrong
+    // NOTE Some services (e.g. DBL) declare 'usx' for every entry but ship USFM for some, so the
+    //      zip is the source of truth — trusting the declared format silently extracts nothing,
+    //      which left the format dir empty and re-downloaded the translation on every run
+    let meta_dirty = false
+    const detected_format = await _detect_source_format(join(src_dir, 'source.zip'))
+    if (detected_format !== meta.source.format){
+        console.info(`Correcting source format for ${id}: `
+            + `${meta.source.format} → ${detected_format}`)
+        // Drop the stale (wrongly-named) format dir before switching to the detected one
+        rmSync(join(src_dir, meta.source.format), {recursive: true, force: true})
+        meta.source.format = detected_format
+        meta_dirty = true
+    }
+
     // Empty format dir
+    const format_dir = join(src_dir, meta.source.format)
     clean_dir(format_dir)
 
     // Extract from each zip into format_dir (merging contents; later zips override earlier)
     // NOTE Falls back to a single source.zip when no urls (manually saved to repo)
     const num_zips = urls.length || 1
     for (let i = 0; i < num_zips; i++){
-        await _extract_source_zip(join(src_dir, `source${i || ''}.zip`), format_dir, meta)
+        await _extract_source_zip(join(src_dir, `source${i || ''}.zip`), format_dir,
+            meta.source.format)
     }
 
     // Record the downloaded version in meta so future rechecks can detect updates
@@ -169,13 +185,35 @@ async function _update_source(id:string, meta:TranslationSourceMeta,
     if (new_version){
         meta.source.updated = new_version.updated
         meta.source.revision = new_version.revision
+        meta_dirty = true
+    }
+    if (meta_dirty){
         write_json(join(src_dir, 'meta.json'), meta, true)
     }
 }
 
 
+async function _detect_source_format(zip_path:string):Promise<'usfm'|'usx'>{
+    // Detect whether a source zip actually contains USFM book files (else assume USX)
+    // NOTE The declared format can't be trusted (see _update_source); the zip contents decide
+
+    // Util for getting normalized extension
+    const norm_ext = (name:string) => name.toLowerCase().split('.').at(-1)!
+
+    // USFM if any book file has a USFM extension, otherwise fall back to USX (the usual case)
+    const extractor = new StreamZip.async({file: zip_path, skipEntryNameValidation: true})
+    try {
+        const entries = Object.values(await extractor.entries())
+        const has_usfm = entries.some(e => ['sfm', 'usfm'].includes(norm_ext(e.name)))
+        return has_usfm ? 'usfm' : 'usx'
+    } finally {
+        await extractor.close()
+    }
+}
+
+
 async function _extract_source_zip(zip_path:string, format_dir:string,
-        meta:TranslationSourceMeta):Promise<void>{
+        format:'usfm'|'usx'):Promise<void>{
     // Extract the format files from a single source zip into the format dir
 
     // Util for getting normalized extension
@@ -188,9 +226,9 @@ async function _extract_source_zip(zip_path:string, format_dir:string,
 
     // Detect which file extention the source files have
     // E.g. If source files all have '.xml' detect them, but if '.usx' exists then ignore '.xml'
-    const has_official_ext = !!zip_entries.find(e => norm_ext(e.name) === meta.source.format)
-    const src_ext = has_official_ext ? meta.source.format
-        : {usfm: 'sfm', usx: 'xml'}[meta.source.format]
+    const has_official_ext = !!zip_entries.find(e => norm_ext(e.name) === format)
+    const src_ext = has_official_ext ? format
+        : {usfm: 'sfm', usx: 'xml'}[format]
 
     // Extract format files
     for (const entry of zip_entries){
@@ -206,7 +244,7 @@ async function _extract_source_zip(zip_path:string, format_dir:string,
         // Identify what book the file is for
         const contents_str = contents.toString('utf-8')
         let book:string|undefined = undefined
-        if (meta.source.format === 'usfm'){
+        if (format === 'usfm'){
             book = /^\\id (\w\w\w)/m.exec(contents_str)?.[1]?.toLowerCase()
         } else if (/<usx/.test(contents_str)){
             // Ensure a USX book and not license.xml/metadata.xml/etc (which lack <usx)
@@ -225,10 +263,10 @@ async function _extract_source_zip(zip_path:string, format_dir:string,
 
         // Append '.invalid' to file name if chapter 1 is missing or empty
         // NOTE File still extracted so can debug easier, but won't be used in platform
-        let file_name = `${book}.${meta.source.format}`
+        let file_name = `${book}.${format}`
         let chapter_regex:RegExp
         let verse_regex:RegExp
-        if (meta.source.format === 'usfm'){
+        if (format === 'usfm'){
             chapter_regex = /^\c (\d+)/mg
             verse_regex = /^\\v /m
         } else {

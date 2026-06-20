@@ -1,5 +1,5 @@
 
-export function validate_numbering(doc:XMLDocument){
+export function validate_numbering(doc:XMLDocument, on_warning:(message:string)=>void){
     // Ensure all chapter and verse markers are sequential
 
     let next_element:'chapter'|'verse' = 'chapter'
@@ -12,14 +12,14 @@ export function validate_numbering(doc:XMLDocument){
         // Util for easier debugging
         const expected = (expect:string) => {
             const boundary = `Expected ${expect} but got ${element.outerHTML}`
-            console.error(boundary)
             const block = element.nodeName === 'chapter' ? element : element.parentNode as Element
             const doc_elements = [...block.parentElement!.children]
             const root_i = doc_elements.findIndex(n => n === block)
             const out_nodes = doc_elements.slice(Math.max(0, root_i - 3), root_i + 1)
             // NOTE rm <char>s as they make it really hard to read when every word has strongs
-            console.debug(out_nodes.map(e => e?.outerHTML ?? '').join('\n\n')
-                .replace(/<\/?char.*?>/g, ''))
+            const context = out_nodes.map(e => e?.outerHTML ?? '').join('\n\n')
+                .replace(/<\/?char.*?>/g, '')
+            on_warning(`${boundary}\n${context}`)
             throw new Error(boundary)
         }
 

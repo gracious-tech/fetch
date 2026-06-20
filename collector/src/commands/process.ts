@@ -107,6 +107,12 @@ async function _update_dist_single(id:string, force:boolean){
     // Convert each source book through the in-memory pipeline
     for (const file of list_files(format_dir).filter(f => !f.endsWith('.invalid'))){
         const book = file.split('.')[0]!
+
+        // Prefix every converter/diagnostic warning with the translation+book
+        const warn = (message:string) => {
+            console.warn(`[${id}/${book}] ${message}`)
+        }
+
         const dst_usx = join(dist_dir, 'usx', `${book}.usx`)
         const dst_usfm = join(dist_dir, 'usfm', `${book}.usfm`)
         const dst_html = join(dist_dir, 'html', `${book}.json`)
@@ -141,11 +147,11 @@ async function _update_dist_single(id:string, force:boolean){
             // Normalise versification to the standard 66-book numbering
             let reversed:string
             try {
-                reversed = reverse_usx(usx, DOMParser, XMLSerializer)
+                reversed = reverse_usx(usx, DOMParser, XMLSerializer, undefined, warn)
             } catch (error){
                 // Drop the book rather than publish possibly-wrong numbering (as before)
-                console.error(`Failed to re-verse ${id}/${book} — dropping book`)
-                console.error(error instanceof Error ? error.message : error)
+                warn('Failed to re-verse — dropping book')
+                warn(error instanceof Error ? error.message : String(error))
                 for (const path of [dst_usx, dst_usfm, dst_html, dst_txt]){
                     fs.rmSync(path, {force: true})
                 }
@@ -168,11 +174,11 @@ async function _update_dist_single(id:string, force:boolean){
             fs.writeFileSync(dst_usfm, usfm)
 
             // Convert the fully-patched USX (same text written to the usx/usfm formats) to JSON
-            write_json(dst_txt, usx_to_json_txt(usx, DOMParser))
-            write_json(dst_html, usx_to_json_html(usx, false, DOMParser))
+            write_json(dst_txt, usx_to_json_txt(usx, DOMParser, warn))
+            write_json(dst_html, usx_to_json_html(usx, false, DOMParser, warn))
         } catch (error){
-            console.warn(`INVALID BOOK: failed to convert '${book}' for ${id}`)
-            console.error(error instanceof Error ? error.message : error)
+            warn(`INVALID BOOK: failed to convert '${book}'`)
+            warn(error instanceof Error ? error.message : String(error))
             // Remove any partial outputs so the book isn't half-published
             for (const path of [dst_usx, dst_usfm, dst_html, dst_txt]){
                 fs.rmSync(path, {force: true})

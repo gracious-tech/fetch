@@ -26,7 +26,8 @@ function para_has_verse(para:Element):boolean{
 
 
 // Convert USX to HTML-JSON
-export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): BibleJsonHtml {
+export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
+        on_warning:(message:string)=>void = console.warn): BibleJsonHtml {
 
     // Parse USX
     const {doc, usx_element, num_verses, book_code, book_name} = parse_usx(xml, parser)
@@ -104,7 +105,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): 
         // The only element type remaining should be <para>, so skip all others to keep logic simple
         // NOTE <para> elements cannot be nested
         if (child.nodeName !== 'para'){
-            console.warn(`Ignoring non-para element at document root level: ${child.nodeName}`)
+            on_warning(`Ignoring non-para element at document root level: ${child.nodeName}`)
             continue
         }
 
@@ -160,7 +161,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): 
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
-        console.warn(`Content exists before chapter 1 marker (${book_code})`)
+        on_warning('Ignoring content before chapter 1 marker')
     }
     for (let ch = 1; ch < state.contents.length; ch++){
         const dropped = state.contents[ch]![0]!.join('')
@@ -169,7 +170,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): 
             // Only report when actual text was dropped, not just empty structural tags (e.g. an
             // empty <p> from a blank `b` para that happened to sit before the first verse)
             if (dropped.replace(/<[^>]*>/g, '').trim()){
-                console.warn(`Content exists before verse 1 marker for chapter ${ch} (${book_code})`)
+                on_warning(`Ignoring content before verse 1 marker for chapter ${ch}`)
             }
         }
     }

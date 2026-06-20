@@ -48,7 +48,7 @@ function build_psa_title_rule(doc:XMLDocument):BookRuleSet|undefined{
 
 
 export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializer,
-        rules=default_rules):string{
+        rules=default_rules, on_warning:(message:string)=>void = console.warn):string{
 
     // Apply rules repeatedly until stable, as a book can have multiple independent versification
     // quirks (e.g. eng_tojb's Job has both the ch2/3 boundary and the ch38-41 boundary, each
@@ -58,7 +58,7 @@ export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializ
     let result = xml
     let stable = false
     for (let pass = 0; pass < max_passes; pass++){
-        const next = reverse_usx_once(result, parser, serializer, rules)
+        const next = reverse_usx_once(result, parser, serializer, rules, on_warning)
         if (next === result){
             stable = true
             break
@@ -79,7 +79,7 @@ export function reverse_usx(xml:string, parser=DOMParser, serializer=XMLSerializ
 
 
 function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof XMLSerializer,
-        rules:typeof default_rules):string{
+        rules:typeof default_rules, on_warning:(message:string)=>void):string{
 
     // Create parser
     const doc:XMLDocument = new parser().parseFromString(xml, 'application/xml')
@@ -135,9 +135,9 @@ function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof
 
     // Validate original first as confusing to debug if already numbering issues before conversion
     try {
-        validate_numbering(doc)
+        validate_numbering(doc, on_warning)
     } catch (error){
-        console.error(`Issue with original numbering of file`)
+        on_warning('Issue with original numbering of file')
         throw error
     }
 
@@ -324,9 +324,9 @@ function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof
 
     // Validate new numbering before returning
     try {
-        validate_numbering(doc)
+        validate_numbering(doc, on_warning)
     } catch (error){
-        console.error("Issue with numbering after re-versing file")
+        on_warning('Issue with numbering after re-versing file')
         throw error
     }
 

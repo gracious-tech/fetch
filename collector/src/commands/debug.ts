@@ -57,7 +57,8 @@ export async function debug_convert(id:string, book:string, stage:string):Promis
     }
 
     // Reverse versification
-    const reversed = reverse_usx(pre_rev, DOMParser, XMLSerializer)
+    const reversed = reverse_usx(pre_rev, DOMParser, XMLSerializer, undefined,
+        message => {console.error(`[${id}/${book}] ${message}`)})
     if (stage === 'reversed'){
         process.stdout.write(reversed)
         return

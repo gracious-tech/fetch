@@ -199,6 +199,17 @@ export function usfm_super_to_title(usfm:string, chapter:number):string{
 }
 
 
+// USFM: a chapter marker printed mid-way through the previous chapter's final verse — the verse's
+// trailing clause sits as an orphan paragraph AFTER the \c marker (before \v 1), so it has no verse
+// and would be dropped. Move the \c marker below that orphan paragraph (so the clause stays with the
+// previous verse) and give the new chapter's verse 1 its own \p. Idempotent: gated on a text-bearing
+// \p still sitting between the \c marker and \v 1 (afterwards an empty \p is there), so it runs once.
+export function usfm_lower_chapter_past_orphan(usfm:string, chapter:number):string{
+    const re = new RegExp(`\\\\c ${chapter}(?!\\d)([^\\n]*\\n)(\\\\p [^\\n]*\\n)(?=\\\\v 1 )`)
+    return usfm.replace(re, `$2\\c ${chapter}$1\\p\n`)
+}
+
+
 // USFM: drop a chapter and everything after it (e.g. an appended alternate recension). No-op if
 // the chapter marker is absent.
 export function usfm_drop_from_chapter(usfm:string, chapter:number):string{

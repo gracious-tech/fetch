@@ -6,7 +6,7 @@
 // (detect the quirk, then apply) so a freshly downloaded source can be safely re-patched and a
 // future upstream-corrected revision is left untouched.
 
-import {merge_overrange_verses} from './usx.js'
+import {merge_overrange_verses, psalm_superscriptions_to_d} from './usx.js'
 import {usfm_drop_from_chapter, usfm_swap_chapters} from './usfm.js'
 import {
     pre_convert_specific,
@@ -215,6 +215,12 @@ export function post_reverse(translation:string, book:string, usx:string):string
     // Append that material to the last valid verse rather than dropping the book (no text moved).
     if (lxx_translations.includes(translation) && book === 'pro'){
         usx = merge_overrange_verses(book, usx)
+    }
+
+    // Normalise psalm superscriptions (often mis-styled as plain body paras) to `d` titles so they
+    // are kept in every dist format rather than dropped as verse-less content
+    if (book === 'psa'){
+        usx = psalm_superscriptions_to_d(usx)
     }
 
     // Drop a second/short ending of Mark appended after the long ending (16:20)

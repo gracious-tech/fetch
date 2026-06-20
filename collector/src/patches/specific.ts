@@ -26,6 +26,7 @@ import {
     usfm_fold_verse,
     usfm_insert_empty_verse,
     usfm_empty_chapter,
+    usfm_lower_chapter_past_orphan,
     usfm_reorder_verse,
     usfm_super_to_title,
 } from './usfm.js'
@@ -115,6 +116,26 @@ export function pre_convert_specific(translation:string, book:string, contents:s
     // usa_wbt 1TI has a spurious verse 3:17 — fold it into v16 (3 has only 16 verses)
     if (translation === 'usa_wbt' && book === '1ti'){
         contents = usfm_fold_verse(contents, 3, 17)
+    }
+
+    // A few translations print a chapter marker mid-sentence, leaving the previous verse's final
+    // clause as an orphan paragraph after the \c marker (which would then be dropped as verse-less).
+    // Each is a one-off, so move the marker below the orphan to rejoin the clause to its verse:
+    //   aai_wbt ACT — 7:60's "kakafih…morob." (Stephen's death) sits after \c 8
+    //   agg_png ACT — 7:60's "…yahu mbura yɨfɨmayu." (Stephen's death) sits after \c 8
+    //   mbh_tbl REV — 12:17's "Jisas i ripot i." (the testimony of Jesus) sits after \c 13
+    //   wuv_wbt 1CO — 12:31's "the most excellent way" clause sits after \c 13
+    if (translation === 'aai_wbt' && book === 'act'){
+        contents = usfm_lower_chapter_past_orphan(contents, 8)
+    }
+    if (translation === 'agg_png' && book === 'act'){
+        contents = usfm_lower_chapter_past_orphan(contents, 8)
+    }
+    if (translation === 'mbh_tbl' && book === 'rev'){
+        contents = usfm_lower_chapter_past_orphan(contents, 13)
+    }
+    if (translation === 'wuv_wbt' && book === '1co'){
+        contents = usfm_lower_chapter_past_orphan(contents, 13)
     }
 
     // tcz_cho SNG has a spurious verse 6:14 — fold it into v13

@@ -8,6 +8,7 @@ import {
     usfm_empty_chapter,
     usfm_fold_verse,
     usfm_insert_empty_verse,
+    usfm_lower_chapter_past_orphan,
     usfm_reorder_verse,
     usfm_super_to_title,
     usfm_swap_chapters,
@@ -75,6 +76,27 @@ describe('usfm_insert_empty_verse', () => {
     it("Is a no-op when the verse already exists", ({expect}) => {
         const usfm2 = '\\c 6\n\\p\n\\v 22 present\n\\v 23 already here\n'
         expect(usfm_insert_empty_verse(usfm2, 6, 23, 22)).toEqual(usfm2)
+    })
+
+})
+
+
+describe('usfm_lower_chapter_past_orphan', () => {
+
+    it("Moves the \\c marker below the orphan clause and gives verse 1 its own \\p", ({expect}) => {
+        const usfm = '\\v 60 cut off mid\n\\c 8  \n\\p sentence here.\n\\v 1 next chapter\n'
+        expect(usfm_lower_chapter_past_orphan(usfm, 8)).toEqual(
+            '\\v 60 cut off mid\n\\p sentence here.\n\\c 8  \n\\p\n\\v 1 next chapter\n')
+    })
+
+    it("Is a no-op once the marker is already above an empty \\p before verse 1", ({expect}) => {
+        const usfm = '\\v 60 cut off mid\n\\p sentence here.\n\\c 8  \n\\p\n\\v 1 next chapter\n'
+        expect(usfm_lower_chapter_past_orphan(usfm, 8)).toEqual(usfm)
+    })
+
+    it("Is a no-op when verse 1 already starts the chapter normally", ({expect}) => {
+        const usfm = '\\v 60 done.\n\\c 8\n\\p\n\\v 1 next chapter\n'
+        expect(usfm_lower_chapter_past_orphan(usfm, 8)).toEqual(usfm)
     })
 
 })

@@ -36,6 +36,19 @@ describe('pre_convert_specific', () => {
         expect(out).toContain('part b')
     })
 
+    it("Moves aai_wbt's misplaced ACT \\c 8 marker below verse 7:60's orphaned tail", ({expect}) => {
+        const usfm = '\\v 60 ...tisisinaf hai\n\\c 8  \n\\p kakafih...morob.\n\\v 1 Stephen...\n'
+        const out = pre_convert_specific('aai_wbt', 'act', usfm)
+        // The orphan paragraph now precedes \c 8 (so it stays in 7:60), and verse 1 gets its own \p
+        expect(out).toEqual(
+            '\\v 60 ...tisisinaf hai\n\\p kakafih...morob.\n\\c 8  \n\\p\n\\v 1 Stephen...\n')
+    })
+
+    it("Is a no-op for aai_wbt ACT once the \\c 8 marker is already correctly placed", ({expect}) => {
+        const usfm = '\\v 60 ...tisisinaf hai\n\\p kakafih...morob.\n\\c 8  \n\\p\n\\v 1 Stephen...\n'
+        expect(pre_convert_specific('aai_wbt', 'act', usfm)).toEqual(usfm)
+    })
+
     it("Restores the // in msy_pbt EZK URLs split by an optbreak", ({expect}) => {
         const usfm = '\\p see http:<optbreak/>www.example.com for more\n'
         const out = pre_convert_specific('msy_pbt', 'ezk', usfm)

@@ -10,6 +10,7 @@ import {
     fold_verse,
     insert_empty_verse,
     merge_overrange_verses,
+    psalm_superscriptions_to_d,
     relabel_verse,
     remove_verse_span,
     renumber_chapter,
@@ -316,6 +317,41 @@ describe('merge_overrange_verses', () => {
 
     it("Is a no-op for an unknown book", ({expect}) => {
         expect(merge_overrange_verses('zzz', usx)).toEqual(usx)
+    })
+
+})
+
+
+describe('psalm_superscriptions_to_d', () => {
+
+    it("Converts a mis-styled body para before verse 1 into a `d` title", ({expect}) => {
+        const usx = '<chapter number="3" style="c" sid="PSA 3"/>'
+            + '<para style="m">A psalm of David.</para>'
+            + `<para style="q1">${v('PSA 3:1', '1', 'O LORD')}</para>`
+            + '<chapter eid="PSA 3"/>'
+        const out = psalm_superscriptions_to_d(usx)
+        expect(out).toContain('<para style="d">A psalm of David.</para>')
+        // The verse-bearing paragraph keeps its own style
+        expect(out).toContain('<para style="q1">')
+    })
+
+    it("Leaves headings, chapter labels, empty paras and existing `d` titles untouched", ({expect}) => {
+        const usx = '<chapter number="3" style="c" sid="PSA 3"/>'
+            + '<para style="cl">Psalm 3</para>'
+            + '<para style="s1">A heading</para>'
+            + '<para style="b"/>'
+            + '<para style="d">Already a title.</para>'
+            + `<para style="q1">${v('PSA 3:1', '1', 'O LORD')}</para>`
+            + '<chapter eid="PSA 3"/>'
+        expect(psalm_superscriptions_to_d(usx)).toEqual(usx)
+    })
+
+    it("Does not touch body paras that come after verse 1", ({expect}) => {
+        const usx = '<chapter number="3" style="c" sid="PSA 3"/>'
+            + `<para style="q1">${v('PSA 3:1', '1', 'O LORD')}</para>`
+            + '<para style="m">a margin note mid-psalm</para>'
+            + '<chapter eid="PSA 3"/>'
+        expect(psalm_superscriptions_to_d(usx)).toEqual(usx)
     })
 
 })

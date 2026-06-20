@@ -265,3 +265,32 @@ export function merge_overrange_verses(book:string, usx:string):string{
         })
 }
 
+
+// USX: normalise psalm superscriptions to the `d` (descriptive title) style. A psalm's title belongs
+// before verse 1 and is `\d` in well-formed USX, but some translations mark it with a plain body
+// style instead, which the converters would treat as verse-less content and drop. For each chapter,
+// convert a paragraph that sits entirely before the chapter's first verse into a `d` title when it
+// uses one of the common title styles (`p`/`m`), so all dist formats (usx/usfm/html/txt) keep it.
+// Section headings, dropped markers (e.g. cl chapter labels), self-closing/empty paragraphs,
+// already-`d` titles, and rarer body styles are left as-is. Idempotent.
+export function psalm_superscriptions_to_d(usx:string):string{
+    // Process each chapter's body (from its start marker up to the next chapter marker of any kind)
+    return usx.replace(/(<chapter\b[^>]*\bnumber="\d+"[^>]*\/>)([\s\S]*?)(?=<chapter\b|$)/g,
+        (_full, marker:string, body:string) => {
+            // The superscription is whatever precedes the chapter's first verse start marker
+            const verse = /<verse\b[^>]*\bsid="[^"]*"[^>]*\/>/.exec(body)
+            const cut = verse ? verse.index : body.length
+            const head = body.slice(0, cut).replace(
+                /<para style="([^"]+)"([^>]*?)(\/>|>([\s\S]*?)<\/para>)/g,
+                (para, style:string, attrs:string, closer:string, inner:string|undefined) => {
+                    // Only convert a known superscription style with actual text (leave
+                    // self-closing/empty paras, existing `d` titles, and rarer styles as-is)
+                    if (closer === '/>' || !['p', 'm'].includes(style)
+                            || !(inner ?? '').replace(/<[^>]*>/g, '').trim()){
+                        return para
+                    }
+                    return `<para style="d"${attrs}>${inner ?? ''}</para>`
+                })
+            return marker + head + body.slice(cut)
+        })
+}

@@ -28,6 +28,7 @@ import {
     usfm_empty_chapter,
     usfm_lower_chapter_past_orphan,
     usfm_reorder_verse,
+    usfm_strip_empty_marker,
     usfm_super_to_title,
 } from './usfm.js'
 
@@ -141,6 +142,21 @@ export function pre_convert_specific(translation:string, book:string, contents:s
     // tcz_cho SNG has a spurious verse 6:14 — fold it into v13
     if (translation === 'tcz_cho' && book === 'sng'){
         contents = usfm_fold_verse(contents, 6, 14)
+    }
+
+    // bsj_d43 MRK is littered with empty `\s5` chunk dividers (a MAST translation-process artifact,
+    // ~5-verse blocks, no biblical text). usfmtc mis-nests these empty section headings into unclosed
+    // `<ms x-bare="true">` containers, producing malformed USX that fails to parse. Strip them.
+    if (translation === 'bsj_d43' && book === 'mrk'){
+        contents = usfm_strip_empty_marker(contents, 's5')
+    }
+
+    // agn_wps ROM 1 keeps the salutation together, printing v7 ("To all who are in Rome…")
+    // immediately after v1 and before the parenthetical vv2-6, so verses read 1,7,2-6,8. Rather than
+    // relocate v7's text (overriding the edition's deliberate grouping), fold it into v1 (the verse it
+    // follows) and add an empty placeholder 7 after v6 so the chapter reads ascending.
+    if (translation === 'agn_wps' && book === 'rom'){
+        contents = usfm_reorder_verse(contents, 1, 7, 6)
     }
 
     // bjr_wbt prints several single verses out of sequence
@@ -267,9 +283,12 @@ export function pre_convert_specific(translation:string, book:string, contents:s
         contents = usfm_fold_verse(contents, 18, 22)
     }
 
-    // srp_dkc JOB 38 has a spurious modern-rendered duplicate of 38:39-41 appended (duplicating the
-    // canonical Daničić 39:1-3) — drop it so ch38 ends at v38
-    if (translation === 'srp_dkc' && book === 'job'){
+    // srp_dkc / srp_1865 JOB 38 append a spurious modern-rendered duplicate of 38:39-41 (the
+    // lion/den/raven verses) that duplicates the canonical Daničić 39:1-3 — so ch38 reaches 41
+    // instead of the Serbian 38. Drop the duplicate tail (the same verses survive at 39:1-3, which
+    // re-verses back to eng 38:39-41) so ch38 ends at v38 and the existing Serbian 'JOB 39:38' rule
+    // can re-verse it 1-to-1.
+    if ((translation === 'srp_dkc' || translation === 'srp_1865') && book === 'job'){
         contents = usfm_drop_chapter_tail(contents, 38, 38)
     }
 

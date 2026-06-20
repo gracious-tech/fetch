@@ -210,6 +210,16 @@ export function usfm_lower_chapter_past_orphan(usfm:string, chapter:number):stri
 }
 
 
+// USFM: remove empty standalone marker lines for a given marker (e.g. `\s5` chunk dividers that
+// carry no text). Only lines that are the marker plus optional whitespace are removed, so a marker
+// bearing text is never touched. Used for translation-process artifacts that usfmtc would otherwise
+// mis-nest into malformed USX. Idempotent.
+export function usfm_strip_empty_marker(usfm:string, marker:string):string{
+    const re = new RegExp(`^\\\\${marker}[ \\t]*\\r?\\n`, 'gm')
+    return usfm.replace(re, '')
+}
+
+
 // USFM: drop a chapter and everything after it (e.g. an appended alternate recension). No-op if
 // the chapter marker is absent.
 export function usfm_drop_from_chapter(usfm:string, chapter:number):string{

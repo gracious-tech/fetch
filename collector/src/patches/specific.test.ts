@@ -49,6 +49,34 @@ describe('pre_convert_specific', () => {
         expect(pre_convert_specific('aai_wbt', 'act', usfm)).toEqual(usfm)
     })
 
+    it("Folds agn_wps ROM 1's out-of-order v7 into v1 with a placeholder after v6", ({expect}) => {
+        const usfm = '\\c 1\n\\p\n\\v 1 paul\n\\v 7 to all in rome\n\\v 2 gospel\n\\v 6 you also\n'
+            + '\\s1 heading\n\\v 8 first\n'
+        const out = pre_convert_specific('agn_wps', 'rom', usfm)
+        // v7's text folds into v1 (no text-bearing \v 7 left) and an empty \v 7 sits after v6
+        expect(out).not.toMatch(/\\v 7 \S/)
+        expect(out).toContain('to all in rome')
+        expect(out).toMatch(/\\v 6 you also\n\\v 7\n\\s1 heading/)
+    })
+
+    it("Strips bsj_d43 MRK's empty \\s5 chunk markers", ({expect}) => {
+        const usfm = '\\c 1\n\\s5\n\\p\n\\v 1 text\n\\s5  \n\\v 2 more\n'
+        const out = pre_convert_specific('bsj_d43', 'mrk', usfm)
+        expect(out).not.toContain('\\s5')
+        expect(out).toContain('\\v 1 text')
+        expect(out).toContain('\\v 2 more')
+    })
+
+    it("Drops srp_1865 JOB 38's duplicated lion/raven tail (38:39-41)", ({expect}) => {
+        const usfm = '\\c 38\n\\p\n\\v 38 zgusne\n\\b\n\\q1\n\\v 39 lavice\n\\v 41 gavranu\n'
+            + '\\c 39\n\\q1\n\\v 1 lavu\n'
+        const out = pre_convert_specific('srp_1865', 'job', usfm)
+        expect(out).not.toContain('\\v 39 lavice')
+        expect(out).not.toContain('\\v 41 gavranu')
+        expect(out).toContain('\\v 38 zgusne')
+        expect(out).toContain('\\v 1 lavu')
+    })
+
     it("Restores the // in msy_pbt EZK URLs split by an optbreak", ({expect}) => {
         const usfm = '\\p see http:<optbreak/>www.example.com for more\n'
         const out = pre_convert_specific('msy_pbt', 'ezk', usfm)

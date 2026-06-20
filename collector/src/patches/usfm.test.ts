@@ -10,6 +10,7 @@ import {
     usfm_insert_empty_verse,
     usfm_lower_chapter_past_orphan,
     usfm_reorder_verse,
+    usfm_strip_empty_marker,
     usfm_super_to_title,
     usfm_swap_chapters,
 } from './usfm'
@@ -238,6 +239,30 @@ describe('usfm_drop_chapter_tail', () => {
     it("Is idempotent", ({expect}) => {
         const once = usfm_drop_chapter_tail(usfm, 38, 38)
         expect(usfm_drop_chapter_tail(once, 38, 38)).toEqual(once)
+    })
+
+})
+
+
+describe('usfm_strip_empty_marker', () => {
+
+    const usfm = '\\c 1\n\\s5\n\\p\n\\v 1 text\n\\s5  \n\\v 2 more\n'
+
+    it("Removes empty standalone marker lines", ({expect}) => {
+        const out = usfm_strip_empty_marker(usfm, 's5')
+        expect(out).not.toContain('\\s5')
+        expect(out).toContain('\\v 1 text')
+        expect(out).toContain('\\v 2 more')
+    })
+
+    it("Leaves a marker bearing text untouched", ({expect}) => {
+        const with_text = '\\s5 a heading\n\\v 1 text\n'
+        expect(usfm_strip_empty_marker(with_text, 's5')).toEqual(with_text)
+    })
+
+    it("Is idempotent", ({expect}) => {
+        const once = usfm_strip_empty_marker(usfm, 's5')
+        expect(usfm_strip_empty_marker(once, 's5')).toEqual(once)
     })
 
 })

@@ -354,7 +354,7 @@ export function pre_convert_specific(translation:string, book:string, contents:s
     if (translation === 'eng_nna'){
         if (book === 'gen'){
             contents = usfm_reorder_verse(contents, 6, 17, 16)
-            contents = usfm_reorder_verse(contents, 13, 3, 2)
+            contents = usfm_reorder_verse(contents, 13, 2, 1)
             contents = usfm_fold_verse(contents, 13, '7b')
             contents = usfm_reorder_verse(contents, 15, 15, 14)
         }
@@ -363,7 +363,7 @@ export function pre_convert_specific(translation:string, book:string, contents:s
             contents = usfm_reorder_verse(contents, 5, 8, 7)
             contents = usfm_fold_verse(contents, 5, '21a')
             contents = usfm_reorder_verse(contents, 6, 44, 43)
-            contents = usfm_reorder_verse(contents, 15, 8, 7)
+            contents = usfm_reorder_verse(contents, 15, 7, 6)
         }
     }
 

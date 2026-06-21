@@ -102,6 +102,12 @@ export abstract class Publisher {
             const server_path = entry.replaceAll(sep, '/')
             const [category, id] = server_path.split('/')
 
+            // Never publish dot-prefixed paths (e.g. .git) — these aren't collection resources
+            if (category?.startsWith('.')){
+                console.info(`Skipping (not a resource): ${entry}`)
+                continue
+            }
+
             // Never publish a resource that isn't in the manifest
             // NOTE Such a resource, if already on the server, is removed by the reconcile below
             const category_valid_ids = category ? valid_ids.get(category) : undefined

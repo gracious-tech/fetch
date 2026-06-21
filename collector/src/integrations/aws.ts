@@ -47,6 +47,59 @@ export class PublisherAWS extends Publisher {
         return generate_dir_index_content(this._bucket, this._region)
     }
 
+    override async list_server_dirs(prefix:string):Promise<string[]>{
+        // List immediate "subdirectory" names under the given prefix using a delimiter
+        const dirs:string[] = []
+        let continuation_token:string|undefined
+        do {
+            const response = await this._s3.send(new ListObjectsV2Command({
+                Bucket: this._bucket,
+                Prefix: `${prefix}/`,
+                Delimiter: '/',
+                ...(continuation_token && {ContinuationToken: continuation_token}),
+            }))
+            for (const common_prefix of response.CommonPrefixes ?? []){
+                // Strip the leading prefix and trailing slash to get the bare id
+                const id = (common_prefix.Prefix ?? '').slice(`${prefix}/`.length).replace(/\/$/, '')
+                if (id){
+                    dirs.push(id)
+                }
+            }
+            continuation_token = response.NextContinuationToken
+        } while (continuation_token)
+        return dirs
+    }
+
+    override async list_server_files(prefix:string):Promise<string[]>{
+        // List all object keys under the given prefix (recursive, paginated)
+        const keys:string[] = []
+        let continuation_token:string|undefined
+        do {
+            const response = await this._s3.send(new ListObjectsV2Command({
+                Bucket: this._bucket,
+                Prefix: `${prefix}/`,
+                ...(continuation_token && {ContinuationToken: continuation_token}),
+            }))
+            for (const obj of response.Contents ?? []){
+                if (obj.Key){
+                    keys.push(obj.Key)
+                }
+            }
+            continuation_token = response.NextContinuationToken
+        } while (continuation_token)
+        return keys
+    }
+
+    override async delete_files(keys:string[]):Promise<void>{
+        // Delete the given object keys in batches (S3 allows up to 1000 per request)
+        for (let i = 0; i < keys.length; i += 1000){
+            await this._s3.send(new DeleteObjectsCommand({
+                Bucket: this._bucket,
+                Delete: {Objects: keys.slice(i, i + 1000).map(key => ({Key: key}))},
+            }))
+        }
+    }
+
     override async delete_dir(server_path:string):Promise<void>{
         // Delete all objects on S3 under the given path prefix (paginated)
         let continuation_token:string|undefined

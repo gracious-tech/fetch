@@ -186,6 +186,12 @@ async function _update_dist_single(id:string, force:boolean){
         }
     }
 
+    // Don't write extra.json if no books were converted
+    const dist_books = list_files(join(dist_dir, 'txt'))
+    if (!dist_books.length){
+        return
+    }
+
     // Skip rebuilding the extra file if nothing changed (keeps incremental runs cheap)
     if (!converted_any && fs.existsSync(join(dist_dir, 'extra.json'))){
         return
@@ -194,7 +200,7 @@ async function _update_dist_single(id:string, force:boolean){
     // Extract names/headings for all books into single file for translation
     const trans_extra:DistTranslationExtra = {book_names: {}, chapter_headings: {}, sections: {}}
     const partial_books:string[] = []
-    for (const filename of list_files(join(dist_dir, 'txt'))){
+    for (const filename of dist_books){
 
         // Determine paths and read data from txt format output
         const book = filename.split('.')[0]!

@@ -61,6 +61,11 @@ export function build_extra_overlay(){
         const native = natives[id]!
         const lang = id.slice(0, 3)
 
+        // Skip translations with no converted books
+        if (!Object.keys(native.book_names).length){
+            continue
+        }
+
         // Order same-language donors: those tagged 'recommended' first, then most recent year
         const donors = ids.filter(other => other !== id && other.slice(0, 3) === lang)
         donors.sort((a, b) => {

@@ -3,7 +3,8 @@ import fs from 'node:fs'
 import {join, sep} from 'node:path'
 
 import {concurrent, type_from_path, read_dir_deep, read_json} from '../parts/utils.js'
-import {read_unpublished, clear_unpublished, mark_all_unpublished} from './unpublished.js'
+import {read_unpublished, remove_unpublished, clear_unpublished, mark_all_unpublished}
+    from './unpublished.js'
 import type {DistManifest} from './shared_types'
 
 
@@ -128,6 +129,9 @@ export abstract class Publisher {
                 await this.delete_dir(server_path)
             }
             invalidations.push(`/${server_path}/*`)
+
+            // Mark this entry done so a crash mid-publish doesn't redo it on the next run
+            remove_unpublished(entry)
         }
 
         // Reconcile each resource category against the manifest, removing server orphans

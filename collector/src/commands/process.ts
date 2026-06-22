@@ -2,7 +2,7 @@
 import fs from 'node:fs'
 import {join} from 'node:path'
 
-import {usx_to_json_html, usx_to_json_txt} from 'usx-to-json'
+import {usx_to_json_html, usx_to_json_txt, usx_to_json_typst} from 'usx-to-json'
 import {reverse_usx} from 'reverse-usx'
 import {books_ordered} from '@gracious.tech/bible-references'
 import {JSDOM} from 'jsdom'
@@ -80,7 +80,7 @@ async function _update_dist_single(id:string, force:boolean){
     }
 
     // Ensure dist dirs exist
-    for (const format of ['usx', 'usfm', 'html', 'txt']){
+    for (const format of ['usx', 'usfm', 'html', 'txt', 'typst']){
         fs.mkdirSync(join(dist_dir, format), {recursive: true})
     }
 
@@ -93,7 +93,7 @@ async function _update_dist_single(id:string, force:boolean){
     // Remove dist files for any book that is no longer valid in source (deleted or marked .invalid)
     // Without this, stale dist files keep being published after a book is dropped or invalidated
     let converted_any = false
-    for (const format of ['usx', 'usfm', 'html', 'txt']){
+    for (const format of ['usx', 'usfm', 'html', 'txt', 'typst']){
         for (const filename of list_files(join(dist_dir, format))){
             const book = filename.split('.')[0]!
             if (!valid_src_books.has(book)){
@@ -117,10 +117,12 @@ async function _update_dist_single(id:string, force:boolean){
         const dst_usfm = join(dist_dir, 'usfm', `${book}.usfm`)
         const dst_html = join(dist_dir, 'html', `${book}.json`)
         const dst_txt = join(dist_dir, 'txt', `${book}.json`)
+        const dst_typst = join(dist_dir, 'typst', `${book}.json`)
 
         // Skip book if all distributable formats already exist (incremental, non-forced runs)
         if (fs.existsSync(dst_usx) && fs.existsSync(dst_usfm)
-                && fs.existsSync(dst_html) && fs.existsSync(dst_txt)){
+                && fs.existsSync(dst_html) && fs.existsSync(dst_txt)
+                && fs.existsSync(dst_typst)){
             continue
         }
         converted_any = true
@@ -152,7 +154,7 @@ async function _update_dist_single(id:string, force:boolean){
                 // Drop the book rather than publish possibly-wrong numbering (as before)
                 warn('Failed to re-verse — dropping book')
                 warn(error instanceof Error ? error.message : String(error))
-                for (const path of [dst_usx, dst_usfm, dst_html, dst_txt]){
+                for (const path of [dst_usx, dst_usfm, dst_html, dst_txt, dst_typst]){
                     fs.rmSync(path, {force: true})
                 }
                 continue
@@ -176,11 +178,12 @@ async function _update_dist_single(id:string, force:boolean){
             // Convert the fully-patched USX (same text written to the usx/usfm formats) to JSON
             write_json(dst_txt, usx_to_json_txt(usx, DOMParser, warn))
             write_json(dst_html, usx_to_json_html(usx, false, DOMParser, warn))
+            write_json(dst_typst, usx_to_json_typst(usx, DOMParser, warn))
         } catch (error){
             warn(`INVALID BOOK: failed to convert '${book}'`)
             warn(error instanceof Error ? error.message : String(error))
             // Remove any partial outputs so the book isn't half-published
-            for (const path of [dst_usx, dst_usfm, dst_html, dst_txt]){
+            for (const path of [dst_usx, dst_usfm, dst_html, dst_txt, dst_typst]){
                 fs.rmSync(path, {force: true})
             }
         }

@@ -1,5 +1,5 @@
 
-export function validate_numbering(doc:XMLDocument){
+export function validate_numbering(doc:XMLDocument, on_warning:(message:string)=>void){
     // Ensure all chapter and verse markers are sequential
 
     let next_element:'chapter'|'verse' = 'chapter'
@@ -12,14 +12,14 @@ export function validate_numbering(doc:XMLDocument){
         // Util for easier debugging
         const expected = (expect:string) => {
             const boundary = `Expected ${expect} but got ${element.outerHTML}`
-            console.error(boundary)
             const block = element.nodeName === 'chapter' ? element : element.parentNode as Element
             const doc_elements = [...block.parentElement!.children]
             const root_i = doc_elements.findIndex(n => n === block)
             const out_nodes = doc_elements.slice(Math.max(0, root_i - 3), root_i + 1)
             // NOTE rm <char>s as they make it really hard to read when every word has strongs
-            console.debug(out_nodes.map(e => e?.outerHTML ?? '').join('\n\n')
-                .replace(/<\/?char.*?>/g, ''))
+            const context = out_nodes.map(e => e?.outerHTML ?? '').join('\n\n')
+                .replace(/<\/?char.*?>/g, '')
+            on_warning(`${boundary}\n${context}`)
             throw new Error(boundary)
         }
 
@@ -44,13 +44,20 @@ export function validate_numbering(doc:XMLDocument){
         // Confirm expected chapter number
         const [ch_num, v_num] = element.getAttribute(pos!)!.slice(3).split(':')
             .map(n => parseInt(n)) as [number, number|undefined]
-        if (ch_num !== next_ch_num){
+        // Allow chapters to skip forward (missing chapters) but never repeat or go backward.
+        if (element.nodeName === 'chapter' && pos === 'sid'){
+            if (ch_num < next_ch_num){
+                expected(`chapter ${next_ch_num} or later`)
+            }
+            next_ch_num = ch_num
+        } else if (ch_num !== next_ch_num){
             expected(`chapter ${next_ch_num}`)
         }
 
         // Confirm expected verse number (if a verse)
         // NOTE Verse numbers are allowed to skip forward as long as still sequential
-        if (element.nodeName === 'verse' && v_num! < next_v_num){
+        // NOTE A repeat of the previous number is allowed for verse segments (35a, 35b, etc)
+        if (element.nodeName === 'verse' && v_num! < next_v_num - 1){
             expected(`verse ${next_v_num}`)
         }
 
@@ -76,7 +83,9 @@ export function validate_numbering(doc:XMLDocument){
             next_pos = 'eid'
         } else {  // verse with eid
             next_pos = 'sid'
-            next_v_num += 1
+            // Advance to just past this verse's own number, so segments of one verse
+            // (35, 35a, 35b all parse to 35) don't each inflate the counter
+            next_v_num = Math.max(next_v_num, v_num! + 1)
         }
     }
 }

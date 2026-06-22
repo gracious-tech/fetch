@@ -16,7 +16,8 @@ interface ParserState {
 }
 
 
-export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTxt{
+export function usx_to_json_txt(xml:string, parser=DOMParser,
+        on_warning:(message:string)=>void = console.warn):BibleJsonTxt{
 
     // Parse USX
     const {usx_element, num_verses, book_code, book_name} = parse_usx(xml, parser)
@@ -77,8 +78,10 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTxt{
             if (chapter_number < 1 || chapter_number >= state.contents.length){
                 throw new Error(`Chapter number isn't valid for the book: ${chapter_number}`)
             }
-            if (chapter_number !== state.chapter + 1){
-                throw new Error(`Chapter ${chapter_number} isn't +1 previous ${state.chapter}`)
+            // Allow gaps (missing chapters) so partial translations can still be converted; the
+            // skipped chapters are simply left empty. Completeness is the consumer's concern.
+            if (chapter_number <= state.chapter){
+                throw new Error(`Chapter ${chapter_number} isn't after previous ${state.chapter}`)
             }
             state.chapter = chapter_number
             state.verse = 0
@@ -93,7 +96,7 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTxt{
         // The only element type remaining should be <para>, so skip all others to keep logic simple
         // NOTE <para> elements cannot be nested
         if (child.nodeName !== 'para'){
-            console.warn(`Ignoring non-para element at document root level: ${child.nodeName}`)
+            on_warning(`Ignoring non-para element at document root level: ${child.nodeName}`)
             continue
         }
 
@@ -133,12 +136,12 @@ export function usx_to_json_txt(xml:string, parser=DOMParser):BibleJsonTxt{
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
-        console.warn(`Content exists before chapter 1 marker (${book_code})`)
+        on_warning('Ignoring content before chapter 1 marker')
     }
     for (let ch = 1; ch < state.contents.length; ch++){
         if (state.contents[ch]![0]!.length){
             state.contents[ch]![0] = []
-            console.warn(`Content exists before verse 1 marker for chapter ${ch} (${book_code})`)
+            on_warning(`Ignoring content before verse 1 marker for chapter ${ch}`)
         }
     }
 

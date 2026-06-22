@@ -8,7 +8,7 @@ dist/
 /collection_alt/
 /collection_official/
 
-/collector/bmc/
+/collector/usfmtc-venv/
 
 /site/src/access/client/api/
 /site/.deployments/

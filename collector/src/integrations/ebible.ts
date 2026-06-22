@@ -85,15 +85,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
     // Discover translations that are available
 
     // Parse eBible CSV to get translations list and useful metadata
-    const csv_buffer =
-        await request('https://ebible.org/Scriptures/translations.csv', 'arrayBuffer')
-    const rows = csv_parse(Buffer.from(csv_buffer), {
-        bom: true,
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-        escape: '\\',  // eBible uses \ for escaping " instead of double ("")
-    }) as EbibleRow[]
+    const rows = await fetch_rows()
 
     // Load language data
     const language_data = get_language_data()
@@ -233,4 +225,29 @@ export async function discover(existing:string[], discover_specific_id?:string):
     console.info(`EBIBLE existing: ${exists.length}`)
     console.info(`EBIBLE ignored: ${ignored.length}`)
     console.info(`EBIBLE total: ${added.length + exists.length + ignored.length}`)
+}
+
+
+// Fetch and parse the eBible translations CSV
+async function fetch_rows():Promise<EbibleRow[]>{
+    const csv_buffer =
+        await request('https://ebible.org/Scriptures/translations.csv', 'arrayBuffer')
+    return csv_parse(Buffer.from(csv_buffer), {
+        bom: true,
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        escape: '\\',  // eBible uses \ for escaping " instead of double ("")
+    }) as EbibleRow[]
+}
+
+
+// Get the latest available version of each eBible translation, keyed by eBible id
+// NOTE Used by download to detect when a source has been updated since last downloaded
+export async function get_remote_versions():Promise<Map<string, {updated:string}>>{
+    const versions = new Map<string, {updated:string}>()
+    for (const row of await fetch_rows()){
+        versions.set(row['translationId'], {updated: row['UpdateDate']})
+    }
+    return versions
 }

@@ -348,3 +348,18 @@ async function fetch_all_entries():Promise<ContentEntryDetailed[]> {
 
     return all_items
 }
+
+
+// Get the latest available version of each DBL translation, keyed by DBL uid
+// NOTE Used by download to detect when a source has been updated since last downloaded
+export async function get_remote_versions()
+        :Promise<Map<string, {updated:string, revision:number}>>{
+    const versions = new Map<string, {updated:string, revision:number}>()
+    for (const item of await fetch_all_entries()){
+        versions.set(item.uid, {
+            updated: (item.dateUpdated ?? '').slice(0, 10),
+            revision: item.revision ?? 0,
+        })
+    }
+    return versions
+}

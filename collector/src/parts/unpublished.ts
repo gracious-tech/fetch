@@ -31,6 +31,18 @@ export function add_unpublished(paths:string[]):void{
 }
 
 
+// Remove a single entry from the unpublished list (after it's been published)
+// NOTE Rewrites the file each call so progress survives a crash mid-publish
+export function remove_unpublished(entry:string):void{
+    const remaining = read_unpublished().filter(p => p !== entry)
+    if (remaining.length){
+        writeFileSync(UNPUBLISHED_FILE, remaining.join('\n') + '\n')
+    } else {
+        rmSync(UNPUBLISHED_FILE, {force: true})
+    }
+}
+
+
 // Remove the tracking file after a successful publish
 export function clear_unpublished():void{
     rmSync(UNPUBLISHED_FILE, {force: true})

@@ -137,8 +137,9 @@ export function report_unprocessed(type?:'usfmx'|'other'){
 
         // Find out how many original source files there are
         const src_format = existsSync(join('sources', 'bibles', id, 'usx')) ? 'usx' : 'usfm'
-        const expected = list_files(join('sources', 'bibles', id, src_format))
-            .filter(f => !f.endsWith('.invalid')).map(b => b.slice(0, 3))
+        const src_dir = join('sources', 'bibles', id, src_format)
+        const expected_files = list_files(src_dir).filter(f => !f.endsWith('.invalid'))
+        const expected = expected_files.map(b => b.slice(0, 3))
         const expected_num = expected.length
 
         // Count number of processed files by type
@@ -165,7 +166,11 @@ export function report_unprocessed(type?:'usfmx'|'other'){
         if (min_num < expected_num){
             count++
             // Give guess on which books haven't been processed by checking txt format
-            const books = expected.filter(b => !txt_books.includes(b)).slice(0, 5).join(',')
+            const books = expected_files
+                .filter(f => !txt_books.includes(f.slice(0, 3)))
+                .slice(0, 5)
+                .map(f => join(src_dir, f))
+                .join(' ')
             console.error(min_num.toString().padStart(2) + ' / '
                 + expected_num.toString().padStart(2) + '  ' + id.padEnd(10) + books)
         }

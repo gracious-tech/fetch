@@ -55,8 +55,11 @@
         </note>⸃ בֹר ⸂ פֶּן יֶאֱנַף וְתֹאבְדוּ דֶרֶךְ כִּי יִבְעַר כִּמְעַט אַפּוֹ אַשְׁרֵי כָּל חוֹסֵי בוֹ {פ}
         <verse eid="PSA 2:12"/>
     </para><chapter eid="PSA 2"/><chapter sid="PSA 3" number="3" style="c"/>
-    <para style="p">
+    
+    
+    <para style="d">
         מִזְמוֹר לְדָוִד בְּבָרְחוֹ מִפְּנֵי אַבְשָׁלוֹם בְּנוֹ
+        </para><para style="p">
         <verse number="1" style="v" sid="PSA 3:1"/>יַהְוֶה מָה רַבּוּ צָרָי רַבִּים קָמִים עָלָי
         <verse eid="PSA 3:1"/>
         <verse number="2" style="v" sid="PSA 3:2"/>רַבִּים אֹמְרִים לְנַפְשִׁי אֵין יְשׁוּעָתָה לּוֹ בֵאלֹהִים סֶלָה

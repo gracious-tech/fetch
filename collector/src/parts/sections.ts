@@ -106,3 +106,12 @@ export function generate_chapter_headings(json_txt:BibleJsonTxt, sections:BookSe
 
     return chapters
 }
+
+
+export function build_native_book_extra(json_txt:BibleJsonTxt){
+    // Build the native (own-source) extra data (names/sections/chapter headings) for a single book
+    const sections = extract_sections(json_txt)
+    // WARN generate_chapter_headings mutates `sections`, nulling chapter-start headings
+    const chapter_headings = generate_chapter_headings(json_txt, sections)
+    return {name: json_txt.name, sections, chapter_headings}
+}

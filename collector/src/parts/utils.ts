@@ -134,6 +134,7 @@ export function list_files(directory:string):string[]{
 export function list_dirs(directory:string):string[]{
     return readdirSync(directory, {withFileTypes: true})
         .filter((entity: Dirent) => entity.isDirectory())
+        .filter((entity: Dirent) => !IGNORE_NAMES.includes(entity.name))
         .map((entity: Dirent) => entity.name)
 }
 

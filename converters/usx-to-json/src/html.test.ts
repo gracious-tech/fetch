@@ -144,4 +144,37 @@ describe("usx_to_json_html", () => {
         expect(count).toEqual(1)
     })
 
+    it("allows a gap in chapters (partial book) leaving missing chapters empty", ({expect}) => {
+        // Joel chapter 1 then chapter 3, skipping the (missing) chapter 2
+        const usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+            <book code="JOL" style="id">Joel</book>
+            <chapter number="1" style="c" sid="JOL 1"/>
+            <para style="p"><verse number="1" style="v" sid="JOL 1:1"/>Verse one.</para>
+            <chapter eid="JOL 1"/>
+            <chapter number="3" style="c" sid="JOL 3"/>
+            <para style="p"><verse number="1" style="v" sid="JOL 3:1"/>Verse three.</para>
+            <chapter eid="JOL 3"/>
+        </usx>`
+        const result = usx_to_json_html(usx)
+        // Chapter 1 and 3 have content, the skipped chapter 2 is left entirely empty
+        expect(result.contents[1][1][1]).toContain('Verse one.')
+        expect(result.contents[3][1][1]).toContain('Verse three.')
+        expect(result.contents[2].every(verse => verse.join('') === '')).toBe(true)
+    })
+
+    it("still throws when chapters go backwards", ({expect}) => {
+        const usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+            <book code="JOL" style="id">Joel</book>
+            <chapter number="2" style="c" sid="JOL 2"/>
+            <para style="p"><verse number="1" style="v" sid="JOL 2:1"/>Verse two.</para>
+            <chapter eid="JOL 2"/>
+            <chapter number="1" style="c" sid="JOL 1"/>
+            <para style="p"><verse number="1" style="v" sid="JOL 1:1"/>Verse one.</para>
+            <chapter eid="JOL 1"/>
+        </usx>`
+        expect(() => usx_to_json_html(usx)).toThrow()
+    })
+
 })

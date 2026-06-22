@@ -72,6 +72,8 @@ function _process_resource_meta(sources_path:string, dist_path:string):DistManif
         // Record as `true` if whole testament to reduce data size
         books_ot: books_ot.length === 39 ? true : books_ot,
         books_nt: books_nt.length === 27 ? true : books_nt,
+        // Optional, present when content is only partially included
+        ...(meta.partial?.length ? {partial: meta.partial} : {}),
     }
 }
 

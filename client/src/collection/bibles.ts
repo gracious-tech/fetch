@@ -2,7 +2,8 @@
 import {book_names_english, PassageReference, detect_references, english_abbrev_include,
     english_abbrev_exclude, book_abbrev_english} from '@gracious.tech/bible-references'
 
-import {BibleBook, BibleBookHtml, BibleBookUsx, BibleBookUsfm, BibleBookTxt} from '../book/bible.js'
+import {BibleBook, BibleBookHtml, BibleBookUsx, BibleBookUsfm, BibleBookTxt, BibleBookTypst}
+    from '../book/bible.js'
 import {TranslationExtra} from './bibles_extra.js'
 import {GenericCollection} from './generic.js'
 
@@ -12,10 +13,10 @@ import type {DistTranslationExtra} from '../assets/shared_types'
 export class BibleCollection extends GenericCollection {
 
     // Get the URL for a book's content (useful for caching and manual retrieval)
-    get_book_url(resource:string, book:string, format:'html'|'usx'|'usfm'|'txt'='html'){
+    get_book_url(resource:string, book:string, format:'html'|'usx'|'usfm'|'txt'|'typst'='html'){
         this._ensure_book_exists(resource, book)
         const endpoint = this._items[resource]!.endpoint
-        const ext = ['html', 'txt'].includes(format) ? 'json' : format
+        const ext = ['html', 'txt', 'typst'].includes(format) ? 'json' : format
         return `${endpoint}bibles/${resource}/${format}/${book}.${ext}`
     }
 
@@ -24,7 +25,8 @@ export class BibleCollection extends GenericCollection {
     async fetch_book(resource:string, book:string, format:'usx'):Promise<BibleBookUsx>
     async fetch_book(resource:string, book:string, format:'usfm'):Promise<BibleBookUsfm>
     async fetch_book(resource:string, book:string, format:'txt'):Promise<BibleBookTxt>
-    async fetch_book(resource:string, book:string, format:'html'|'usx'|'usfm'|'txt'='html'):
+    async fetch_book(resource:string, book:string, format:'typst'):Promise<BibleBookTypst>
+    async fetch_book(resource:string, book:string, format:'html'|'usx'|'usfm'|'txt'|'typst'='html'):
             Promise<BibleBook>{
 
         // Check args valid
@@ -40,6 +42,7 @@ export class BibleCollection extends GenericCollection {
             usx: BibleBookUsx,
             usfm: BibleBookUsfm,
             txt: BibleBookTxt,
+            typst: BibleBookTypst,
         }[format]
         return new format_class(contents, this._items[resource]!.copyright)
     }

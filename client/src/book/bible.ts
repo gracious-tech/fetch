@@ -1,15 +1,20 @@
 
 import {PassageReference} from '@gracious.tech/bible-references'
 
-import {escape_html, num_to_letters} from '../assets/utils.js'
+import {escape_html, escape_typst, num_to_letters} from '../assets/utils.js'
 
 import type {RuntimeLicense, RuntimeCopyright} from '../assets/types.js'
-import type {BibleJsonHtml, BibleJsonTxt, TxtContent} from '../assets/shared_types.js'
+import type {BibleJsonTxt, TxtContent,
+} from '../assets/shared_types.js'
 
 
-export interface GetHtmlOptions {
+export interface GetMarkupOptions {
     attribute?:boolean|RuntimeLicense
 }
+
+export type GetHtmlOptions = GetMarkupOptions
+
+export type GetTypstOptions = GetMarkupOptions
 
 export interface GetTxtOptions {
     attribute?:boolean|RuntimeLicense
@@ -122,19 +127,118 @@ function _ref_to_get_list_args(ref:PassageReference){
 }
 
 
-// Access to the HTML text of a Bible book
-export class BibleBookHtml {
+// @internal
+// Shared base for markup formats (HTML, Typst) whose verses are [before, body, after] fragments
+abstract class BibleBookMarkup {
 
     // @internal
     _copyright:RuntimeCopyright|undefined
     // @internal
-    _html:BibleJsonHtml
+    _content:{contents:string[][][]}
 
     // @internal
     constructor(json:string, copyright?:RuntimeCopyright){
         this._copyright = copyright
-        this._html = JSON.parse(json) as BibleJsonHtml
+        this._content = JSON.parse(json) as {contents:string[][][]}
     }
+
+    // Get appropriate text for attribution (format depends on the subclass)
+    abstract get_attribution(license?:RuntimeLicense):string
+
+    // @internal
+    // Wrap a chapter's markup (subclasses may add a format-specific wrapper; default is none)
+    _wrap_chapter(chapter:number, inner:string):string{
+        return inner
+    }
+
+    // @internal
+    _attribution(license:RuntimeLicense|boolean|undefined):string{
+        // Helper for getting (or not getting) attribution string based on attribute arg
+        // NOTE Defaults to including attribution unless explicitly set to false
+        if (license === false){
+            return ''
+        }
+        return this.get_attribution((!license || license === true) ? undefined : license)
+    }
+
+    // Get the markup for the entire book
+    get_whole({attribute}:GetMarkupOptions={}):string{
+        return this._content.contents.flat().map(v => v[1]).join('') + this._attribution(attribute)
+    }
+
+    // Get markup for a specific passage
+    get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number,
+            options:GetMarkupOptions={}):string{
+        const chapters =
+            _get_list(this._content.contents, start_chapter, start_verse, end_chapter, end_verse)
+        if (!chapters.length){
+            return ''
+        }
+
+        // Wrap each chapter in a div so users can style entire chapters at a time
+        // NOTE Not possible for verses since they flow across paragraphs
+        let out = ''
+        for (const verses_for_ch of chapters){
+            const inner = verses_for_ch[0]!.content[0]!
+                + verses_for_ch.map(v => v.content[1]).join('')
+                + verses_for_ch[verses_for_ch.length-1]!.content[2]!
+            out += this._wrap_chapter(verses_for_ch[0]!.chapter, inner)
+        }
+        return out + this._attribution(options.attribute)
+    }
+
+    // Get markup for a specific passage specified by a PassageReference object
+    get_passage_from_ref(ref:PassageReference, options:GetMarkupOptions={}):string{
+        if (ref.type === 'book'){
+            return this.get_whole(options)
+        }
+        if (ref.type === 'chapter' || ref.type === 'range_chapters'){
+            return this.get_chapters(ref.start_chapter, ref.end_chapter, options)
+        }
+        return this.get_passage(ref.start_chapter, ref.start_verse, ref.end_chapter, ref.end_verse,
+            options)
+    }
+
+    // Get markup for multiple chapters
+    get_chapters(first:number, last:number, options:GetMarkupOptions={}):string{
+        if (typeof first !== 'number' || typeof last !== 'number'){
+            throw new Error("First/last chapters must be numbers")  // Protect against '1' + 1 = 11
+        }
+        return this.get_passage(first, 1, last + 1, 0, options)
+    }
+
+    // Get markup for a single chapter
+    get_chapter(chapter:number, options:GetMarkupOptions={}):string{
+        // @ts-ignore possible TS bug
+        return this.get_chapters(chapter, chapter, options)
+    }
+
+    // Get markup for a single verse
+    get_verse(chapter:number, verse:number, options:GetMarkupOptions={}):string{
+        return this.get_passage(chapter, verse, chapter, verse, options)
+    }
+
+    // Get markup as an array of individual verses (each verse will be in its own paragraph)
+    get_list(start_chapter?:number, start_verse?:number, end_chapter?:number, end_verse?:number)
+            :IndividualVerse<string>[]{
+        return _get_list(this._content.contents, start_chapter, start_verse, end_chapter, end_verse)
+            .flat().map(verse => {
+                return {
+                    ...verse,
+                    content: verse.content.join(''),  // Join ends to form valid paragraph
+                }
+            })
+    }
+
+    // Get markup as an array of individual verses by passing a PassageReference object
+    get_list_from_ref(ref:PassageReference):IndividualVerse<string>[]{
+        return this.get_list(..._ref_to_get_list_args(ref))
+    }
+}
+
+
+// Access to the HTML text of a Bible book
+export class BibleBookHtml extends BibleBookMarkup {
 
     // Get appropriate text for attribution (defaults to first license, optionally provide one)
     get_attribution(license?:RuntimeLicense):string{
@@ -157,88 +261,26 @@ export class BibleBookHtml {
     }
 
     // @internal
-    _attribution(license:RuntimeLicense|boolean|undefined):string{
-        // Helper for getting (or not getting) attribution string based on attribute arg
-        // NOTE Defaults to including attribution unless explicitly set to false
-        if (license === false){
-            return ''
+    // Wrap each chapter in a div so users can style entire chapters at a time
+    // NOTE Not possible for verses since they flow across paragraphs
+    override _wrap_chapter(chapter:number, inner:string):string{
+        return `<div class="fb-chapter" data-c="${chapter}">${inner}</div>`
+    }
+}
+
+
+// Access to the Typst markup of a Bible book (for compiling to print/PDF)
+export class BibleBookTypst extends BibleBookMarkup {
+
+    // Get appropriate text for attribution (defaults to first license, optionally provide one)
+    get_attribution(license?:RuntimeLicense):string{
+        if (!this._copyright){
+            return ''  // Copyright not provided when creating instance (only by manual use)
         }
-        return this.get_attribution((!license || license === true) ? undefined : license)
-    }
-
-    // Get the HTML for the entire book
-    get_whole({attribute}:GetHtmlOptions={}):string{
-        return this._html.contents.flat().map(v => v[1]).join('') + this._attribution(attribute)
-    }
-
-    // Get HTML for a specific passage
-    get_passage(start_chapter:number, start_verse:number, end_chapter:number, end_verse:number,
-            options:GetHtmlOptions={}):string{
-        const chapters =
-            _get_list(this._html.contents, start_chapter, start_verse, end_chapter, end_verse)
-        if (!chapters.length){
-            return ''
+        if (!license){
+            license = this._copyright.licenses[0]!  // Always at least one
         }
-
-        // Wrap each chapter in a div so users can style entire chapters at a time
-        // NOTE Not possible for verses since they flow across paragraphs
-        let out = ''
-        for (const verses_for_ch of chapters){
-            out += `<div class="fb-chapter" data-c="${verses_for_ch[0]!.chapter}">`
-                + verses_for_ch[0]!.content[0]!
-                + verses_for_ch.map(v => v.content[1]).join('')
-                + verses_for_ch[verses_for_ch.length-1]!.content[2]!
-                + '</div>'
-        }
-        return out + this._attribution(options.attribute)
-    }
-
-    // Get HTML for a specific passage specified by a PassageReference object
-    get_passage_from_ref(ref:PassageReference, options:GetHtmlOptions={}):string{
-        if (ref.type === 'book'){
-            return this.get_whole(options)
-        }
-        if (ref.type === 'chapter' || ref.type === 'range_chapters'){
-            return this.get_chapters(ref.start_chapter, ref.end_chapter, options)
-        }
-        return this.get_passage(ref.start_chapter, ref.start_verse, ref.end_chapter, ref.end_verse,
-            options)
-    }
-
-    // Get HTML for multiple chapters
-    get_chapters(first:number, last:number, options:GetHtmlOptions={}):string{
-        if (typeof first !== 'number' || typeof last !== 'number'){
-            throw new Error("First/last chapters must be numbers")  // Protect against '1' + 1 = 11
-        }
-        return this.get_passage(first, 1, last + 1, 0, options)
-    }
-
-    // Get HTML for a single chapter
-    get_chapter(chapter:number, options:GetHtmlOptions={}):string{
-        // @ts-ignore possible TS bug
-        return this.get_chapters(chapter, chapter, options)
-    }
-
-    // Get HTML for a single verse
-    get_verse(chapter:number, verse:number, options:GetHtmlOptions={}):string{
-        return this.get_passage(chapter, verse, chapter, verse, options)
-    }
-
-    // Get HTML as an array of individual verses (each verse will be in its own paragraph)
-    get_list(start_chapter?:number, start_verse?:number, end_chapter?:number, end_verse?:number)
-            :IndividualVerse<string>[]{
-        return _get_list(this._html.contents, start_chapter, start_verse, end_chapter, end_verse)
-            .flat().map(verse => {
-                return {
-                    ...verse,
-                    content: verse.content.join(''),  // Join ends to form valid paragraph
-                }
-            })
-    }
-
-    // Get HTML as an array of individual verses by passing a PassageReference object
-    get_list_from_ref(ref:PassageReference):IndividualVerse<string>[]{
-        return this.get_list(..._ref_to_get_list_args(ref))
+        return escape_typst(`\n\n[${license.name} - ${this._copyright.attribution}]\n`)
     }
 }
 
@@ -452,4 +494,4 @@ export class BibleBookTxt {
 }
 
 
-export type BibleBook = BibleBookHtml|BibleBookTxt|BibleBookUsfm|BibleBookUsx
+export type BibleBook = BibleBookHtml|BibleBookTxt|BibleBookUsfm|BibleBookUsx|BibleBookTypst

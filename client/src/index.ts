@@ -32,12 +32,14 @@ export type {NotesBook, RelevantNotes} from './book/notes.js'
 export type {
     GetHtmlOptions,
     GetTxtOptions,
+    GetTypstOptions,
     IndividualVerse,
     BibleBook,
     BibleBookHtml,
     BibleBookTxt,
     BibleBookUsfm,
     BibleBookUsx,
+    BibleBookTypst,
 } from './book/bible.js'
 
 

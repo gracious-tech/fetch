@@ -128,6 +128,15 @@ export function escape_html(text:string):string{
 }
 
 
+// @internal Escape characters that have special meaning in Typst content mode
+export function escape_typst(text:string):string{
+    // Condense whitespace runs to single space
+    text = text.replace(/\s+/g, ' ')
+    // eslint-disable-next-line no-useless-escape
+    return text.replace(/[\\#\[\]$*_`<>@~/+\-]/g, '\\$&')
+}
+
+
 // @internal
 export function num_to_letters(num:number):string{
     // Return letters to represent a number (e.g. 1=a 2=b 26=z 27=aa)

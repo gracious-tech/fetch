@@ -361,6 +361,52 @@ describe("usx_to_json_typst", () => {
         const joined = cat(out.contents[1]![1]!)
         expect(joined).toContain('A psalm of David')
     })
+
+    it("drops verse-less body text before verse 1 and warns (not attached to verse 1)", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="MAT" style="id">Test</book>
+                <chapter number="1" style="c" sid="MAT 1"/>
+                <para style="p">Stray body text before any verse.</para>
+                <para style="p"><verse number="1" style="v" sid="MAT 1:1"/>Real verse one.<verse eid="MAT 1:1"/></para>
+            </usx>`
+        const warnings:string[] = []
+        const out = usx_to_json_typst(xml, undefined, msg => warnings.push(msg))
+        // Verse 0 should be cleared and verse 1 must not contain the stray body text
+        expect(out.contents[1]![0]).toEqual(['', '', ''])
+        const joined = cat(out.contents[1]![1]!)
+        expect(joined).not.toContain('Stray body text')
+        expect(joined).toContain('Real verse one.')
+        // The dropped real text should be reported via the warning callback
+        expect(warnings).toContain('Ignoring content before verse 1 marker for chapter 1')
+    })
+
+    it("does not warn when only empty structural markup precedes verse 1", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="MAT" style="id">Test</book>
+                <chapter number="1" style="c" sid="MAT 1"/>
+                <para style="q1"></para>
+                <para style="p"><verse number="1" style="v" sid="MAT 1:1"/>Real verse one.<verse eid="MAT 1:1"/></para>
+            </usx>`
+        const warnings:string[] = []
+        usx_to_json_typst(xml, undefined, msg => warnings.push(msg))
+        // Empty poetry para emits only structural markup (#q(1)[]), so nothing real is dropped
+        expect(warnings).toEqual([])
+    })
+
+    it("routes warnings through the on_warning callback instead of console", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="MAT" style="id">Test</book>
+                <chapter number="1" style="c" sid="MAT 1"/>
+                <bogus>unexpected root element</bogus>
+                <para style="p"><verse number="1" style="v" sid="MAT 1:1"/>Verse one.<verse eid="MAT 1:1"/></para>
+            </usx>`
+        const warnings:string[] = []
+        usx_to_json_typst(xml, undefined, msg => warnings.push(msg))
+        expect(warnings).toContain('Ignoring non-para element at document root level: bogus')
+    })
 })
 
 

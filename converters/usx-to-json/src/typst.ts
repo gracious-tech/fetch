@@ -121,13 +121,22 @@ interface ParserState {
     para_open:string  // Opening fragment for current <para> (e.g. '#q1[' or '' for regular)
     para_close:string  // Closing fragment for current <para> (e.g. ']\n' or '\n\n')
     mid_para:boolean  // True once non-verse content has been processed in current para
+    buffer_para:boolean  // Whether current <para>'s body should buffer rather than drop at v0
     unknown_owner:string
     contents:BibleJsonTypst['contents']
 }
 
 
+// Whether a <para> contains a verse start marker (distinguishes verse-less paras)
+function para_has_verse(para:Element):boolean{
+    return Array.from(para.childNodes).some(
+        node => node.nodeName === 'verse' && !(node as Element).hasAttribute('eid'))
+}
+
+
 // Convert USX to Typst-JSON
-export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst {
+export function usx_to_json_typst(xml:string, parser=DOMParser,
+        on_warning:(message:string)=>void = console.warn):BibleJsonTypst {
 
     // Parse USX
     const {usx_element, num_verses, book_code, book_name} = parse_usx(xml, parser)
@@ -140,6 +149,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst {
         para_open: '',
         para_close: '',
         mid_para: false,
+        buffer_para: false,  // Whether current <para>'s body should buffer rather than drop at v0
         unknown_owner: '',  // Content that should be prepended to next verse if current verse done
         // Prepare output with empty strings for every verse
         contents: [
@@ -193,7 +203,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst {
         // The only element type remaining should be <para>, so skip all others to keep logic simple
         // NOTE <para> elements cannot be nested
         if (child.nodeName !== 'para'){
-            console.warn(`Ignoring non-para element at document root level: ${child.nodeName}`)
+            on_warning(`Ignoring non-para element at document root level: ${child.nodeName}`)
             continue
         }
 
@@ -248,12 +258,22 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst {
                 ? `#${family}(${level})[`
                 : `#${family}[`
         }
+
+        // Decide how the para relates to verse 1 (mirrors html): psalm `d` superscriptions buffer
+        // onto verse 1; a verse-less body para drops whole to verse 0; otherwise buffer the opening
+        // fragment so it attaches to verse 1 (pre-verse text still drops to verse 0, see add_typst)
+        const has_verse = para_has_verse(child)
+        const is_superscription =
+            state.book === 'psa' && style === 'd' && !state.verse && !has_verse
+        const verse_less = !state.verse && !has_verse && !is_superscription
+        state.buffer_para = is_superscription
         state.para_open = para_open
         state.para_close = wrapped ? ']\n' : '\n\n'
         state.mid_para = false
-        add_typst(state, state.para_open, true)
+        add_typst(state, state.para_open, !verse_less)
         process_contents(state, child.childNodes)
         add_typst(state, state.para_close)
+        state.buffer_para = false
         state.para_open = ''
         state.para_close = ''
     }
@@ -261,12 +281,20 @@ export function usx_to_json_typst(xml:string, parser=DOMParser):BibleJsonTypst {
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
-        console.warn(`Content exists before chapter 1 marker (${book_code})`)
+        on_warning('Ignoring content before chapter 1 marker')
     }
     for (let ch = 1; ch < state.contents.length; ch++){
-        if (state.contents[ch]![0]!.join('')){
+        const dropped = state.contents[ch]![0]!.join('')
+        if (dropped){
             state.contents[ch]![0] = ['', '', '']
-            console.warn(`Content exists before verse 1 marker for chapter ${ch} (${book_code})`)
+            // Only report if real text was dropped — strip structural markup (function calls,
+            // brackets, heading markers, escapes) and warn only if anything remains
+            const text_only = dropped
+                .replace(/#[a-z]+(\([^)]*\))?/g, '')
+                .replace(/[[\]=\\]/g, '')
+            if (text_only.trim()){
+                on_warning(`Ignoring content before verse 1 marker for chapter ${ch}`)
+            }
         }
     }
 
@@ -425,8 +453,9 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
 
 // Add content to current verse, possibly buffering if may belong to next verse
 function add_typst(state:ParserState, content:string, may_belong_to_next_verse=false):void{
-    // NOTE Verifying verse != 0 important so superscriptions in psalms prepended to verse 1
-    if (state.unknown_owner || may_belong_to_next_verse || !state.verse){
+    // Add to current verse, or buffer for the next verse if a heading/superscription. Plain body
+    // content before verse 1 falls through to verse 0, where it is later dropped and reported.
+    if (may_belong_to_next_verse || state.buffer_para || (state.unknown_owner && state.verse)){
         state.unknown_owner += content
     } else {
         state.contents[state.chapter]![state.verse]![1] += content

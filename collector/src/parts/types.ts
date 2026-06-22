@@ -24,9 +24,9 @@ export type TransFormat = 'usx'|'usfm'
 export interface SourceProps<ServiceIds=GeneralServiceId, PossibleFormats=null> {
     service:ServiceIds|'manual'
     format:PossibleFormats  // Only for standard formats, not custom ones
-    updated:string  // yyyy-mm-dd
-    revision:number  // 0 if not used
-    url:string|null
+    updated:string  // yyyy-mm-dd (applies to first url if array)
+    revision:number  // 0 if not used (applies to first url if array)
+    url:string|string[]|null  // Multiple when split across sources (e.g. OT + NT zips to merge)
 }
 
 
@@ -40,7 +40,7 @@ export interface CommonSourceMeta
     ids:Partial<Record<ServiceIds, string>>
     source:SourceProps<ServiceIds, PossibleFormats>
     notes?:string  // Notes relevant to sourcing the translation and any issues that came up
-    modified?:boolean  // Whether have modified source files (e.g. to fix bugs)
+    partial?:string[]  // Book ids whose content is only partially included (pruned or in progress)
 }
 
 

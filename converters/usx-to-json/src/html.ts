@@ -11,13 +11,23 @@ interface ParserState {
     verse:number
     para_open:string
     unknown_owner:string
+    buffer_para:boolean
     contents:BibleJsonHtml['contents']
     alignment:boolean
 }
 
 
+// Whether a <para> contains a verse start marker (used to tell a verse-bearing para from a
+// verse-less one when deciding how to handle content before the first verse)
+function para_has_verse(para:Element):boolean{
+    return Array.from(para.childNodes).some(
+        node => node.nodeName === 'verse' && !(node as Element).hasAttribute('eid'))
+}
+
+
 // Convert USX to HTML-JSON
-export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): BibleJsonHtml {
+export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
+        on_warning:(message:string)=>void = console.warn): BibleJsonHtml {
 
     // Parse USX
     const {doc, usx_element, num_verses, book_code, book_name} = parse_usx(xml, parser)
@@ -39,6 +49,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): 
         verse: 0,
         para_open: '',  // The opening tag of the current <para> element
         unknown_owner: '',  // Content that should be prepended to next verse if current verse done
+        buffer_para: false,  // Whether current <para>'s body should buffer rather than drop at v0
         // Prepare output with empty strings for every verse
         contents: [
             [],  // Chapter 0
@@ -74,8 +85,10 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): 
             if (chapter_number < 1 || chapter_number >= state.contents.length){
                 throw new Error(`Chapter number isn't valid for the book: ${chapter_number}`)
             }
-            if (chapter_number !== state.chapter + 1){
-                throw new Error(`Chapter ${chapter_number} isn't +1 previous ${state.chapter}`)
+            // Allow gaps (missing chapters) so partial translations can still be converted; the
+            // skipped chapters are simply left empty. Completeness is the consumer's concern.
+            if (chapter_number <= state.chapter){
+                throw new Error(`Chapter ${chapter_number} isn't after previous ${state.chapter}`)
             }
             state.chapter = chapter_number
             state.verse = 0
@@ -92,7 +105,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): 
         // The only element type remaining should be <para>, so skip all others to keep logic simple
         // NOTE <para> elements cannot be nested
         if (child.nodeName !== 'para'){
-            console.warn(`Ignoring non-para element at document root level: ${child.nodeName}`)
+            on_warning(`Ignoring non-para element at document root level: ${child.nodeName}`)
             continue
         }
 
@@ -123,23 +136,42 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser): 
             continue
         }
 
-        // All other styles are standard <p> elements, so start one
+        // All other styles are standard <p> elements, so start one. How they relate to verse 1
+        // depends on what precedes it:
+        //   - A psalm superscription (`d`) belongs to verse 1, so buffer the whole para onto it. The
+        //     collector normalises mis-styled psalm titles to `d` before conversion, so keying on
+        //     `d` here keeps html and txt consistent
+        //   - A body para containing verse 1 is normal — buffer its opening tag so it attaches to
+        //     verse 1, while any text before the verse marker still drops to verse 0 (see add_html)
+        //   - A body para entirely before verse 1 is verse-less, so drop it whole (route its tags to
+        //     verse 0 too, rather than buffering them, so no stray opening tag leaks into verse 1)
+        const has_verse = para_has_verse(child)
+        const is_superscription =
+            state.book === 'psa' && style === 'd' && !state.verse && !has_verse
+        const verse_less = !state.verse && !has_verse && !is_superscription
+        state.buffer_para = is_superscription
         state.para_open = `<p class="fb-${style}">`
-        add_html(state, state.para_open, true)
+        add_html(state, state.para_open, !verse_less)
         process_contents(state, child.childNodes, escape_text)
         add_html(state, '</p>')
+        state.buffer_para = false
         state.para_open = ''
     }
 
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
-        console.warn(`Content exists before chapter 1 marker (${book_code})`)
+        on_warning('Ignoring content before chapter 1 marker')
     }
     for (let ch = 1; ch < state.contents.length; ch++){
-        if (state.contents[ch]![0]!.join('')){
+        const dropped = state.contents[ch]![0]!.join('')
+        if (dropped){
             state.contents[ch]![0] = ['', '', '']
-            console.warn(`Content exists before verse 1 marker for chapter ${ch} (${book_code})`)
+            // Only report when actual text was dropped, not just empty structural tags (e.g. an
+            // empty <p> from a blank `b` para that happened to sit before the first verse)
+            if (dropped.replace(/<[^>]*>/g, '').trim()){
+                on_warning(`Ignoring content before verse 1 marker for chapter ${ch}`)
+            }
         }
     }
 
@@ -302,8 +334,10 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
 
 function add_html(state:ParserState, content:string, may_belong_to_next_verse=false):void{
     // Add HTML to current verse, possibly buffering if may belong to next verse
-    // NOTE Verifying verse != 0 important so superscriptions in psalms prepended to verse 1
-    if (state.unknown_owner || may_belong_to_next_verse || !state.verse){
+    // Headings/superscriptions buffer onto the next verse (via `may_belong_to_next_verse` or
+    // `buffer_para`). Plain body content before verse 1 instead falls through to verse 0, where it
+    // is later dropped and reported, since verse-less body text may not be biblical material.
+    if (may_belong_to_next_verse || state.buffer_para || (state.unknown_owner && state.verse)){
         state.unknown_owner += content
     } else {
         state.contents[state.chapter]![state.verse]![1] += content

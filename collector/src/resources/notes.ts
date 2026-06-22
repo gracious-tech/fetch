@@ -5,8 +5,9 @@ import {existsSync} from 'node:fs'
 import {convert as html_to_text} from 'html-to-text'
 
 import * as tyndale from '../integrations/tyndale.js'
-import {clean_dir, list_dirs, mkdir_exist, write_json} from '../parts/utils.js'
+import {clean_dir, list_dirs, list_dirs_if, mkdir_exist, write_json} from '../parts/utils.js'
 import {update_manifest} from '../parts/manifest.js'
+import {add_unpublished} from '../parts/unpublished.js'
 
 import type {NotesData} from '../parts/shared_types'
 
@@ -25,6 +26,9 @@ export async function update_notes(redownload:boolean){
 
 // Process available notes in sources dir and convert to publishable formats
 export async function notes_process(){
+
+    // Capture existing IDs before wiping so deletions can be tracked
+    const prev_ids = list_dirs_if(join('dist', 'notes'))
 
     // Clean existing notes dir in dist
     // NOTE Would find a way to append instead if many notes available
@@ -48,6 +52,10 @@ export async function notes_process(){
             }
         }
     }
+
+    // Mark previous and current IDs unpublished (prev handles deletions, current handles updates)
+    const curr_ids = list_dirs_if(join('dist', 'notes'))
+    add_unpublished([...new Set([...prev_ids, ...curr_ids])].map(id => `notes/${id}`))
 }
 
 

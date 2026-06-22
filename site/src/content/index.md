@@ -18,7 +18,7 @@ If a translation is not public domain or openly licensed, then we cannot legally
 We don't include translations well known to be poor quality or unfaithful to the original writings. We cannot review every language we make available, so please let us know if you identify any translations that are unsuitable. We do include old translations (that were considered ok in their period) but provide ways of easily filtering them out.
 
 ### Apocryphal books
-We only include the 66 books of the Protestant canon, so we do not include apocryphal books. We have no interest in providing access to them ourselves, but users desiring those books are welcome to fork our service which is open source.
+We only include the 66 books of the Protestant canon, so we do not include apocryphal books. We also exclude the apocryphal additions to Daniel, Esther, and Psalm 151, even if a translation would normally include them. We have no interest in providing access to them ourselves as we do not consider them to be Scripture, but users desiring those books are welcome to fork our service which is open source.
 
 
 ## Getting permission for restricted translations

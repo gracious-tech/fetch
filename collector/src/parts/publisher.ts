@@ -1,30 +1,31 @@
 
 import fs from 'node:fs'
-import {join} from 'node:path'
+import {join, sep} from 'node:path'
 
-import {concurrent, read_json, type_from_path, read_dir_deep} from '../parts/utils.js'
-import {generate_index_content} from '../parts/indexes.js'
-
+import {concurrent, type_from_path, read_dir_deep, read_json} from '../parts/utils.js'
+import {read_unpublished, remove_unpublished, clear_unpublished, mark_all_unpublished}
+    from './unpublished.js'
 import type {DistManifest} from './shared_types'
 
 
-export class Publisher {
+// Categories that are keyed by resource id in the manifest (and reconciled against it)
+const RESOURCE_CATEGORIES = ['bibles', 'glosses', 'notes'] as const
+
+
+export abstract class Publisher {
     // Interface for publishing collection to server
 
-    _manifest:DistManifest
-
-    constructor(){
-        // Detect resources from manifest so know they passed review
-        this._manifest = read_json<DistManifest>(join('dist', 'manifest.json'))
-    }
-
-    async upload(key:string, body:Buffer|string, type:string):Promise<void>{
-        throw new Error("Needs to be implemented")
-    }
-
-    async invalidate(paths:string[]):Promise<void>{
-        throw new Error("Needs to be implemented")
-    }
+    abstract upload(key:string, body:Buffer|string, type:string): Promise<void>
+    abstract invalidate(paths:string[]): Promise<void>
+    abstract delete_dir(path:string):Promise<void>
+    // Delete the given object keys from the server
+    abstract delete_files(keys:string[]):Promise<void>
+    // List immediate subdir names under a server prefix (e.g. 'bibles' -> ['aai_wbt', ...])
+    abstract list_server_dirs(prefix:string):Promise<string[]>
+    // List all object keys under a server prefix (recursive)
+    abstract list_server_files(prefix:string):Promise<string[]>
+    // Return HTML for the dynamic directory index page (S3 API-powered)
+    abstract generate_dynamic_index():string
 
     // Upload a single file
     // WARN This doesn't update the parent dir's index (since should do after all children done)
@@ -33,95 +34,135 @@ export class Publisher {
         await this.upload(server_path, fs.readFileSync(path), type_from_path(path))
     }
 
-    // Upload all files in dir and also upload generated indexes for the dir and subdirs
+    // Upload all files in dir, deleting any remote files under it that no longer exist locally
     // WARN This doesn't update the parent dir's index (since should do after all children done)
     async upload_dir(dir:string):Promise<void>{
         const dir_contents = read_dir_deep(dir)
+
+        // Server keys for the local files (used to detect remote-only stale files)
+        const server_prefix = dir.slice('dist/'.length).replaceAll(sep, '/')
+        const local_keys = new Set(dir_contents.files.map(
+            path => path.slice('dist/'.length).replaceAll(sep, '/')))
 
         // Upload files
         await concurrent(dir_contents.files.map(path => async () => {
             await this.upload_file(path)
         }))
 
-        // Upload dir indexes
-        await concurrent(dir_contents.dirs.map(path => async () => {
-            const server_path = join(path.slice('dist/'.length), 'index.html')
-            await this.upload(server_path, generate_index_content(path), 'text/html')
-        }))
+        // Delete any remote files under this dir that no longer exist locally
+        const stale = (await this.list_server_files(server_prefix))
+            .filter(key => !local_keys.has(key))
+        if (stale.length){
+            console.info(`Deleting ${stale.length} stale file(s) under ${server_prefix}`)
+            await this.delete_files(stale)
+        }
     }
 
     // Publish the manifest
     async publish_manifest():Promise<string[]>{
         const manifest_path = join('dist', 'manifest.json')
-        await this.upload_file(manifest_path)
 
-        // Also upload manifest to old location for clients < 1.1.0 with old prop name for bibles
+        // Minify before upload (local file stays indented for readability)
+        const manifest_indented = fs.readFileSync(manifest_path, {encoding: 'utf8'})
+        const manifest_minified = JSON.stringify(JSON.parse(manifest_indented))
+        await this.upload('manifest.json', manifest_minified, 'application/json')
+
+        // Also upload to old location for clients < 1.1.0 with old prop name for bibles
         // This won't be listed in index.html
-        const manifest = fs.readFileSync(manifest_path, {encoding: 'utf8'})
-            .replace('"bibles":{', '"translations":{')
-        await this.upload('bibles/manifest.json', manifest, 'application/json')
+        const manifest_legacy = manifest_minified.replace('"bibles":{', '"translations":{')
+        await this.upload('bibles/manifest.json', manifest_legacy, 'application/json')
         return ['/manifest.json', '/bibles/manifest.json']
     }
 
-    // Publish resources and return paths needing invalidation
-    // WARN This doesn't update the root dir's index (since should do after all children done)
-    async publish_resources(category:'bibles'|'glosses'|'notes', resources?:string|string[]):
-            Promise<string[]>{
+    // Publish changed resources, reconcile the server against the manifest, then upload manifest
+    // NOTE The manifest (regenerated just before this runs) is the source of truth for which
+    //      resources should exist on the server. unpublished.txt is only a hint for what changed
+    //      and may be unreliable, so the manifest is what governs both uploads and deletions.
+    async publish(force=false){
+        if (force){
+            mark_all_unpublished()
+        }
+        const unpublished = read_unpublished()
+        if (!unpublished.length){
+            console.info("Nothing unpublished — only refreshing manifest")
+        }
 
-        // Can be passed a single string or an array of ids
-        const resource_ids = typeof resources === 'string' ? [resources] : resources
+        // Collect the valid resource ids per category from the freshly-generated manifest
+        const manifest = read_json<DistManifest>(join('dist', 'manifest.json'))
+        const valid_ids = new Map<string, Set<string>>()
+        for (const category of RESOURCE_CATEGORIES){
+            valid_ids.set(category, new Set(Object.keys(manifest[category])))
+        }
 
-        // Upload resources desired to be published (but only if in manifest, i.e. ready)
         const invalidations:string[] = []
-        for (const id in this._manifest[category]){
-            if (resource_ids && !resource_ids.includes(id)){
-                continue  // Only publishing certain resources
+        const touched_categories = new Set<string>()
+
+        // Upload (or delete) each changed resource tracked in unpublished.txt
+        for (const entry of unpublished){
+            const dist_path = join('dist', entry)
+            const server_path = entry.replaceAll(sep, '/')
+            const [category, id] = server_path.split('/')
+
+            // Never publish dot-prefixed paths (e.g. .git) — these aren't collection resources
+            if (category?.startsWith('.')){
+                console.info(`Skipping (not a resource): ${entry}`)
+                continue
             }
 
-            // Upload files and dir indexes
-            console.info(`Publishing: ${id}`)
-            await this.upload_dir(join('dist', category, id))
-            invalidations.push(`/${category}/${id}/*`)
+            // Never publish a resource that isn't in the manifest
+            // NOTE Such a resource, if already on the server, is removed by the reconcile below
+            const category_valid_ids = category ? valid_ids.get(category) : undefined
+            if (category_valid_ids && id && !category_valid_ids.has(id)){
+                console.info(`Skipping (not in manifest): ${entry}`)
+                continue
+            }
+
+            if (category){
+                touched_categories.add(category)
+            }
+
+            if (fs.existsSync(dist_path)){
+                console.info(`Publishing: ${entry}`)
+                await this.upload_dir(dist_path)
+            } else {
+                console.info(`Deleting: ${entry}`)
+                await this.delete_dir(server_path)
+            }
+            invalidations.push(`/${server_path}/*`)
+
+            // Mark this entry done so a crash mid-publish doesn't redo it on the next run
+            remove_unpublished(entry)
         }
 
-        // Also always republish category's dir index in case any changes
-        const category_index = generate_index_content(`dist/${category}`)
-        await this.upload(`${category}/index.html`, category_index, 'text/html')
-        invalidations.push(`/${category}/`)
-
-        return invalidations
-    }
-
-    // Publish everything, or a specific category, or id
-    async publish(type?:'bibles'|'glosses'|'notes'|'data', ids?:string|string[]){
-
-        // Publish the various types of resources
-        const invalidations:string[] = []
-        if (!type || type === 'bibles'){
-            invalidations.push(...await this.publish_resources('bibles', ids))
-        }
-        if (!type || type === 'glosses'){
-            invalidations.push(...await this.publish_resources('glosses', ids))
-        }
-        if (!type || type === 'notes'){
-            invalidations.push(...await this.publish_resources('notes', ids))
-        }
-        if (!type || type === 'data'){
-            // Resources that aren't listed in the manifest since are singular
-            await this.upload_dir(join('dist', 'crossref'))
-            invalidations.push('/crossref/*')
-            // TODO Eventually get search into manifest and upload based on that
-            await this.upload_dir(join('dist', 'search'))
-            invalidations.push('/search/*')
+        // Reconcile each resource category against the manifest, removing server orphans
+        // NOTE Independent of unpublished.txt, so stale server state (old publish logic) is fixed
+        for (const [category, category_valid_ids] of valid_ids){
+            for (const id of await this.list_server_dirs(category)){
+                if (!category_valid_ids.has(id)){
+                    console.info(`Deleting (not in manifest): ${category}/${id}`)
+                    await this.delete_dir(`${category}/${id}`)
+                    invalidations.push(`/${category}/${id}/*`)
+                    touched_categories.add(category)
+                }
+            }
         }
 
-        // Always upload fresh manifest in case any changes, and do last so assets ready before used
+        // Add category paths to invalidations (CloudFront will serve the dynamic index page)
+        for (const category of touched_categories){
+            invalidations.push(`/${category}/`)
+        }
+
+        // All resources are now synced — safe to upload manifest
         invalidations.push(...await this.publish_manifest())
 
-        // Always update root index file in case any changes
-        await this.upload('index.html', generate_index_content('dist'), 'text/html')
+        // Upload the single dynamic directory index page (served by CloudFront for all 404s)
+        await this.upload('_dynamic_index.html', this.generate_dynamic_index(), 'text/html')
+        invalidations.push('/_dynamic_index.html')
         invalidations.push('/')
 
         await this.invalidate(invalidations)
+
+        // Clear tracking file only after everything succeeded
+        clear_unpublished()
     }
 }

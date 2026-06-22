@@ -60,9 +60,9 @@ console.log(book.get_chapter(1))
 
 If your code editor supports Typescript you'll get helpful auto-suggestions that explain all the methods and arguments possible, or alternatively you can also explore the auto-generated docs. The most important classes being:
 
- * [FetchClient](/access/client/api/classes/client.FetchClient)
-    * `fetch_collection()` -> [FetchCollection](/access/client/api/classes/collection.FetchCollection)
-        * `fetch_book(...)` -> [BibleBookHtml](/access/client/api/classes/book.BibleBookHtml)
+ * `new FetchClient()` -> [FetchClient](/access/client/api/client/classes/FetchClient)
+    * `.fetch_collection()` -> [FetchCollection](/access/client/api/collection/collection/classes/FetchCollection)
+        * `.bibles.fetch_book(...)` -> [BibleBookHtml](/access/client/api/book/bible/classes/BibleBookHtml)
 
 [All modules](/access/client/api/)
 

@@ -11,13 +11,21 @@ import type {DistManifest, DistManifestItem} from './shared_types'
 import type {TranslationSourceMeta} from './types'
 
 
+// Return list of missing required meta field names
+export function _missing_meta_fields(meta:TranslationSourceMeta):string[]{
+    const missing:string[] = []
+    if (!meta.year) missing.push('year')
+    if (!meta.copyright.licenses.length) missing.push('licenses')
+    if (!(meta.name.local || meta.name.english)) missing.push('name')
+    if (!(meta.name.local_abbrev || meta.name.english_abbrev)) missing.push('abbrev')
+    return missing
+}
+
+
 // See if any important meta data missing
 export function _missing_meta(meta:TranslationSourceMeta){
     // True if missing (and so shouldn't publish)
-    return !meta.year
-        || !meta.copyright.licenses.length
-        || !(meta.name.local || meta.name.english)
-        || !(meta.name.local_abbrev || meta.name.english_abbrev)
+    return _missing_meta_fields(meta).length > 0
 }
 
 
@@ -64,6 +72,8 @@ function _process_resource_meta(sources_path:string, dist_path:string):DistManif
         // Record as `true` if whole testament to reduce data size
         books_ot: books_ot.length === 39 ? true : books_ot,
         books_nt: books_nt.length === 27 ? true : books_nt,
+        // Optional, present when content is only partially included
+        ...(meta.partial?.length ? {partial: meta.partial} : {}),
     }
 }
 
@@ -137,5 +147,5 @@ export async function update_manifest(){
         .filter(([, three]) => included_languages.has(three)))
 
     // Save the manifest to dist dir
-    write_json(join('dist', 'manifest.json'), manifest)
+    write_json(join('dist', 'manifest.json'), manifest, true)
 }

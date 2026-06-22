@@ -1,55 +1,107 @@
 
 import {join} from 'path'
-import {existsSync, writeFileSync} from 'fs'
+import {existsSync, writeFileSync, rmSync} from 'fs'
 
 import StreamZip from 'node-stream-zip'
-import {last_verse} from '@gracious.tech/bible-references'
 
 import {books_ordered} from '../parts/bible.js'
-import {clean_dir, concurrent, request, read_json, list_dirs, list_files} from '../parts/utils.js'
+import {clean_dir, concurrent, request, read_json, write_json,
+    list_dirs, list_files} from '../parts/utils.js'
+import {dbl_headers, get_remote_versions as dbl_remote_versions} from '../integrations/dbl.js'
+import {get_remote_versions as ebible_remote_versions} from '../integrations/ebible.js'
 import {TranslationSourceMeta} from '../parts/types.js'
 
 
-export async function download_source(recheck:boolean, force:boolean, trans_id?:string){
+// A translation queued for downloading, with the remote version to record once downloaded
+interface DownloadEntry {
+    meta:TranslationSourceMeta
+    new_version?:{updated:string, revision:number}
+}
+
+
+export async function download_source(recheck:boolean, trans_id?:string){
     // Update the source files for all translations (or single if given)
-    // TODO Don't update if update date unchanged
 
-    // Collect meta files by service to better manage concurrency
-    const manual_sourced:Record<string, TranslationSourceMeta> = {}
-    const door43_sourced:Record<string, TranslationSourceMeta> = {}
-    const ebible_sourced:Record<string, TranslationSourceMeta> = {}
-    const dbl_sourced:Record<string, TranslationSourceMeta> = {}
-
+    // Load all candidate translations (respecting single-id filter)
+    const candidates:{id:string, meta:TranslationSourceMeta, downloaded:boolean}[] = []
     for (const id of list_dirs(join('sources', 'bibles'))){
-
         if (trans_id && id !== trans_id){
             continue  // Only updating a single translation
         }
-
-        // Get translation's meta data
         const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
+        const format_dir = join('sources', 'bibles', id, meta.source.format)
+        const downloaded = existsSync(format_dir) && list_files(format_dir).length > 0
+        candidates.push({id, meta, downloaded})
+    }
 
-        // Don't redownload if already downloaded (unless --recheck enabled)
-        const src_dir = join('sources', 'bibles', id, meta.source.format)
-        if (!recheck && existsSync(src_dir) && list_files(src_dir).length){
-            continue  // Already downloaded
+    // When rechecking, fetch latest remote versions for any service with downloaded translations
+    // NOTE Only fetch per-service when needed (e.g. DBL requires API credentials)
+    let ebible_versions:Map<string, {updated:string}>|undefined
+    let dbl_versions:Map<string, {updated:string, revision:number}>|undefined
+    if (recheck){
+        const services = new Set(
+            candidates.filter(c => c.downloaded).map(c => c.meta.source.service))
+        if (services.has('ebible')){
+            ebible_versions = await ebible_remote_versions()
+        }
+        if (services.has('dbl')){
+            dbl_versions = await dbl_remote_versions()
+        }
+    }
+
+    // Collect meta files by service to better manage concurrency
+    const manual_sourced:Record<string, DownloadEntry> = {}
+    const door43_sourced:Record<string, DownloadEntry> = {}
+    const ebible_sourced:Record<string, DownloadEntry> = {}
+    const dbl_sourced:Record<string, DownloadEntry> = {}
+
+    for (const {id, meta, downloaded} of candidates){
+
+        // Determine the latest remote version (only known when rechecking eBible/DBL)
+        let new_version:{updated:string, revision:number}|undefined
+        if (meta.source.service === 'ebible' && meta.ids.ebible){
+            const remote = ebible_versions?.get(meta.ids.ebible)
+            if (remote){
+                new_version = {updated: remote.updated, revision: 0}
+            }
+        } else if (meta.source.service === 'dbl' && meta.ids.dbl){
+            new_version = dbl_versions?.get(meta.ids.dbl)
         }
 
-        // Don't download or re-extract from zip if have modified source (unless forcing)
-        if (meta.modified && !force){
-            console.warn(`Skipping ${id} as source has been modified (--force if needed)`)
-            continue
+        // Don't redownload if already downloaded and unchanged
+        if (downloaded){
+            if (!recheck){
+                continue  // Never re-download without --recheck
+            }
+            // Version-tracked services (eBible/DBL) only re-download for a confirmed newer version
+            // NOTE Without this, an id renamed/removed upstream has no new_version and would fall
+            //      through to re-download via its now-stale url, failing with a 404 every recheck
+            if (meta.source.service === 'ebible' || meta.source.service === 'dbl'){
+                if (!new_version){
+                    console.warn(`Skipping ${id}: source no longer listed by `
+                        + `${meta.source.service} (keeping existing files)`)
+                    continue
+                }
+                if (new_version.updated === meta.source.updated
+                        && new_version.revision === meta.source.revision){
+                    continue  // Source unchanged since last download
+                }
+                console.info(`Re-downloading ${id}: source updated `
+                    + `(${meta.source.updated} → ${new_version.updated})`)
+            }
+            // NOTE manual/door43 sources have no version api, so recheck always re-fetches them
         }
 
-        // Allocate to correct service
+        // Allocate to correct service (carrying the version to record after download)
+        const entry:DownloadEntry = {meta, ...(new_version && {new_version})}
         if (meta.source.service === 'manual'){
-            manual_sourced[id] = meta
+            manual_sourced[id] = entry
         } else if (meta.source.service === 'door43'){
-            door43_sourced[id] = meta
+            door43_sourced[id] = entry
         } else if (meta.source.service === 'ebible'){
-            ebible_sourced[id] = meta
+            ebible_sourced[id] = entry
         } else if (meta.source.service === 'dbl'){
-            dbl_sourced[id] = meta
+            dbl_sourced[id] = entry
         }
     }
 
@@ -71,12 +123,12 @@ export async function download_source(recheck:boolean, force:boolean, trans_id?:
 }
 
 
-async function generic_update_sources(sources:Record<string, TranslationSourceMeta>){
+async function generic_update_sources(sources:Record<string, DownloadEntry>){
     // Update the source files for given translation
-    await concurrent(Object.entries(sources).map(([id, meta]) => async () => {
+    await concurrent(Object.entries(sources).map(([id, entry]) => async () => {
         console.info(`Downloading source files for ${id}`)
         try {
-            await _update_source(id, meta)
+            await _update_source(id, entry.meta, entry.new_version)
         } catch (error){
             console.error(`FAILED to update source for: ${id}`)
             console.error(`${error as string}`)
@@ -85,22 +137,93 @@ async function generic_update_sources(sources:Record<string, TranslationSourceMe
 }
 
 
-async function _update_source(id:string, meta:TranslationSourceMeta):Promise<void>{
+async function _update_source(id:string, meta:TranslationSourceMeta,
+        new_version?:{updated:string, revision:number}):Promise<void>{
     // Update the source files for the given translation
 
     // Paths
     const src_dir = join('sources', 'bibles', id)
-    const zip_path = join(src_dir, 'source.zip')
-    const format_dir = join(src_dir, meta.source.format)
 
-    // Download zip (unless manually saved to repo)
-    if (meta.source.url){
-        const zip = await request(meta.source.url, 'arrayBuffer')
-        writeFileSync(zip_path, Buffer.from(zip))
+    // Normalise url to an array (a translation may be split across multiple zips to merge)
+    // NOTE A null or empty url means the source is committed to the repo (nothing to download)
+    const urls = !meta.source.url ? []
+        : (Array.isArray(meta.source.url) ? meta.source.url : [meta.source.url])
+
+    // Download zip(s) — skip if no urls (manually saved to repo)
+    for (const [index, url] of urls.entries()){
+        let download_url = url
+        if (meta.source.service === 'dbl'){
+            // DBL zip endpoint returns JSON with a presigned URL, not the zip directly
+            const dbl_resp = await request<{presignedURL:string}>(
+                url, 'json', dbl_headers(url))
+            download_url = dbl_resp.presignedURL
+        }
+        const zip = await request(download_url, 'arrayBuffer')
+        writeFileSync(join(src_dir, `source${index || ''}.zip`), Buffer.from(zip))
+    }
+
+    // Detect the actual format from the zip contents and correct meta if it was wrong
+    // NOTE Some services (e.g. DBL) declare 'usx' for every entry but ship USFM for some, so the
+    //      zip is the source of truth — trusting the declared format silently extracts nothing,
+    //      which left the format dir empty and re-downloaded the translation on every run
+    let meta_dirty = false
+    const detected_format = await _detect_source_format(join(src_dir, 'source.zip'))
+    if (detected_format !== meta.source.format){
+        console.info(`Correcting source format for ${id}: `
+            + `${meta.source.format} → ${detected_format}`)
+        // Drop the stale (wrongly-named) format dir before switching to the detected one
+        rmSync(join(src_dir, meta.source.format), {recursive: true, force: true})
+        meta.source.format = detected_format
+        meta_dirty = true
     }
 
     // Empty format dir
+    const format_dir = join(src_dir, meta.source.format)
     clean_dir(format_dir)
+
+    // Extract from each zip into format_dir (merging contents; later zips override earlier)
+    // NOTE Falls back to a single source.zip when no urls (manually saved to repo)
+    const num_zips = urls.length || 1
+    for (let i = 0; i < num_zips; i++){
+        await _extract_source_zip(join(src_dir, `source${i || ''}.zip`), format_dir,
+            meta.source.format)
+    }
+
+    // Record the downloaded version in meta so future rechecks can detect updates
+    // NOTE meta.source.updated is the single source of truth for what's currently on disk
+    if (new_version){
+        meta.source.updated = new_version.updated
+        meta.source.revision = new_version.revision
+        meta_dirty = true
+    }
+    if (meta_dirty){
+        write_json(join(src_dir, 'meta.json'), meta, true)
+    }
+}
+
+
+async function _detect_source_format(zip_path:string):Promise<'usfm'|'usx'>{
+    // Detect whether a source zip actually contains USFM book files (else assume USX)
+    // NOTE The declared format can't be trusted (see _update_source); the zip contents decide
+
+    // Util for getting normalized extension
+    const norm_ext = (name:string) => name.toLowerCase().split('.').at(-1)!
+
+    // USFM if any book file has a USFM extension, otherwise fall back to USX (the usual case)
+    const extractor = new StreamZip.async({file: zip_path, skipEntryNameValidation: true})
+    try {
+        const entries = Object.values(await extractor.entries())
+        const has_usfm = entries.some(e => ['sfm', 'usfm'].includes(norm_ext(e.name)))
+        return has_usfm ? 'usfm' : 'usx'
+    } finally {
+        await extractor.close()
+    }
+}
+
+
+async function _extract_source_zip(zip_path:string, format_dir:string,
+        format:'usfm'|'usx'):Promise<void>{
+    // Extract the format files from a single source zip into the format dir
 
     // Util for getting normalized extension
     const norm_ext = (name:string) => name.toLowerCase().split('.').at(-1)!
@@ -112,9 +235,9 @@ async function _update_source(id:string, meta:TranslationSourceMeta):Promise<voi
 
     // Detect which file extention the source files have
     // E.g. If source files all have '.xml' detect them, but if '.usx' exists then ignore '.xml'
-    const has_official_ext = !!zip_entries.find(e => norm_ext(e.name) === meta.source.format)
-    const src_ext = has_official_ext ? meta.source.format
-        : {usfm: 'sfm', usx: 'xml'}[meta.source.format]
+    const has_official_ext = !!zip_entries.find(e => norm_ext(e.name) === format)
+    const src_ext = has_official_ext ? format
+        : {usfm: 'sfm', usx: 'xml'}[format]
 
     // Extract format files
     for (const entry of zip_entries){
@@ -130,10 +253,13 @@ async function _update_source(id:string, meta:TranslationSourceMeta):Promise<voi
         // Identify what book the file is for
         const contents_str = contents.toString('utf-8')
         let book:string|undefined = undefined
-        if (meta.source.format === 'usfm'){
+        if (format === 'usfm'){
             book = /^\\id (\w\w\w)/m.exec(contents_str)?.[1]?.toLowerCase()
-        } else if (/<usx/.test(contents_str)){  // Ensure a USX book and not BookNames.xml
+        } else if (/<usx/.test(contents_str)){
+            // Ensure a USX book and not license.xml/metadata.xml/etc (which lack <usx)
             book = /<book[^>]+code="(\w\w\w)"/.exec(contents_str)?.[1]?.toLowerCase()
+        } else {
+            continue  // Probably xml metadata file
         }
 
         // Confirm is in protestant canon
@@ -144,55 +270,38 @@ async function _update_source(id:string, meta:TranslationSourceMeta):Promise<voi
             continue  // Probably Apoc.
         }
 
-        // Append '.invalid' to file name if a partial book
+        // Append '.invalid' to file name if chapter 1 is missing or empty
         // NOTE File still extracted so can debug easier, but won't be used in platform
-        let file_name = `${book}.${meta.source.format}`
-        let regex:RegExp
-        if (meta.source.format === 'usfm'){
-            regex = /^\c (\d+)/mg
+        let file_name = `${book}.${format}`
+        let chapter_regex:RegExp
+        let verse_regex:RegExp
+        if (format === 'usfm'){
+            chapter_regex = /^\c (\d+)/mg
+            verse_regex = /^\\v /m
         } else {
-            regex = /<chapter[^>]+number="(\d+)"/g
+            chapter_regex = /<chapter[^>]+number="(\d+)"/g
+            verse_regex = /<verse\b/
         }
 
-        // Identify place of chapters
-        const chapters:[number, number][] = []  // [chapter number, index]
-        while (true){
-            const result = regex.exec(contents_str)
-            if (!result){
+        // Find where chapter 2 begins (the first chapter marker numbered 2+); chapter 1's content
+        // is everything before it. A chapter-1 START marker isn't required — some sources (e.g.
+        // hil_bib) omit it — so rather than rely on the marker, treat chapter 1 as present if a
+        // verse appears before chapter 2 begins.
+        let ch2_index = contents_str.length
+        let result = chapter_regex.exec(contents_str)
+        while (result){
+            if (parseInt(result[1] ?? '') >= 2){
+                ch2_index = result.index
                 break
             }
-            chapters.push([parseInt(result[1] ?? ''), regex.lastIndex])
+            result = chapter_regex.exec(contents_str)
         }
 
-        // Ensure all expected chapters are present
-        /* WARN Shouldn't mark as invalid if different versification
-            Some systems have longer books which won't be affected
-                e.g. LXX Adds Nehemiah to end of Ezra making it longer
-                Also Psalm 151, Joel 4, 2 Chron 37, Dan 14
-            Only book that may get shorter is Malachi (English 4, others 3)
-        */
-        for (let ch=1; ch <= last_verse[book]!.length; ch++){
-            if (book === 'mal' && ch === 4){
-                continue  // Malachi only has 3 chapters in some versification systems
-            }
-            if (chapters[ch-1]?.[0] !== ch){
-                file_name += '.invalid'
-                break
-            }
-
-            // If chapter is just full of empty verse references, mark book as invalid
-            // NOTE Only testing USFM for now as haven't found any issues with USX sources yet
-            if (meta.source.format !== 'usfm'){
-                continue
-            }
-            const ch_contents = contents_str.slice(chapters[ch-1]![1], chapters[ch]?.[1])
-            const max_line_len = Math.max(...ch_contents.split('\n').map(l => l.trim().length))
-            if (max_line_len < 10){
-                file_name += '.invalid'
-                break
-            }
+        // Mark invalid if chapter 1 has no verses (whether missing entirely or present but empty)
+        if (!verse_regex.test(contents_str.slice(0, ch2_index))){
+            file_name += '.invalid'
         }
 
-        writeFileSync(join(format_dir, file_name), contents)
+        writeFileSync(join(format_dir, file_name), contents_str)
     }
 }

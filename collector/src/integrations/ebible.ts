@@ -5,7 +5,7 @@ import {existsSync, mkdirSync} from 'fs'
 import {parse as csv_parse} from 'csv-parse/sync'
 
 import {request, concurrent, write_json, read_json} from '../parts/utils.js'
-import {LICENSES, detect_year} from '../parts/license.js'
+import {license_from_text, detect_year} from '../parts/license.js'
 import {get_language_data} from '../parts/languages.js'
 import type {TranslationSourceMeta} from '../parts/types'
 
@@ -36,6 +36,8 @@ const IGNORE = [
     'hbo',  // Assumed to be same text as hboWLC
     'pon2006a',  // Same as pon2006 but with Apoc.
     'hltmcsb',  // 'hlt' is the same but includes strongs
+    'aeu',  // Same as aeb but LTR formatting?
+    'hebwlc',  // Same text as hboWLC
 
     // Ignored for being too questionable
     'spav1602p',  // A KJV update of the original Valera from 1602
@@ -83,14 +85,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
     // Discover translations that are available
 
     // Parse eBible CSV to get translations list and useful metadata
-    const csv_buffer =
-        await request('https://ebible.org/Scriptures/translations.csv', 'arrayBuffer')
-    const rows = csv_parse(Buffer.from(csv_buffer), {
-        bom: true,
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-    }) as EbibleRow[]
+    const rows = await fetch_rows()
 
     // Load language data
     const language_data = get_language_data()
@@ -114,7 +109,6 @@ export async function discover(existing:string[], discover_specific_id?:string):
             fcbhid_end = 'wft'  // eBible is inconsistent and sometimes uses 'twf' for same org
         }
         let trans_id = `${lang_code ?? ''}_${fcbhid_end}`
-        const log_ids = `${trans_id}/${ebible_id}`
 
         // Skip if only want to discover a single translation
         if (discover_specific_id && ebible_id !== discover_specific_id){
@@ -148,17 +142,11 @@ export async function discover(existing:string[], discover_specific_id?:string):
         // Detect the license
         let license:string|null = null
         let license_url = ebible_url
-        const cc_url = /creativecommons.org\/licenses\/([a-z-]+)\/(\d+\.\d+)/i.exec(page_resp)
-        if (cc_url){
-            license = `cc-${cc_url[1]!}`
-            if (license in LICENSES){
-                license_url = `https://creativecommons.org/licenses/${cc_url[1]!}/${cc_url[2]!}/`
-            } else {
-                console.warn(`Failed to detect CC license "${license}" (${log_ids})`)
-                license = null
-            }
-        } else if (/public domain/i.test(page_resp) && !/not public domain/i.test(page_resp)){
-            license = 'public'
+        const detected = license_from_text(page_resp)
+        if (detected){
+            license = detected.license
+            if (detected.url)
+                license_url = detected.url
         } else if (IGNORE_UNLICENSED.includes(ebible_id)){
             return
         }
@@ -237,4 +225,29 @@ export async function discover(existing:string[], discover_specific_id?:string):
     console.info(`EBIBLE existing: ${exists.length}`)
     console.info(`EBIBLE ignored: ${ignored.length}`)
     console.info(`EBIBLE total: ${added.length + exists.length + ignored.length}`)
+}
+
+
+// Fetch and parse the eBible translations CSV
+async function fetch_rows():Promise<EbibleRow[]>{
+    const csv_buffer =
+        await request('https://ebible.org/Scriptures/translations.csv', 'arrayBuffer')
+    return csv_parse(Buffer.from(csv_buffer), {
+        bom: true,
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        escape: '\\',  // eBible uses \ for escaping " instead of double ("")
+    }) as EbibleRow[]
+}
+
+
+// Get the latest available version of each eBible translation, keyed by eBible id
+// NOTE Used by download to detect when a source has been updated since last downloaded
+export async function get_remote_versions():Promise<Map<string, {updated:string}>>{
+    const versions = new Map<string, {updated:string}>()
+    for (const row of await fetch_rows()){
+        versions.set(row['translationId'], {updated: row['UpdateDate']})
+    }
+    return versions
 }

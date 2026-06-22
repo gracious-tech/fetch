@@ -4,8 +4,8 @@
     "devDependencies": {
         "pug": "^3.0.2",
         "sass": "^1.63.4",
-        "typedoc": "^0.24.8",
-        "typedoc-plugin-markdown": "^3.15.3",
+        "typedoc": "^0.28.19",
+        "typedoc-plugin-markdown": "^4.11.0",
         "vitepress": "^1.2.3"
     }
 }

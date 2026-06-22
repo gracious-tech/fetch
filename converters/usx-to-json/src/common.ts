@@ -27,15 +27,15 @@ export function parse_usx(xml:string, parser:typeof DOMParser){
     // Extract book names in file
     const get_text = (style:string) =>
         usx_element.querySelector(`:root > para[style="${style}"]`)?.textContent?.trim()
-    const para_h = get_text('h')  // Running header text (i.e. succinct full name of book)
+    const para_h = get_text('h')  // Running header text
     const para_toc1 = get_text('toc1')  // Long name
-    const para_toc2 = get_text('toc2')  // Short name (but often longer than 'h')
+    const para_toc2 = get_text('toc2')  // Short name
     const para_toc3 = get_text('toc3')  // Abbreviation
 
-    // Ensure a value exists for every name type
-    const name_normal = para_h || para_toc2 || para_toc1 || ''
-    const name_long = para_toc1 || para_toc2 || name_normal
-    const name_abbrev = para_toc3 || name_normal.slice(0, 6)
+    // Ensure normal at least has a value, others may be empty
+    const name_normal = para_toc2 || para_h || para_toc1 || para_toc3 || ''
+    const name_long = para_toc1 || ''
+    const name_abbrev = para_toc3 || ''
 
     // Return elements
     return {

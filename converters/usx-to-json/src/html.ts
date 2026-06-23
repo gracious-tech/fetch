@@ -105,7 +105,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
         // The only element type remaining should be <para>, so skip all others to keep logic simple
         // NOTE <para> elements cannot be nested
         if (child.nodeName !== 'para'){
-            on_warning(`Ignoring non-para element at document root level: ${child.nodeName}`)
+            on_warning(`[html] Ignoring non-para root element: ${child.nodeName}`)
             continue
         }
 
@@ -161,7 +161,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
-        on_warning('Ignoring content before chapter 1 marker')
+        on_warning('[html] Ignoring content before chapter 1')
     }
     for (let ch = 1; ch < state.contents.length; ch++){
         const dropped = state.contents[ch]![0]!.join('')
@@ -170,7 +170,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
             // Only report when actual text was dropped, not just empty structural tags (e.g. an
             // empty <p> from a blank `b` para that happened to sit before the first verse)
             if (dropped.replace(/<[^>]*>/g, '').trim()){
-                on_warning(`Ignoring content before verse 1 marker for chapter ${ch}`)
+                on_warning(`[html] Ignoring content before verse ${ch}:1`)
             }
         }
     }

@@ -96,7 +96,7 @@ export function usx_to_json_txt(xml:string, parser=DOMParser,
         // The only element type remaining should be <para>, so skip all others to keep logic simple
         // NOTE <para> elements cannot be nested
         if (child.nodeName !== 'para'){
-            on_warning(`Ignoring non-para element at document root level: ${child.nodeName}`)
+            on_warning(`[txt] Ignoring non-para root element: ${child.nodeName}`)
             continue
         }
 
@@ -109,13 +109,13 @@ export function usx_to_json_txt(xml:string, parser=DOMParser,
 
         // Detect major headings
         if (headings_major.includes(style)){
-            add_content(state, {type: 'heading', contents: child.textContent!, level: 1}, true)
+            add_heading(state, child, 1)
             continue
         }
 
         // Detect section headings
         if (headings_regular.includes(style)){
-            add_content(state, {type: 'heading', contents: child.textContent!, level: 2}, true)
+            add_heading(state, child, 2)
             continue
         }
 
@@ -123,7 +123,7 @@ export function usx_to_json_txt(xml:string, parser=DOMParser,
         // NOTE Also classifying original superscriptions in psalms (`d`) as a minor heading
         //      Since most users wouldn't want them quoted as part of first verse
         if (headings_minor.includes(style) || (book_code === 'psa' && style === 'd')){
-            add_content(state, {type: 'heading', contents: child.textContent!, level: 3}, true)
+            add_heading(state, child, 3)
             continue
         }
 
@@ -136,12 +136,12 @@ export function usx_to_json_txt(xml:string, parser=DOMParser,
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
-        on_warning('Ignoring content before chapter 1 marker')
+        on_warning('[txt] Ignoring content before chapter 1')
     }
     for (let ch = 1; ch < state.contents.length; ch++){
         if (state.contents[ch]![0]!.length){
             state.contents[ch]![0] = []
-            on_warning(`Ignoring content before verse 1 marker for chapter ${ch}`)
+            on_warning(`[txt] Ignoring content before verse ${ch}:1`)
         }
     }
 
@@ -185,35 +185,8 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
 
         // Handle verse elements
         if (element.nodeName === 'verse'){
-
-            // Ignore verse end markers
-            // TODO Could ignore non-header content until next next start marker to be extra safe
-            if (element.hasAttribute('eid')){
-                continue
-            }
-
-            // Get the new verse number
-            // NOTE If a range, stick everything in the first verse of the range (e.g. 17-18 -> 17)
-            // NOTE Some translations have 1a 1b, in which case ignore 'b' onwards to concat
-            const digits = /^\d+/.exec(element.getAttribute('number') ?? '')
-            const new_number = parseInt(digits?.[0] ?? '-1', 10)
-            if (new_number === state.verse){
-                continue  // Ignore as probably '1b' after a '1a', etc.
-            }
-            if (new_number < 0 || new_number >= state.contents[state.chapter]!.length){
-                throw new Error(`Invalid verse: ${state.book} ${state.chapter}:${new_number}`)
-            }
-            if (new_number < state.verse){
-                throw new Error(
-                    `${new_number} less than ${state.book} ${state.chapter}:${state.verse}`)
-            }
-
-            // Switch to new verse
-            state.verse = new_number
-
-            // Any unknown owner data is now known to belong to the new verse
-            state.contents[state.chapter]![state.verse]!.push(...state.unknown_owner)
-            state.unknown_owner = []
+            start_verse(state, element)
+            continue
         }
 
         // Recurse through char elements
@@ -235,6 +208,52 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>){
             add_content(state, {type: 'note', contents: element.textContent!})
         }
     }
+}
+
+
+// Add a heading to the output, level 1 (major) through 3 (minor)
+// NOTE A heading <para> may itself contain a verse start marker (e.g. a psalm `d` superscription
+//      holds the verse 1 marker); advance the verse for it so verse 1's content isn't orphaned in
+//      verse 0 (and then wiped). When it does, the heading belongs to that verse, not the next one.
+function add_heading(state:ParserState, para:Element, level:1|2|3):void{
+    let contains_verse = false
+    for (const sub of Array.from(para.children)){
+        if (sub.nodeName === 'verse' && !sub.hasAttribute('eid')){
+            start_verse(state, sub)
+            contains_verse = true
+        }
+    }
+    add_content(state, {type: 'heading', contents: para.textContent!, level}, !contains_verse)
+}
+
+
+// Advance to a new verse for a <verse> start marker, flushing any buffered content into it
+function start_verse(state:ParserState, element:Element):void{
+
+    // Ignore verse end markers
+    if (element.hasAttribute('eid')){
+        return
+    }
+
+    // Get the new verse number
+    // NOTE If a range, stick everything in the first verse of the range (e.g. 17-18 -> 17)
+    // NOTE Some translations have 1a 1b, in which case ignore 'b' onwards to concat
+    const digits = /^\d+/.exec(element.getAttribute('number') ?? '')
+    const new_number = parseInt(digits?.[0] ?? '-1', 10)
+    if (new_number === state.verse){
+        return  // Ignore as probably '1b' after a '1a', etc.
+    }
+    if (new_number < 0 || new_number >= state.contents[state.chapter]!.length){
+        throw new Error(`Invalid verse: ${state.book} ${state.chapter}:${new_number}`)
+    }
+    if (new_number < state.verse){
+        throw new Error(`${new_number} less than ${state.book} ${state.chapter}:${state.verse}`)
+    }
+
+    // Switch to new verse, and assign any buffered unknown-owner content to it
+    state.verse = new_number
+    state.contents[state.chapter]![state.verse]!.push(...state.unknown_owner)
+    state.unknown_owner = []
 }
 
 

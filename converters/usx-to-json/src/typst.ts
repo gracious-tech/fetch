@@ -203,7 +203,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         // The only element type remaining should be <para>, so skip all others to keep logic simple
         // NOTE <para> elements cannot be nested
         if (child.nodeName !== 'para'){
-            on_warning(`Ignoring non-para element at document root level: ${child.nodeName}`)
+            on_warning(`[typst] Ignoring non-para root element: ${child.nodeName}`)
             continue
         }
 
@@ -281,7 +281,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
     // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
     if (state.contents[0]!.length){
         state.contents[0] = []
-        on_warning('Ignoring content before chapter 1 marker')
+        on_warning('[typst] Ignoring content before chapter 1')
     }
     for (let ch = 1; ch < state.contents.length; ch++){
         const dropped = state.contents[ch]![0]!.join('')
@@ -293,7 +293,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
                 .replace(/#[a-z]+(\([^)]*\))?/g, '')
                 .replace(/[[\]=\\]/g, '')
             if (text_only.trim()){
-                on_warning(`Ignoring content before verse 1 marker for chapter ${ch}`)
+                on_warning(`[typst] Ignoring content before verse ${ch}:1`)
             }
         }
     }

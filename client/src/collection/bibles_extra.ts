@@ -10,9 +10,12 @@ export class TranslationExtra {
     // @internal
     _extra:DistTranslationExtra
 
+    readonly wj_markup:boolean
+
     // @internal
     constructor(extra:DistTranslationExtra){
         this._extra = extra
+        this.wj_markup = extra.wj_markup
     }
 
     // @internal

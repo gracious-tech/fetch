@@ -11,12 +11,11 @@ import {pre_convert, pre_reverse, post_reverse} from '../patches/generic.js'
 import {update_manifest} from '../parts/manifest.js'
 import {add_unpublished} from '../parts/unpublished.js'
 import {concurrent, read_json, write_json, list_files, list_dirs} from '../parts/utils.js'
-import {build_native_book_extra} from '../parts/sections.js'
+import {build_native_extra} from '../parts/sections.js'
 import {build_extra_overlay} from '../parts/extra_overlay.js'
 import {convert} from '../parts/usfmtc.js'
 
 import type {TranslationSourceMeta} from '../parts/types.js'
-import type {BibleJsonTxt, DistTranslationExtra} from '../parts/shared_types.js'
 
 
 const DOM = new JSDOM()
@@ -200,28 +199,8 @@ async function _update_dist_single(id:string, force:boolean){
         return
     }
 
-    // Extract names/headings for all books into single file for translation
-    const trans_extra:DistTranslationExtra = {book_names: {}, chapter_headings: {}, sections: {}}
-    const partial_books:string[] = []
-    for (const filename of dist_books){
-
-        // Determine paths and read data from txt format output
-        const book = filename.split('.')[0]!
-        const file_path = join(dist_dir, 'txt', filename)
-        const json_txt = JSON.parse(fs.readFileSync(file_path, {encoding: 'utf8'})) as BibleJsonTxt
-
-        // Extract extra data required (native, own-source only)
-        // WARN This also sets any chapter start sections to null to reduce data transfer
-        const book_extra = build_native_book_extra(json_txt)
-        trans_extra.book_names[book] = book_extra.name
-        trans_extra.sections[book] = book_extra.sections
-        trans_extra.chapter_headings[book] = book_extra.chapter_headings
-
-        // Flag the book as partial if it is missing whole chapters of content
-        if (_book_is_partial(json_txt)){
-            partial_books.push(book)
-        }
-    }
+    // Extract names/headings (and wj/partial detection) for all books into single file
+    const {extra: trans_extra, partial_books} = build_native_extra(dist_dir)
     write_json(join(dist_dir, 'extra.json'), trans_extra)
 
     // Record which books have only partial content in the source meta so it ends up in the
@@ -236,15 +215,4 @@ async function _update_dist_single(id:string, force:boolean){
         }
         write_json(join(src_dir, 'meta.json'), meta, true)
     }
-}
-
-
-function _book_is_partial(json_txt:BibleJsonTxt):boolean{
-    // A book is partial if any standard chapter has no verse content at all (a missing chapter)
-    for (let ch = 1; ch < json_txt.contents.length; ch++){
-        if (!json_txt.contents[ch]?.some(verse => verse.length > 0)){
-            return true
-        }
-    }
-    return false
 }

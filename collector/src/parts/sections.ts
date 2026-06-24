@@ -1,7 +1,12 @@
 
+import {join} from 'node:path'
+import {existsSync, readFileSync} from 'node:fs'
+
 import {PassageReference} from '@gracious.tech/bible-references'
 
-import type {BibleJsonTxt, BookSection} from './shared_types'
+import {read_json, list_files} from './utils.js'
+
+import type {BibleJsonTxt, BookSection, DistTranslationExtra} from './shared_types'
 
 
 export function extract_sections(json_txt:BibleJsonTxt){
@@ -114,4 +119,54 @@ export function build_native_book_extra(json_txt:BibleJsonTxt){
     // WARN generate_chapter_headings mutates `sections`, nulling chapter-start headings
     const chapter_headings = generate_chapter_headings(json_txt, sections)
     return {name: json_txt.name, sections, chapter_headings}
+}
+
+
+export function build_native_extra(dist_dir:string):
+        {extra:DistTranslationExtra, partial_books:string[]}{
+    // Build a translation's native (own-source only) extra data from its dist txt/usx output
+    // NOTE Shared by the per-translation processing pass and the cross-translation overlay pass
+    const extra:DistTranslationExtra = {book_names: {}, chapter_headings: {}, sections: {},
+        wj_markup: false}
+    const partial_books:string[] = []
+    const txt_dir = join(dist_dir, 'txt')
+    if (!existsSync(txt_dir)){
+        return {extra, partial_books}
+    }
+
+    // Assemble each book's native extra from its txt JSON
+    for (const filename of list_files(txt_dir)){
+        const book = filename.split('.')[0]!
+        const json_txt = read_json<BibleJsonTxt>(join(txt_dir, filename))
+
+        // Names/sections/chapter headings (WARN also nulls chapter-start headings to save transfer)
+        const book_extra = build_native_book_extra(json_txt)
+        extra.book_names[book] = book_extra.name
+        extra.sections[book] = book_extra.sections
+        extra.chapter_headings[book] = book_extra.chapter_headings
+
+        // Flag the book as partial if it is missing whole chapters of content
+        if (_book_is_partial(json_txt)){
+            partial_books.push(book)
+        }
+
+        // Detect words of Jesus (char style "wj") from the finalised USX, stopping once found
+        if (!extra.wj_markup
+                && readFileSync(join(dist_dir, 'usx', `${book}.usx`), {encoding: 'utf8'})
+                    .includes('style="wj"')){
+            extra.wj_markup = true
+        }
+    }
+    return {extra, partial_books}
+}
+
+
+function _book_is_partial(json_txt:BibleJsonTxt):boolean{
+    // A book is partial if any standard chapter has no verse content at all (a missing chapter)
+    for (let ch = 1; ch < json_txt.contents.length; ch++){
+        if (!json_txt.contents[ch]?.some(verse => verse.length > 0)){
+            return true
+        }
+    }
+    return false
 }

@@ -2,31 +2,11 @@
 import {join} from 'node:path'
 import {existsSync} from 'node:fs'
 
-import {build_native_book_extra} from './sections.js'
-import {read_json, write_json, list_files, list_dirs} from './utils.js'
+import {build_native_extra} from './sections.js'
+import {read_json, write_json, list_dirs} from './utils.js'
 
 import type {TranslationSourceMeta} from './types.js'
-import type {BibleJsonTxt, DistTranslationExtra} from './shared_types.js'
-
-
-// Build the native (own-source only) extra data for a translation by reading its txt dist files
-function _build_native_extra(dist_dir:string):DistTranslationExtra{
-    const extra:DistTranslationExtra = {book_names: {}, chapter_headings: {}, sections: {}}
-    const txt_dir = join(dist_dir, 'txt')
-    if (!existsSync(txt_dir)){
-        return extra
-    }
-    // Mirror process.ts: build each book's native extra from its txt JSON
-    for (const filename of list_files(txt_dir)){
-        const book = filename.split('.')[0]!
-        const json_txt = read_json<BibleJsonTxt>(join(txt_dir, filename))
-        const book_extra = build_native_book_extra(json_txt)
-        extra.book_names[book] = book_extra.name
-        extra.sections[book] = book_extra.sections
-        extra.chapter_headings[book] = book_extra.chapter_headings
-    }
-    return extra
-}
+import type {DistTranslationExtra} from './shared_types.js'
 
 
 export function build_extra_overlay(){
@@ -44,7 +24,7 @@ export function build_extra_overlay(){
     const natives:Record<string, DistTranslationExtra> = {}
     const metas:Record<string, TranslationSourceMeta> = {}
     for (const id of ids){
-        natives[id] = _build_native_extra(join(bibles_dist, id))
+        natives[id] = build_native_extra(join(bibles_dist, id)).extra
         const meta_path = join('sources', 'bibles', id, 'meta.json')
         if (existsSync(meta_path)){
             metas[id] = read_json<TranslationSourceMeta>(meta_path)

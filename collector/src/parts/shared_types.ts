@@ -141,6 +141,7 @@ export interface DistTranslationExtra {
     book_names:Record<string, BookNames>
     chapter_headings:Record<string, string[]>
     sections:Record<string, BookSection[]>
+    wj_markup:boolean  // True if any book marks the words of Jesus (char style "wj")
 }
 
 

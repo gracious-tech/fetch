@@ -57,7 +57,7 @@ const kept_char_styles = [
 
 
 // Default Typst definitions for all of the consumer-defined functions emitted by this
-// converter (`#c`, `#v`, `#q`, `#wj`, etc). Append (or prepend) this string to the
+// converter (`#ch`, `#vn`, `#q`, `#wj`, etc). Append (or prepend) this string to the
 // joined verse output if you don't want to define your own — every function the emitter
 // calls is covered, so the result compiles standalone.
 // Values approximate the Paratext USFM default stylesheet (usfm.sty) — inches for
@@ -65,10 +65,10 @@ const kept_char_styles = [
 // See https://github.com/ubsicap/usfm/blob/master/sty/usfm.sty
 export const default_typst_definitions = `
 // Chapter number — Bold, FontSize 18, SpaceBefore 8pt, SpaceAfter 4pt
-#let c(n) = block(above: 8pt, below: 4pt, text(size: 18pt, weight: "bold", str(n)))
+#let ch(n) = block(above: 8pt, below: 4pt, text(size: 18pt, weight: "bold", str(n)))
 
-// Verse number — Superscript
-#let v(n) = super(str(n))
+// Verse number — Superscript (named vn to avoid shadowing Typst's builtin v() spacing)
+#let vn(n) = super(str(n))
 
 // Poetry — LeftMargin .75in, hanging indent depending on level
 //     q1: first line .25in / wrap .75in
@@ -124,7 +124,7 @@ interface ParserState {
     para_close:string  // Closing fragment for current <para> (e.g. ']\n' or '\n\n')
     mid_para:boolean  // True once non-verse content has been processed in current para
     buffer_para:boolean  // Whether current <para>'s body should buffer rather than drop at v0
-    after_inline_expr:boolean  // True if the last chunk closed an inline code expr (#v(N), #wj[…])
+    after_inline_expr:boolean  // True if the last chunk closed an inline code expr (#vn(N), #wj[…])
     unknown_owner:string
     contents:BibleJsonTypst['contents']
 }
@@ -194,8 +194,8 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
             }
             state.chapter = chapter_number
             state.verse = 0
-            // Add chapter marker (consumer-defined #c function)
-            add_typst(state, `#c(${state.chapter})\n`, true)
+            // Add chapter marker (consumer-defined #ch function)
+            add_typst(state, `#ch(${state.chapter})\n`, true)
             continue
         }
 
@@ -396,8 +396,8 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
             state.contents[state.chapter]![state.verse]![1] += state.unknown_owner
             state.unknown_owner = ''
 
-            // Add verse marker inline (consumer-defined #v function)
-            add_typst(state, `#v(${state.verse})`)
+            // Add verse marker inline (consumer-defined #vn function)
+            add_typst(state, `#vn(${state.verse})`)
 
             // If mid-paragraph, the new verse needs the para's open fragment in [0]
             if (state.mid_para && new_number > 0){
@@ -457,8 +457,8 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
 
 // Add content to current verse, possibly buffering if may belong to next verse
 function add_typst(state:ParserState, content:string, may_belong_to_next_verse=false):void{
-    // A leading `(` or `.` right after an inline code expression (#v(N), #wj[…], #super[…]) would
-    // be read as call args / field access (#v(8)(…), #v(8).foo) and error, so escape it to keep it
+    // A leading `(` or `.` right after an inline code expression (#vn(N), #wj[…], #super[…]) would
+    // be read as call args / field access (#vn(8)(…), #vn(8).foo) and error, so escape it to keep it
     // literal (parens/dots elsewhere in prose stay untouched — that's why this is seam-only).
     if (state.after_inline_expr){
         content = escape_typst_postfix(content)
@@ -480,7 +480,7 @@ function add_typst(state:ParserState, content:string, may_belong_to_next_verse=f
 
 
 // Condense source whitespace runs (USX preserves them) then escape Typst markup specials.
-// The seam issue (a leading `(`/`.` directly after a code expr like `#v(8)`) is handled
+// The seam issue (a leading `(`/`.` directly after a code expr like `#vn(8)`) is handled
 // separately by escape_typst_postfix in add_typst, not here.
 function escape_text(text:string):string{
     return escape_typst(text.replaceAll(/\s+/g, ' '))

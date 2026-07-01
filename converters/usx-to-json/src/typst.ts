@@ -1,4 +1,6 @@
 
+import {escape_typst, escape_typst_postfix} from 'typst-utils'
+
 import {parse_usx} from './common.js'
 import {ignored_elements, ignored_para_styles, ignored_char_styles, ignored_note_styles,
     headings_major, headings_regular, headings_minor} from './elements.js'
@@ -122,6 +124,7 @@ interface ParserState {
     para_close:string  // Closing fragment for current <para> (e.g. ']\n' or '\n\n')
     mid_para:boolean  // True once non-verse content has been processed in current para
     buffer_para:boolean  // Whether current <para>'s body should buffer rather than drop at v0
+    after_inline_expr:boolean  // True if the last chunk closed an inline code expr (#v(N), #wj[…])
     unknown_owner:string
     contents:BibleJsonTypst['contents']
 }
@@ -150,6 +153,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         para_close: '',
         mid_para: false,
         buffer_para: false,  // Whether current <para>'s body should buffer rather than drop at v0
+        after_inline_expr: false,
         unknown_owner: '',  // Content that should be prepended to next verse if current verse done
         // Prepare output with empty strings for every verse
         contents: [
@@ -218,19 +222,19 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         // Convert major headings to `= ...`
         // TODO Not currently supporting nested elements within heading contents (like <char>)
         if (headings_major.includes(style)){
-            add_typst(state, `= ${escape_typst(child.textContent ?? '')}\n`, true)
+            add_typst(state, `= ${escape_text(child.textContent ?? '')}\n`, true)
             continue
         }
 
         // Convert section headings to `== ...`
         if (headings_regular.includes(style)) {
-            add_typst(state, `== ${escape_typst(child.textContent ?? '')}\n`, true)
+            add_typst(state, `== ${escape_text(child.textContent ?? '')}\n`, true)
             continue
         }
 
         // Convert minor headings to `=== ...`
         if (headings_minor.includes(style)) {
-            add_typst(state, `=== ${escape_typst(child.textContent ?? '')}\n`, true)
+            add_typst(state, `=== ${escape_text(child.textContent ?? '')}\n`, true)
             continue
         }
 
@@ -338,7 +342,7 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
 
         // Handle text nodes
         if (node.nodeType === 3){
-            add_typst(state, escape_typst(node.textContent ?? ''))
+            add_typst(state, escape_text(node.textContent ?? ''))
             state.mid_para = true
             continue
         }
@@ -453,6 +457,18 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
 
 // Add content to current verse, possibly buffering if may belong to next verse
 function add_typst(state:ParserState, content:string, may_belong_to_next_verse=false):void{
+    // A leading `(` or `.` right after an inline code expression (#v(N), #wj[…], #super[…]) would
+    // be read as call args / field access (#v(8)(…), #v(8).foo) and error, so escape it to keep it
+    // literal (parens/dots elsewhere in prose stay untouched — that's why this is seam-only).
+    if (state.after_inline_expr){
+        content = escape_typst_postfix(content)
+    }
+    // Track whether this chunk closed an inline code expr, so the next chunk's leading `(`/`.` can
+    // be guarded. Code exprs are the only structural fragments here: a `#…(…)` call (starts `#`,
+    // ends `)`) or a `…]` close. Escaped text never starts with a bare `#` nor ends in a bare `]`.
+    state.after_inline_expr =
+        content.endsWith(']') || (content.startsWith('#') && content.endsWith(')'))
+
     // Add to current verse, or buffer for the next verse if a heading/superscription. Plain body
     // content before verse 1 falls through to verse 0, where it is later dropped and reported.
     if (may_belong_to_next_verse || state.buffer_para || (state.unknown_owner && state.verse)){
@@ -463,25 +479,9 @@ function add_typst(state:ParserState, content:string, may_belong_to_next_verse=f
 }
 
 
-// Escape characters that have special meaning in Typst content mode
-// \     Character escape / line break
-// #     Code expression
-// []    Content block
-// $     Math mode
-// *     Strong emphasis
-// _     Emphasis
-// `     Raw text
-// <>    Label
-// @     Reference
-// ~     Symbol shorthand (non-breaking space)
-// /     Term list / comment
-// +     Numbered list
-// -     Bullet list / symbol shorthand (dashes)
-function escape_typst(text:string):string{
-
-    // Condense whitespace runs to single space (XML parser preserves source whitespace)
-    text = text.replaceAll(/\s+/g, ' ')
-
-    // eslint-disable-next-line no-useless-escape
-    return text.replace(/[\\#\[\]$*_`<>@~/+\-]/g, '\\$&')
+// Condense source whitespace runs (USX preserves them) then escape Typst markup specials.
+// The seam issue (a leading `(`/`.` directly after a code expr like `#v(8)`) is handled
+// separately by escape_typst_postfix in add_typst, not here.
+function escape_text(text:string):string{
+    return escape_typst(text.replaceAll(/\s+/g, ' '))
 }

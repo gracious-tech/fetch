@@ -298,6 +298,35 @@ describe("usx_to_json_typst", () => {
         expect(content).toContain('\\[bracket\\]')
     })
 
+    it("escapes the leading paren so text after a verse marker isn't parsed as a call", ({expect}) => {
+        // A verse whose text starts with `(` (e.g. a parenthetical sentence) would render as
+        // `#v(1)(text)` and Typst would read `(text)` as args to v(1); only the leading `(` needs
+        // escaping (the closing `)` is literal markup), so guard just the seam
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>(an aside)<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        expect(content).toContain('#v(1)\\(an aside)')
+    })
+
+    it("escapes a leading '.' after an inline expr so it isn't read as field access", ({expect}) => {
+        // Text starting with `.` straight after `#v(1)` (or a char close `]`) would parse as
+        // field access (#v(1).foo); only this leading dot is escaped, others stay literal
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>...trailing on<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const content = out.contents[1]![1]![1]!
+        expect(content).toContain('#v(1)\\...trailing on')
+    })
+
     it("should throw an error on missing usx tag", ({expect}) => {
         const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><blah></blah>'
         expect(() => usx_to_json_typst(xml)).toThrow()

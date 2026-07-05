@@ -14,9 +14,11 @@ original-language analysis can all be iterated there without re-running any LLM.
 - `results.json` — the permanent judgment record, keyed by pair
   (`book,sc,sv,ec,ev>book,sc,sv,ec,ev`). Spans are encoded in the keys, so interpretation needs
   no other data source.
-- `campaign.ts` — pool building (raw OpenBible zip → canonical, range-folded, minus pairs the
-  algorithmic detectors already cover), the judge prompt (the single source of truth), and the
-  slice/merge/status tooling.
+- `campaign.ts` — pool building (raw OpenBible zip → canonical, range-folded), the judge prompt
+  (the single source of truth), and the slice/merge/status tooling. The pool is EVERY OpenBible
+  pair with BSB text on both sides — pairs the algorithmic detectors also find are included
+  (~0.3% of the pool) so the record is complete and detector thresholds stay freely tunable;
+  exact duplicates are deduped at publish time in `../index.ts`.
 - `run.ts` — campaign CLI: `node collector/dist/data/crossref/judge/run.js <action>`.
 - `state/` — transient campaign state (slices, wave outputs). Gitignored.
 
@@ -30,11 +32,14 @@ results, so every step is idempotent and any session can resume cold.
 Per session, repeat waves until stopping:
 
 1. `node collector/dist/data/crossref/judge/run.js status` — progress + tallies.
-2. `... run.js slices 5` — writes `state/slice_0..4.json` (400 pending pairs each, BSB text).
-3. Spawn one subagent per slice (model: sonnet). Prompt = the instructions below, with N filled
-   in. Each writes `state/out_N.json`.
+2. `... run.js slices 5` — writes `state/slice_0..4.json` (400 pending pairs each, BSB text)
+   plus `state/prompt.txt`, the exact subagent prompt.
+3. Spawn one subagent per slice (model: sonnet). Prompt = `state/prompt.txt` verbatim with `N`
+   replaced by the slice number — never paraphrase or shorten it, so judging stays consistent
+   across sessions. Each subagent writes `state/out_N.json`.
 4. When all agents finish: `... run.js merge` — validates outputs, merges into `results.json`,
-   deletes consumed state files. Malformed entries are rejected and simply stay pending.
+   deletes consumed state files. Malformed entries are rejected and simply stay pending;
+   unreadable or orphaned output files are discarded likewise (their pairs get re-sliced).
 5. Next wave (back to 2), or stop — nothing in flight is ever lost beyond the current wave.
 
 ### Unattended overnight runs
@@ -47,24 +52,11 @@ is judged. This burns session limits overnight while leaving daytime capacity fr
 detached: `tmux new -d -s judging collector/src/data/crossref/judge/night.sh` — progress and
 session output land in `state/night.log`.
 
-### Subagent prompt template
+### Subagent prompt
 
-> You are acting as a Bible cross-reference classifier. Read the file
-> `<repo>/collector/src/data/crossref/judge/state/slice_N.json` — an array of pairs of Bible
-> passages, each with `key`, `ref_a`, `text_a`, `ref_b`, `text_b`.
->
-> Classify EVERY pair using exactly these criteria:
->
-> [paste `JUDGE_PROMPT` from campaign.ts verbatim]
->
-> Write your judgments to `<repo>/collector/src/data/crossref/judge/state/out_N.json` as a
-> single JSON object keyed by each pair's `key`, each value being
-> `{"category": "quotation"|"parallel"|"allusion"|"mention"|"relevant"|"theme"|"none",
-> "point": "one short line naming the connection (empty string if none)", "salience": 0-5}`.
-> Judge every pair (output must have exactly as many keys as the input array); base judgments
-> only on the given texts and references; be strict — most weak pairs are "none"; the final file
-> must be valid JSON. When done, reply with just the count judged and a one-line category
-> distribution.
+`run.js slices` writes the exact subagent prompt to `state/prompt.txt`, generated from
+`JUDGE_PROMPT` in `campaign.ts` (the single source of truth) with absolute file paths baked in.
+Use it verbatim, only replacing `N` with the slice number.
 
 ## Calibration history
 
@@ -86,3 +78,30 @@ from "no connection at all" so that information is not lost (the campaign is one
 gives the judge a legitimate home for below-the-bar pairs, sharpening the `relevant` boundary.
 It is never published; if a use emerges later, handle it in `../judged.ts` (e.g. review
 "theme, salience 3+" as promotion candidates).
+
+## Post-campaign TODOs (interpretation layer)
+
+Decisions deliberately deferred until the full record exists — all live in `../judged.ts` /
+`../distribute.ts` and need no re-judging. **Not part of the campaign: judging sessions must
+never act on these.** Pool measurements are from 2026-07-05 (306,272 pairs).
+
+- **Overlap-aware dedupe of near-duplicate pairs.** ~9.3k containment pairings share an
+  identical side A and ~9.5k share side B (~6% of the pool on each axis) — OpenBible carries
+  both a verse-level and a range row that folding can't unify (e.g. `gen 2:1-2 > heb 4:3-4`
+  vs `… > heb 4:4`). Both variants are judged on purpose (the judge's per-variant category +
+  salience is the evidence for picking the right one); the exact-key dedupe in `../index.ts`
+  will NOT catch them, so without this they publish as visible near-duplicates. Rule sketch:
+  cluster pairs where one side is identical and the other side is contained, keep one per
+  cluster — highest salience, tie-broken by category priority (quotation > parallel > …), then
+  by the narrower (more specific) span. Validate against real judgments first (how often do
+  variants actually score differently?).
+- **Wide-span policy.** 2,361 pairs (0.77%) have a side longer than 15 verses (the judge only
+  saw the first 15, with a trailing ellipsis); mostly legitimate whole-account `mention` links
+  (Psa 78:12 ↔ Exo 7-12). Two separate concerns: (a) forward specificity — check whether wide
+  spans cluster at high salience or the ≥3 threshold already prunes the vague ones; (b) reverse
+  fan-out — a wide span back-links from every verse in its range, so consider direction-aware
+  emission in `../distribute.ts`: always emit the narrow→wide direction, but skip (or anchor at
+  the range's start verse) the reverse direction when the source span exceeds ~15 verses. Note
+  a blunt verse cap would delete legitimate mentions — Luke 17:32 → Gen 19 spans 38 verses.
+- **`theme` promotion review.** As above: once tallies exist, review "theme, salience 3+" as
+  candidates for `relevant` promotion, or drop the category for good.

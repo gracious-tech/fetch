@@ -49,8 +49,8 @@ export function crossref_process():void{
 
 // The algorithmic (non-LLM) links per category — LXX (surface) + MT (gloss bridge) quotations,
 // BSB footnote citations and allusions, and same-language retellings kept only where a sustained
-// multi-verse diagonal survives. Also used by the judge campaign to exclude covered pairs, so
-// exactly the links that get PUBLISHED define what is not judged.
+// multi-verse diagonal survives. Independent of the judge campaign (which judges every OpenBible
+// pair, including ones these detectors also find) so thresholds here stay freely tunable.
 export function algorithmic_links():
         {algo_quotation:MasterList, algo_parallel:MasterList, algo_allusion:MasterList}{
     const bsb = detect_bsb()

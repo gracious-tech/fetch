@@ -3,7 +3,7 @@
 // results.json, the permanent record of judgments. Future users of the codebase consume that
 // record via ../judged.ts and never run this module.
 
-import {readFileSync, existsSync, rmSync, readdirSync, mkdirSync} from 'node:fs'
+import {readFileSync, writeFileSync, existsSync, rmSync, readdirSync, mkdirSync} from 'node:fs'
 import {join} from 'node:path'
 
 import StreamZip from 'node-stream-zip'
@@ -12,10 +12,9 @@ import {books_ordered} from '../../../parts/bible.js'
 import {PKG_PATH, read_json, write_json} from '../../../parts/utils.js'
 import {extract_reference} from '../../../integrations/openbible.js'
 import {canonical_pair, merge_ranges, fold_shared_side} from '../merge.js'
-import {algorithmic_links} from '../index.js'
 import {CATEGORIES, RESULTS_SRC} from '../judged.js'
 
-import type {Judged} from '../judged'
+import type {Judged, Judgment} from '../judged'
 import type {Span, MasterLink} from '../types'
 
 
@@ -98,33 +97,19 @@ export function save_results(judged:Judged):void{
     const sorted = Object.keys(judged).sort((x, y) => {
         const [xb, xc, xv] = x.split(','), [yb, yc, yv] = y.split(',')
         return (book_order.get(xb!)! - book_order.get(yb!)!) || (+xc! - +yc!) || (+xv! - +yv!)
+            || (x < y ? -1 : x > y ? 1 : 0)  // Full-key tiebreak so re-saves are byte-identical
     })
     write_json(RESULTS_SRC, Object.fromEntries(sorted.map(key => [key, judged[key]!])))
 }
 
 
 // Build the full candidate pool: every canonical OpenBible pair, per-verse rows folded into
-// range→range links, minus pairs already covered by the algorithmic detectors
+// range→range links. Pairs the algorithmic detectors also find are deliberately INCLUDED (only
+// ~0.3% of the pool) so the record is complete and the detectors stay freely re-tunable forever;
+// exact duplicates are deduped at publish time in ../index.ts
 // NOTE Votes are deliberately ignored entirely — the judge decides everything (pilot confirmed
 // votes are too weak to filter on: 59% of good references sit in the 1-4 vote band)
 export async function build_pool():Promise<Map<string, MasterLink>>{
-
-    // Exclude pairs the PUBLISHED algorithmic links already cover (unpublished detector noise,
-    // e.g. sub-threshold parallels, must not remove pairs from the judging pool)
-    const {algo_quotation, algo_parallel, algo_allusion} = algorithmic_links()
-    const algorithmic = [...algo_quotation, ...algo_parallel, ...algo_allusion]
-    const covered = new Map<string, MasterLink[]>()
-    for (const link of algorithmic){
-        for (let ch = link[0][1]; ch <= link[0][3]; ch++){
-            const key = `${link[0][0]}|${ch}`
-            let list = covered.get(key)
-            if (!list){
-                list = []
-                covered.set(key, list)
-            }
-            list.push(link)
-        }
-    }
 
     // Parse the raw OpenBible data
     const zip = new StreamZip.async({file: CROSSREF_ZIP})
@@ -142,9 +127,7 @@ export async function build_pool():Promise<Map<string, MasterLink>>{
             continue
         }
         const pair = canonical_pair(from, to)
-        if (!is_covered(covered, pair[0], pair[1])){
-            raw.set(pair_key(pair), pair)
-        }
+        raw.set(pair_key(pair), pair)
     }
 
     // Fold per-verse rows back into range→range links before judging
@@ -176,26 +159,6 @@ function to_span(raw:string):Span|null{
 }
 
 
-// Whether both spans' starts fall inside an existing link's two spans
-function is_covered(covered:Map<string, MasterLink[]>, a:Span, b:Span):boolean{
-    for (const link of covered.get(`${a[0]}|${a[1]}`) ?? []){
-        if (span_contains(link[0], a[1], a[2]) && b[0] === link[1][0]
-                && span_contains(link[1], b[1], b[2])){
-            return true
-        }
-    }
-    return false
-}
-
-
-// Whether a chapter:verse position falls within a span (span's book already matched)
-function span_contains(span:Span, ch:number, v:number):boolean{
-    const after_start = ch > span[1] || (ch === span[1] && v >= span[2])
-    const before_end = ch < span[3] || (ch === span[3] && v <= span[4])
-    return after_start && before_end
-}
-
-
 // A stable key identifying a candidate pair (also the results record key)
 function pair_key(pair:MasterLink):string{
     return `${pair[0].join(',')}>${pair[1].join(',')}`
@@ -212,6 +175,10 @@ export async function make_slices(count:number, size=SLICE_SIZE):Promise<number>
         console.info('judge campaign: merging leftover wave outputs before slicing')
         merge_outputs()
     }
+
+    // Write the exact subagent prompt so sessions copy it verbatim instead of reconstructing it
+    // from the README (prevents prompt drift across the campaign's many sessions)
+    writeFileSync(join(STATE_DIR, 'prompt.txt'), subagent_prompt())
     const pool = await build_pool()
     const judged = load_results()
     const pending = [...pool.keys()].filter(key => !(key in judged))
@@ -234,25 +201,72 @@ export async function make_slices(count:number, size=SLICE_SIZE):Promise<number>
 }
 
 
+// The full prompt for one judging subagent (N = the slice number), built around JUDGE_PROMPT
+function subagent_prompt():string{
+    return `You are acting as a Bible cross-reference classifier. Read the file
+${join(STATE_DIR, 'slice_N.json')} — an array of pairs of Bible
+passages, each with "key", "ref_a", "text_a", "ref_b", "text_b".
+
+Classify EVERY pair using exactly these criteria:
+
+${JUDGE_PROMPT}
+
+Write your judgments to ${join(STATE_DIR, 'out_N.json')} as a
+single JSON object keyed by each pair's "key", each value being
+{"category": "quotation"|"parallel"|"allusion"|"mention"|"relevant"|"theme"|"none",
+"point": "one short line naming the connection (empty string if none)", "salience": 0-5}.
+Judge every pair (output must have exactly as many keys as the input array); base judgments
+only on the given texts and references; be strict — most weak pairs are "none"; the final file
+must be valid JSON. When done, reply with just the count judged and a one-line category
+distribution.
+`
+}
+
+
 // Validate and merge subagent wave outputs (state/out_*.json) into the results record
+// NOTE Designed to never wedge the unattended campaign: unreadable or orphaned outputs are
+// discarded (their pairs simply stay pending for a later wave) rather than aborting the merge
 export function merge_outputs():void{
     const judged = load_results()
-    const valid_category = new Set([...CATEGORIES, 'theme', 'none'])
+    const valid_category = new Set<unknown>([...CATEGORIES, 'theme', 'none'])
+    const valid_key = /^[a-z0-9]{3}(,\d+){4}>[a-z0-9]{3}(,\d+){4}$/
     let merged = 0
     let invalid = 0
     for (const file of existsSync(STATE_DIR) ? readdirSync(STATE_DIR) : []){
         if (!file.startsWith('out_')){
             continue
         }
+
+        // An output with no matching slice is anomalous (merge always consumes an output before
+        // its slice, so crashes can't cause this) and its keys can't be validated — discard it
         const slice_file = join(STATE_DIR, file.replace('out_', 'slice_'))
-        const keys = existsSync(slice_file)
-            ? new Set(read_json<SlicePair[]>(slice_file).map(pair => pair.key))
-            : null
-        const outputs = read_json<Judged>(join(STATE_DIR, file))
-        for (const [key, judgment] of Object.entries(outputs)){
+        if (!existsSync(slice_file)){
+            console.error(`judge campaign: discarding orphaned output ${file} (no slice file)`)
+            rmSync(join(STATE_DIR, file))
+            continue
+        }
+
+        // A subagent may have written truncated/invalid JSON — discard it and its slice so the
+        // campaign self-heals (the pairs get re-sliced) instead of wedging on the bad file
+        let outputs:Record<string, unknown>
+        try {
+            outputs = read_json<Record<string, unknown>>(join(STATE_DIR, file))
+        } catch {
+            console.error(`judge campaign: discarding unreadable output ${file}`)
+            rmSync(join(STATE_DIR, file))
+            rmSync(slice_file)
+            continue
+        }
+
+        const keys = new Set(read_json<SlicePair[]>(slice_file).map(pair => pair.key))
+        for (const [key, value] of Object.entries(outputs)){
             // Reject anything malformed or not belonging to its slice; those pairs stay pending
-            if ((keys && !keys.has(key)) || !valid_category.has(judgment.category)
+            const judgment = value as Judgment|null
+            if (!judgment || typeof judgment !== 'object'
+                    || !keys.has(key) || !valid_key.test(key)
+                    || !valid_category.has(judgment.category)
                     || typeof judgment.point !== 'string'
+                    || typeof judgment.salience !== 'number'
                     || !Number.isInteger(judgment.salience)
                     || judgment.salience < 0 || judgment.salience > 5){
                 invalid += 1
@@ -263,9 +277,7 @@ export function merge_outputs():void{
             merged += 1
         }
         rmSync(join(STATE_DIR, file))
-        if (keys){
-            rmSync(slice_file)
-        }
+        rmSync(slice_file)
     }
     save_results(judged)
     console.info(`judge campaign: merged ${merged} judgments`

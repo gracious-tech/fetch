@@ -11,6 +11,7 @@ dist/
 /collection_official/
 
 /collector/usfmtc-venv/
+/collector/src/data/crossref/judge/state/
 
 /site/src/access/client/api/
 /site/.deployments/

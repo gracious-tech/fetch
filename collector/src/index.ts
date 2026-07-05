@@ -18,7 +18,7 @@ import {init_config} from './parts/config.js'
 import {update_manifest} from './parts/manifest.js'
 import {update_notes} from './resources/notes.js'
 import {update_glosses} from './resources/gloss.js'
-import {crossref_process} from './data/crossref.js'
+import {crossref_process} from './data/crossref/index.js'
 
 import type {TransServiceId} from './parts/types'
 

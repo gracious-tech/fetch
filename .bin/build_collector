@@ -6,9 +6,16 @@ cd "$(realpath -m "$0/../..")/collector"
 
 rm -rf dist
 
-npx esbuild src/*.ts src/**/*.ts --sourcemap --target=node18 --format=esm \
+# Enable recursive globbing so nested source dirs (e.g. src/data/crossref/) are included
+shopt -s globstar
+npx esbuild src/**/*.ts --sourcemap --target=node18 --format=esm \
     --platform=node --outdir=dist "$@"
 
 # Copy static data as esbuild won't include (unless whole thing bundled)
 mkdir -p dist/data
 cp src/data/population.json dist/data/population.json
+
+# Copy the recorded crossref judgments once the one-time campaign has produced them
+if [ -f src/data/crossref/judge/results.json ]; then
+    cp src/data/crossref/judge/results.json dist/data/crossref/judge/results.json
+fi

@@ -41,6 +41,7 @@
         "lodash-es": "^4.17.21",
         "node-stream-zip": "^1.15.0",
         "reverse-usx": "^1.0.0",
+        "typst-utils": "^0.2.0",
         "usx-to-json": "^1.0.0",
         "xpath": "^0.0.32",
         "yaml": "^2.3.1",

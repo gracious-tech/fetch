@@ -8,6 +8,7 @@ import * as tyndale from '../integrations/tyndale.js'
 import {clean_dir, list_dirs, list_dirs_if, mkdir_exist, write_json} from '../parts/utils.js'
 import {update_manifest} from '../parts/manifest.js'
 import {add_unpublished} from '../parts/unpublished.js'
+import {html_note_to_typst} from '../parts/notes_typst.js'
 
 import type {NotesData} from '../parts/shared_types'
 
@@ -43,12 +44,15 @@ export async function notes_process(){
             // Separate into individual books
             const html_dir = join('dist', 'notes', id, 'html')
             const txt_dir = join('dist', 'notes', id, 'txt')
+            const typst_dir = join('dist', 'notes', id, 'typst')
             mkdir_exist(html_dir)
             mkdir_exist(txt_dir)
+            mkdir_exist(typst_dir)
             for (const book of Object.keys(notes)){
                 write_json(join(html_dir, `${book}.json`), notes[book])
-                // Also write plain text version
+                // Also write plain text and Typst (for print/PDF) versions
                 write_json(join(txt_dir, `${book}.json`), notes_to_txt(notes[book]!))
+                write_json(join(typst_dir, `${book}.json`), notes_to_typst(notes[book]!))
             }
         }
     }
@@ -85,4 +89,32 @@ function notes_to_txt(notes:NotesData):NotesData{
     }
 
     return plain
+}
+
+
+// Convert HTML notes to Typst markup (for compiling to print/PDF)
+function notes_to_typst(notes:NotesData):NotesData{
+
+    const typst:NotesData = {
+        notes_id: notes.notes_id,
+        book: notes.book,
+        verses: {},
+        ranges: [],
+    }
+
+    for (const range of notes.ranges){
+        typst.ranges.push({
+            ...range,
+            contents: html_note_to_typst(range.contents),
+        })
+    }
+
+    for (const ch in notes.verses){
+        typst.verses[ch] = {}
+        for (const verse in notes.verses[ch]){
+            typst.verses[ch]![verse] = html_note_to_typst(notes.verses[ch]![verse]!)
+        }
+    }
+
+    return typst
 }

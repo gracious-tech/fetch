@@ -1,10 +1,10 @@
 #!/bin/bash
 # Overnight runner for the one-time LLM judging campaign (see README.md).
-# Repeatedly prompts Claude Code to continue the campaign, but only inside two nightly windows
-# (defaults: 22:30-03:15 and 03:30-08:00) so daytime session capacity stays free for real work.
-# Each window keeps re-prompting until judging completes or the cutoff arrives; when the session
-# limit is hit it sleeps until the reset time the CLI advertises (or gives the window up if that
-# falls after the cutoff). Progress lives in results.json, so stopping at any point is always
+# Repeatedly prompts Claude Code to continue the campaign, but only overnight (22:30-08:00 by
+# default) so daytime session capacity stays free for real work. When a session hits the
+# 5hr-block limit it sleeps until the reset time the CLI advertises and resumes — but never
+# resumes past 03:30, so the night's final block resets by 08:30 and every morning starts with
+# a completely unused block. Progress lives in results.json, so stopping at any point is always
 # safe. Exits for good once everything is judged.
 #
 # Run it detached and forget about it:
@@ -12,10 +12,13 @@
 set -u
 cd "$(realpath -m "$0/../../../../../..")"
 
-# Windows as "start cutoff" pairs (24h local time; a cutoff earlier than its start means it
-# falls on the following day). The second window's 5hr limit block ends by ~08:30, so a fresh
-# block is available when daytime work starts.
-WINDOWS=("22:30 03:15" "03:30 08:00")
+# The nightly window as a "start cutoff" pair (24h local time; a cutoff earlier than its start
+# falls on the following day). Starting at 22:30 is safe even in the worst case: if that first
+# prompt begins a fresh 5hr block, the block still resets by 03:30, leaving room for one final
+# block that resets by 08:30 (see the resume gate in run_window). An evening block already in
+# progress at 22:30 resets even earlier. The 08:00 cutoff kills any still-running session well
+# before the morning.
+WINDOWS=("22:30 08:00")
 
 # The orchestrating session doesn't need heavy lifting (it spawns sonnet subagents and merges)
 MODEL="sonnet"
@@ -56,11 +59,16 @@ is_done(){
 }
 
 # Keep prompting Claude Code until the cutoff timestamp or completion, sleeping through any
-# session limit that resets before the cutoff. Only returns once the window is spent (cutoff
-# reached, everything judged, or a limit outlasting the cutoff) — callers must not re-enter it.
+# session limit whose reset falls by the resume gate (03:30). Only returns once the window is
+# spent (cutoff reached, everything judged, or a limit resetting past the gate) — callers must
+# not re-enter it.
 run_window(){
     local cutoff=$1
     local fails=0
+    # The last moment a fresh 5hr block may begin: it must reset by 08:30 (cutoff + 30min) so
+    # the morning starts with untouched capacity. Blocks begin at the first prompt after a
+    # limit reset, so never resume a reset that falls after this gate.
+    local gate=$(( cutoff + 1800 - 18000 ))
     while [ "$(date +%s)" -lt "$cutoff" ]; do
         if is_done; then
             return
@@ -84,19 +92,23 @@ not work on anything other than the judging campaign." \
         duration=$(( $(date +%s) - began ))
 
         # Session limit: sleep straight through to the advertised reset instead of burning
-        # retries on a spent block, or give the window up if the reset falls after the cutoff
+        # retries on a spent block — but only resume if the reset falls by the gate, since the
+        # block that resuming begins must itself reset by 08:30
         if grep -qi 'hit your session limit' "$OUT"; then
             local reset
             reset="$(parse_reset)"
-            if [ -z "$reset" ]; then
+            if [ -n "$reset" ] && [ "$reset" -le "$gate" ]; then
+                log "session limit hit; sleeping until reset at $(date -d "@$reset" '+%H:%M')"
+                sleep $(( reset - $(date +%s) + 60 ))
+            elif [ -n "$reset" ]; then
+                log "limit resets $(date -d "@$reset" '+%H:%M'), past the resume gate — done"
+                return
+            elif [ "$(date +%s)" -lt "$gate" ]; then
                 log "session limit hit (reset time unparseable); retrying in 30min"
                 sleep 1800
-            elif [ "$reset" -ge "$cutoff" ]; then
-                log "session limit hit; resets $(date -d "@$reset" '+%H:%M') after cutoff"
-                return
             else
-                log "session limit hit; sleeping until reset at $(date -d "@$reset" '+%H:%M')"
-                sleep $(( reset - $(date +%s) + 120 ))
+                log "session limit hit (reset time unparseable) past the resume gate — done"
+                return
             fi
             fails=0
             continue

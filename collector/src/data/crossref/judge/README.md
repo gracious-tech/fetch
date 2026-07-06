@@ -52,13 +52,15 @@ Per session, repeat waves until stopping:
 
 ### Unattended overnight runs
 
-`night.sh` automates the above: it sleeps until its nightly windows (22:30-03:15 and
-03:30-08:00 by default), then repeatedly launches headless Claude Code sessions
+`night.sh` automates the above: it sleeps until its nightly window (22:30-08:00 by default),
+then repeatedly launches headless Claude Code sessions
 (`claude -p … --dangerously-skip-permissions`) that run waves until the cutoff. When a session
 hits the subscription limit, it parses the reset time from the CLI's output and sleeps straight
-through to it (or abandons the window if the reset falls after the cutoff), and it exits for
-good once everything is judged. This burns session limits overnight while leaving daytime
-capacity free. Run it
+through to it — but only resumes if the reset falls by 03:30, because a 5hr block begun any
+later would still be partly used come morning. Starting at 22:30 is safe for the same reason
+in reverse: even if that first prompt begins a fresh block, it resets by 03:30. Together these
+guarantee a completely unused block by 08:30 when daytime work starts, while burning
+otherwise-idle overnight capacity. The script exits for good once everything is judged. Run it
 detached: `tmux new -d -s judging collector/src/data/crossref/judge/night.sh` — progress and
 session output land in `state/night.log`.
 

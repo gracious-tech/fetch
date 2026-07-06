@@ -29,8 +29,10 @@ const BSB_TXT = join(PKG_PATH, '..', 'collection_official', 'dist', 'bibles', 'e
 
 // Longest passage (in verses) included in a judging prompt before truncation
 const MAX_PROMPT_VERSES = 15
-// Pairs per subagent slice (large slices amortise per-agent overhead — pilot-tuned)
-export const SLICE_SIZE = 400
+// Pairs per subagent slice, sized so a whole wave (slices in, judgments out) fits well within
+// one Claude Pro 5hr block — the original 5x400 waves exhausted an entire block mid-wave,
+// producing nothing mergeable. Larger slices amortise per-agent overhead on bigger plans.
+export const SLICE_SIZE = 100
 
 // The classification criteria (the single source of truth — subagent prompts embed this)
 // NOTE Tuned via a 1k-pair pilot: strict "none", kind/strength orthogonality, retelling rule

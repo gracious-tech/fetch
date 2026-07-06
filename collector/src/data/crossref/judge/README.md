@@ -32,8 +32,9 @@ results, so every step is idempotent and any session can resume cold.
 Per session, repeat waves until stopping:
 
 1. `node collector/dist/data/crossref/judge/run.js status` — progress + tallies.
-2. `... run.js slices 5` — writes `state/slice_0..4.json` (400 pending pairs each, BSB text)
-   plus `state/prompt.txt`, the exact subagent prompt.
+2. `... run.js slices 2` — writes `state/slice_0..1.json` (100 pending pairs each, BSB text)
+   plus `state/prompt.txt`, the exact subagent prompt. Waves are deliberately small so a whole
+   wave fits within a Claude Pro 5hr block — never enlarge them on a Pro subscription.
 3. Spawn one subagent per slice (model: sonnet). Prompt = `state/prompt.txt` verbatim with `N`
    replaced by the slice number — never paraphrase or shorten it, so judging stays consistent
    across sessions. Each subagent writes `state/out_N.json`.
@@ -46,9 +47,11 @@ Per session, repeat waves until stopping:
 
 `night.sh` automates the above: it sleeps until its nightly windows (22:30-03:15 and
 03:30-08:00 by default), then repeatedly launches headless Claude Code sessions
-(`claude -p … --dangerously-skip-permissions`) that run waves until the cutoff or until the
-session limit is hit (detected as repeated quick failures), and exits for good once everything
-is judged. This burns session limits overnight while leaving daytime capacity free. Run it
+(`claude -p … --dangerously-skip-permissions`) that run waves until the cutoff. When a session
+hits the subscription limit, it parses the reset time from the CLI's output and sleeps straight
+through to it (or abandons the window if the reset falls after the cutoff), and it exits for
+good once everything is judged. This burns session limits overnight while leaving daytime
+capacity free. Run it
 detached: `tmux new -d -s judging collector/src/data/crossref/judge/night.sh` — progress and
 session output land in `state/night.log`.
 

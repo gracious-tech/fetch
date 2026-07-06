@@ -2,9 +2,10 @@
 # Overnight runner for the one-time LLM judging campaign (see README.md).
 # Repeatedly prompts Claude Code to continue the campaign, but only inside two nightly windows
 # (defaults: 22:30-03:15 and 03:30-08:00) so daytime session capacity stays free for real work.
-# Each window keeps re-prompting until judging completes, the cutoff arrives, or the session
-# limit is hit (detected as repeated quick failures). Progress lives in results.json, so
-# stopping at any point is always safe. Exits for good once everything is judged.
+# Each window keeps re-prompting until judging completes or the cutoff arrives; when the session
+# limit is hit it sleeps until the reset time the CLI advertises (or gives the window up if that
+# falls after the cutoff). Progress lives in results.json, so stopping at any point is always
+# safe. Exits for good once everything is judged.
 #
 # Run it detached and forget about it:
 #   tmux new -d -s judging collector/src/data/crossref/judge/night.sh
@@ -20,11 +21,29 @@ WINDOWS=("22:30 03:15" "03:30 08:00")
 MODEL="sonnet"
 
 LOG="collector/src/data/crossref/judge/state/night.log"
+OUT="collector/src/data/crossref/judge/state/session.txt"
 mkdir -p "$(dirname "$LOG")"
 
 # Log with a timestamp
 log(){
     echo "[$(date '+%F %T')] $1" | tee -a "$LOG"
+}
+
+# Extract the advertised limit reset time ("resets 2:10am") from the last session's output,
+# echoing it as a future epoch timestamp (echoes nothing if the format is unrecognised)
+parse_reset(){
+    local when epoch
+    when="$(grep -oiE 'resets (at )?[0-9]{1,2}(:[0-9]{2})?(am|pm)' "$OUT" | head -1 \
+        | awk '{print $NF}')"
+    if [ -z "$when" ]; then
+        return
+    fi
+    epoch="$(date -d "$when" +%s 2>/dev/null)" || return
+    # A reset time already in the past means it refers to tomorrow
+    if [ "$epoch" -le "$(date +%s)" ]; then
+        epoch=$(( epoch + 86400 ))
+    fi
+    echo "$epoch"
 }
 
 # Whether the campaign is complete, according to the status command ("judged X of Y (Z%)")
@@ -36,7 +55,9 @@ is_done(){
     [ -n "$done" ] && [ "$done" = "$total" ]
 }
 
-# Keep prompting Claude Code until the cutoff timestamp, completion, or the limit is hit
+# Keep prompting Claude Code until the cutoff timestamp or completion, sleeping through any
+# session limit that resets before the cutoff. Only returns once the window is spent (cutoff
+# reached, everything judged, or a limit outlasting the cutoff) — callers must not re-enter it.
 run_window(){
     local cutoff=$1
     local fails=0
@@ -44,7 +65,7 @@ run_window(){
         if is_done; then
             return
         fi
-        local cutoff_hhmm remaining began duration
+        local cutoff_hhmm remaining began duration code
         cutoff_hhmm="$(date -d "@$cutoff" '+%H:%M')"
         remaining=$(( cutoff - $(date +%s) ))
         began="$(date +%s)"
@@ -52,19 +73,40 @@ run_window(){
         timeout "$remaining" claude -p \
             "Continue the one-time crossref LLM judging campaign. Read \
 collector/src/data/crossref/judge/README.md and follow it exactly: repeatedly run waves \
-(generate slices, spawn 5 parallel sonnet subagents — each prompted with state/prompt.txt \
+(generate slices, spawn one sonnet subagent per slice — each prompted with state/prompt.txt \
 verbatim, N replaced — then merge) until the status command reports everything judged or the \
 local time reaches $cutoff_hhmm. Rebuild the collector first if dist is missing. Always merge \
 finished wave outputs before you stop. Do not work on anything other than the judging campaign." \
-            --model "$MODEL" --dangerously-skip-permissions >> "$LOG" 2>&1
-        local code=$?
+            --model "$MODEL" --dangerously-skip-permissions > "$OUT" 2>&1
+        code=$?
+        cat "$OUT" >> "$LOG"
         duration=$(( $(date +%s) - began ))
-        # Quick failures in a row almost certainly mean the session limit is hit — end the window
+
+        # Session limit: sleep straight through to the advertised reset instead of burning
+        # retries on a spent block, or give the window up if the reset falls after the cutoff
+        if grep -qi 'hit your session limit' "$OUT"; then
+            local reset
+            reset="$(parse_reset)"
+            if [ -z "$reset" ]; then
+                log "session limit hit (reset time unparseable); retrying in 30min"
+                sleep 1800
+            elif [ "$reset" -ge "$cutoff" ]; then
+                log "session limit hit; resets $(date -d "@$reset" '+%H:%M') after cutoff"
+                return
+            else
+                log "session limit hit; sleeping until reset at $(date -d "@$reset" '+%H:%M')"
+                sleep $(( reset - $(date +%s) + 120 ))
+            fi
+            fails=0
+            continue
+        fi
+
+        # Other quick failures in a row (auth/network/crash) — back off, then give up the window
         if [ "$code" -ne 0 ] && [ "$duration" -lt 120 ]; then
             fails=$(( fails + 1 ))
             log "claude exited $code after ${duration}s (quick failure $fails/3)"
             if [ "$fails" -ge 3 ]; then
-                log "assuming session limit reached; closing this window"
+                log "repeated quick failures; closing this window"
                 return
             fi
             sleep 300
@@ -105,6 +147,13 @@ while true; do
 
     if [ -n "$active_cutoff" ]; then
         run_window "$active_cutoff"
+        # run_window only returns once its window is spent — never re-enter it early (doing so
+        # is what hammered a maxed-out account every 5min on the first night)
+        now="$(date +%s)"
+        if [ "$now" -lt "$active_cutoff" ] && ! is_done; then
+            log "window spent; sleeping until its cutoff $(date -d "@$active_cutoff" '+%H:%M')"
+            sleep $(( active_cutoff - now ))
+        fi
         sleep 60
     else
         log "sleeping until $(date -d "@$next_start" '+%F %H:%M')"

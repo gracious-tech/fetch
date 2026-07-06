@@ -10,7 +10,7 @@ const [action, arg1, arg2] = process.argv.slice(2)
 if (action === 'status'){
     await print_status()
 } else if (action === 'slices'){
-    await make_slices(arg1 ? parseInt(arg1, 10) : 2, arg2 ? parseInt(arg2, 10) : SLICE_SIZE)
+    await make_slices(arg1 ? parseInt(arg1, 10) : 1, arg2 ? parseInt(arg2, 10) : SLICE_SIZE)
 } else if (action === 'merge'){
     merge_outputs()
 } else {

@@ -73,10 +73,11 @@ run_window(){
         timeout "$remaining" claude -p \
             "Continue the one-time crossref LLM judging campaign. Read \
 collector/src/data/crossref/judge/README.md and follow it exactly: repeatedly run waves \
-(generate slices, spawn one sonnet subagent per slice — each prompted with state/prompt.txt \
-verbatim, N replaced — then merge) until the status command reports everything judged or the \
-local time reaches $cutoff_hhmm. Rebuild the collector first if dist is missing. Always merge \
-finished wave outputs before you stop. Do not work on anything other than the judging campaign." \
+(generate one slice, run a single sonnet subagent prompted with state/prompt.txt verbatim, N \
+replaced, then merge — strictly one subagent at a time, never in parallel) until the status \
+command reports everything judged or the local time reaches $cutoff_hhmm. Rebuild the \
+collector first if dist is missing. Always merge finished wave outputs before you stop. Do \
+not work on anything other than the judging campaign." \
             --model "$MODEL" --dangerously-skip-permissions > "$OUT" 2>&1
         code=$?
         cat "$OUT" >> "$LOG"

@@ -29,10 +29,10 @@ const BSB_TXT = join(PKG_PATH, '..', 'collection_official', 'dist', 'bibles', 'e
 
 // Longest passage (in verses) included in a judging prompt before truncation
 const MAX_PROMPT_VERSES = 15
-// Pairs per subagent slice, sized so a whole wave (slices in, judgments out) fits well within
-// one Claude Pro 5hr block — the original 5x400 waves exhausted an entire block mid-wave,
-// producing nothing mergeable. Larger slices amortise per-agent overhead on bigger plans.
-export const SLICE_SIZE = 100
+// Pairs per subagent slice (large slices amortise per-agent overhead — pilot-tuned). Safe even
+// though the session limit will regularly kill an agent mid-slice: judgments are appended to
+// the output incrementally (JSONL), so only the last unwritten batch is ever lost
+export const SLICE_SIZE = 400
 
 // The classification criteria (the single source of truth — subagent prompts embed this)
 // NOTE Tuned via a 1k-pair pilot: strict "none", kind/strength orthogonality, retelling rule
@@ -213,21 +213,27 @@ Classify EVERY pair using exactly these criteria:
 
 ${JUDGE_PROMPT}
 
-Write your judgments to ${join(STATE_DIR, 'out_N.json')} as a
-single JSON object keyed by each pair's "key", each value being
-{"category": "quotation"|"parallel"|"allusion"|"mention"|"relevant"|"theme"|"none",
+Record your judgments in ${join(STATE_DIR, 'out_N.jsonl')} as
+JSONL — one line per pair, each line one complete JSON object of the form
+{"key": "<the pair's key>",
+"category": "quotation"|"parallel"|"allusion"|"mention"|"relevant"|"theme"|"none",
 "point": "one short line naming the connection (empty string if none)", "salience": 0-5}.
-Judge every pair (output must have exactly as many keys as the input array); base judgments
-only on the given texts and references; be strict — most weak pairs are "none"; the final file
-must be valid JSON. When done, reply with just the count judged and a one-line category
-distribution.
+
+Work incrementally: after judging each batch of ~25 pairs, APPEND those lines to the file
+(shell >>) before judging the next batch. Never hold judgments back for one big write at the
+end and never rewrite lines already appended — if your session is interrupted, everything
+appended so far must survive as-is. Judge every pair in order (the finished file has exactly
+one line per input pair); base judgments only on the given texts and references; be strict —
+most weak pairs are "none". When done, reply with just the count judged and a one-line
+category distribution.
 `
 }
 
 
-// Validate and merge subagent wave outputs (state/out_*.json) into the results record
-// NOTE Designed to never wedge the unattended campaign: unreadable or orphaned outputs are
-// discarded (their pairs simply stay pending for a later wave) rather than aborting the merge
+// Validate and merge subagent wave outputs (state/out_*.jsonl) into the results record.
+// Outputs are JSONL appended incrementally by the agents, so a session killed mid-slice still
+// contributes every line it wrote — malformed or truncated lines are simply skipped, and any
+// pairs left unjudged stay pending (pending is always pool minus results) for a later wave
 export function merge_outputs():void{
     const judged = load_results()
     const valid_category = new Set<unknown>([...CATEGORIES, 'theme', 'none'])
@@ -241,41 +247,43 @@ export function merge_outputs():void{
 
         // An output with no matching slice is anomalous (merge always consumes an output before
         // its slice, so crashes can't cause this) and its keys can't be validated — discard it
-        const slice_file = join(STATE_DIR, file.replace('out_', 'slice_'))
+        const slice_file = join(STATE_DIR,
+            file.replace('out_', 'slice_').replace(/\.jsonl$/, '.json'))
         if (!existsSync(slice_file)){
             console.error(`judge campaign: discarding orphaned output ${file} (no slice file)`)
             rmSync(join(STATE_DIR, file))
             continue
         }
 
-        // A subagent may have written truncated/invalid JSON — discard it and its slice so the
-        // campaign self-heals (the pairs get re-sliced) instead of wedging on the bad file
-        let outputs:Record<string, unknown>
-        try {
-            outputs = read_json<Record<string, unknown>>(join(STATE_DIR, file))
-        } catch {
-            console.error(`judge campaign: discarding unreadable output ${file}`)
-            rmSync(join(STATE_DIR, file))
-            rmSync(slice_file)
-            continue
-        }
-
         const keys = new Set(read_json<SlicePair[]>(slice_file).map(pair => pair.key))
-        for (const [key, value] of Object.entries(outputs)){
-            // Reject anything malformed or not belonging to its slice; those pairs stay pending
-            const judgment = value as Judgment|null
-            if (!judgment || typeof judgment !== 'object'
-                    || !keys.has(key) || !valid_key.test(key)
-                    || !valid_category.has(judgment.category)
-                    || typeof judgment.point !== 'string'
-                    || typeof judgment.salience !== 'number'
-                    || !Number.isInteger(judgment.salience)
-                    || judgment.salience < 0 || judgment.salience > 5){
+        for (const line of readFileSync(join(STATE_DIR, file), 'utf-8').split('\n')){
+            // Skip anything unparseable (e.g. a truncated final line from a killed agent)
+            if (!line.trim()){
+                continue
+            }
+            let parsed:unknown
+            try {
+                parsed = JSON.parse(line)
+            } catch {
                 invalid += 1
                 continue
             }
-            judged[key] = {category: judgment.category, point: judgment.point,
-                salience: judgment.salience}
+
+            // Reject anything malformed or not belonging to its slice; those pairs stay pending
+            const entry = parsed as ({key:string} & Judgment)|null
+            if (!entry || typeof entry !== 'object'
+                    || typeof entry.key !== 'string'
+                    || !keys.has(entry.key) || !valid_key.test(entry.key)
+                    || !valid_category.has(entry.category)
+                    || typeof entry.point !== 'string'
+                    || typeof entry.salience !== 'number'
+                    || !Number.isInteger(entry.salience)
+                    || entry.salience < 0 || entry.salience > 5){
+                invalid += 1
+                continue
+            }
+            judged[entry.key] = {category: entry.category, point: entry.point,
+                salience: entry.salience}
             merged += 1
         }
         rmSync(join(STATE_DIR, file))

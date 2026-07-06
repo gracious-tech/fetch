@@ -24,24 +24,31 @@ original-language analysis can all be iterated there without re-running any LLM.
 
 ## How the campaign runs
 
-Judging happens in Claude Code sessions via parallel subagents (Sonnet), on the maintainer's
-Claude subscription — no API key is involved anywhere. `results.json` is the only progress
-state: a key present means that pair is done; pending is always recomputed as pool minus
-results, so every step is idempotent and any session can resume cold.
+Judging happens in Claude Code sessions via subagents (Sonnet), on the maintainer's Claude
+subscription — no API key is involved anywhere. `results.json` is the only progress state:
+a key present means that pair is done; pending is always recomputed as pool minus results,
+so every step is idempotent and any session can resume cold.
+
+Waves run strictly serially — ONE subagent at a time, never in parallel. Time is not the
+constraint (nightly windows have hours to burn through the session limit); losing work is.
+Agents append judgments incrementally, so when the limit kills the session only the single
+in-flight agent is interrupted, and even it keeps everything appended so far.
 
 Per session, repeat waves until stopping:
 
 1. `node collector/dist/data/crossref/judge/run.js status` — progress + tallies.
-2. `... run.js slices 2` — writes `state/slice_0..1.json` (100 pending pairs each, BSB text)
-   plus `state/prompt.txt`, the exact subagent prompt. Waves are deliberately small so a whole
-   wave fits within a Claude Pro 5hr block — never enlarge them on a Pro subscription.
-3. Spawn one subagent per slice (model: sonnet). Prompt = `state/prompt.txt` verbatim with `N`
-   replaced by the slice number — never paraphrase or shorten it, so judging stays consistent
-   across sessions. Each subagent writes `state/out_N.json`.
-4. When all agents finish: `... run.js merge` — validates outputs, merges into `results.json`,
-   deletes consumed state files. Malformed entries are rejected and simply stay pending;
-   unreadable or orphaned output files are discarded likewise (their pairs get re-sliced).
-5. Next wave (back to 2), or stop — nothing in flight is ever lost beyond the current wave.
+2. `... run.js slices 1` — writes `state/slice_0.json` (400 pending pairs, BSB text) plus
+   `state/prompt.txt`, the exact subagent prompt.
+3. Spawn ONE subagent for the slice (model: sonnet). Prompt = `state/prompt.txt` verbatim with
+   `N` replaced by the slice number — never paraphrase or shorten it, so judging stays
+   consistent across sessions. The subagent appends judgments to `state/out_N.jsonl` as it
+   works.
+4. When the agent finishes: `... run.js merge` — validates outputs line by line, merges into
+   `results.json`, deletes consumed state files. Partial output from an interrupted agent
+   merges fine (its unjudged pairs simply stay pending); malformed lines and orphaned output
+   files are rejected likewise.
+5. Next wave (back to 2), or stop — nothing in flight is ever lost beyond the last unwritten
+   batch of judgments.
 
 ### Unattended overnight runs
 

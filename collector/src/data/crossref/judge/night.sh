@@ -58,6 +58,18 @@ is_done(){
     [ -n "$done" ] && [ "$done" = "$total" ]
 }
 
+# Log the full campaign status (progress % plus category tallies) under a labelled header
+log_status(){
+    local status
+    status="$(node collector/dist/data/crossref/judge/run.js status 2>/dev/null)"
+    if [ -z "$status" ]; then
+        log "$1: status unavailable (dist missing or build failed)"
+        return
+    fi
+    log "$1: $(echo "$status" | head -1)"
+    echo "$status" | tail -n +2 | tee -a "$LOG"
+}
+
 # Keep prompting Claude Code until the cutoff timestamp or completion, sleeping through any
 # session limit whose reset falls by the resume gate (03:30). Only returns once the window is
 # spent (cutoff reached, everything judged, or a limit resetting past the gate) — callers must
@@ -90,6 +102,7 @@ not work on anything other than the judging campaign." \
         code=$?
         cat "$OUT" >> "$LOG"
         duration=$(( $(date +%s) - began ))
+        log_status "batch done"
 
         # Session limit: sleep straight through to the advertised reset instead of burning
         # retries on a spent block — but only resume if the reset falls by the gate, since the
@@ -131,6 +144,7 @@ not work on anything other than the judging campaign." \
 }
 
 log "night runner started (windows: ${WINDOWS[*]})"
+log_status "starting"
 while true; do
     if is_done; then
         log "campaign complete — all pairs judged. Exiting."

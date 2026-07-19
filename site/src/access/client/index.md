@@ -128,6 +128,13 @@ Variable                        | Default           | Description
 `--fb-alt-bold-italic-filter`   | `drop-shadow(0 0 5px hsl(0, 50%, 0%))` | A CSS filter to apply to text that would normally be displayed in bold+italics, for use when bold+italics isn't suitable for a language's script.
 
 
+## Dual OT/NT ids
+
+You can choose to use a separate text for the OT and NT by specifying an id of the form `ot_id|nt_id`. This is especially useful for original languages (Hebrew/Greek) which are only ever one testament.
+
+You can treat this dual id just like any other resource id — `fetch_book()`, `fetch_translation_extras()`, `get_books()`, etc. all accept it and transparently fetch from whichever half owns each book. Dual ids aren't returned by `get_resources()` since they aren't real entries in the collection's manifest; you construct them yourself by joining the two individual translation ids with `|`.
+
+
 ## Design
 This client has zero external dependencies, no differences between the browser and Node versions (no unused code), and is overall very small and fast. It only connects to the endpoints you specify so can be used completely independently of the official fetch(bible) service.
 

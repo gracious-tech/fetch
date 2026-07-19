@@ -165,6 +165,27 @@ export class GenericCollection {
         }
     }
 
+    // @internal Split a composite id ("ot_id|nt_id") into its two halves if both exist
+    _split_composite_id(id:string):[string, string]|undefined{
+        const parts = id.split('|')
+        if (parts.length !== 2 || !parts[0] || !parts[1]){
+            return undefined
+        }
+        if (!(parts[0] in this._items) || !(parts[1] in this._items)){
+            return undefined
+        }
+        return [parts[0], parts[1]]
+    }
+
+    // @internal Resolve which real resource id owns a book, given a possibly-composite id
+    _resolve_book_resource(resource:string, book:string):string{
+        const composite = this._split_composite_id(resource)
+        if (!composite){
+            return resource
+        }
+        return books_ordered.slice(0, 39).includes(book) ? composite[0] : composite[1]
+    }
+
     // @internal
     _ensure_book_exists(resource:string, book:string){
         // Util that throws if book doesn't exist
@@ -184,13 +205,14 @@ export class GenericCollection {
 
     // Check if a resource exists
     has_resource(resource:string):boolean{
-        return resource in this._items
+        // NOTE _split_composite_id confirms existance in _items itself
+        return resource in this._items || this._split_composite_id(resource) !== undefined
     }
 
     // Check if a book exists within a resource
     has_book(resource:string, book:string):boolean{
         this._ensure_resource_exists(resource)
-        const resource_meta = this._items[resource]!
+        const resource_meta = this._items[this._resolve_book_resource(resource, book)]!
         return resource_meta.books_ot_list.includes(book)
             || resource_meta.books_nt_list.includes(book)
     }
@@ -300,8 +322,10 @@ export class GenericCollection {
     }
 
     // Get a resource's metadata
-    get_resource(id:string):GetResourcesItem|undefined{
-        return this._get_resource(id)
+    // (book only required for OT/NT dual ids so get correct resource's meta data)
+    get_resource(id:string, book?:string):GetResourcesItem|undefined{
+        const real_id = this._resolve_book_resource(id, book ?? 'gen')
+        return this._get_resource(real_id)
     }
 
     // @internal Version that takes a `usage` arg which is only useful for `get_resources()`
@@ -459,11 +483,14 @@ export class GenericCollection {
             GetBooksItem[]|Record<string, GetBooksItem>{
 
         // Determine what books are available if given a resource (otherwise list all)
+        // NOTE Composite ids take OT books from their first half and NT books from their second
         let available = books_ordered
         if (resource){
             this._ensure_resource_exists(resource)
-            const resource_meta = this._items[resource]!
-            available = [...resource_meta.books_ot_list, ...resource_meta.books_nt_list]
+            const composite = this._split_composite_id(resource)
+            const ot_meta = this._items[composite?.[0] ?? resource]!
+            const nt_meta = this._items[composite?.[1] ?? resource]!
+            available = [...ot_meta.books_ot_list, ...nt_meta.books_nt_list]
         }
 
         // Get local book names if available
@@ -533,8 +560,11 @@ export class GenericCollection {
         }
 
         // Look through books adding to either `available` or `missing`
-        const resource_meta = this._items[resource]!
-        const resource_books = [...resource_meta.books_ot_list, ...resource_meta.books_nt_list]
+        // NOTE Composite ids take OT books from their first half and NT books from their second
+        const composite = this._split_composite_id(resource)
+        const ot_meta = this._items[composite?.[0] ?? resource]!
+        const nt_meta = this._items[composite?.[1] ?? resource]!
+        const resource_books = [...ot_meta.books_ot_list, ...nt_meta.books_nt_list]
         let testament:'ot'|'nt' = 'ot'
         for (const book of books_ordered){
             if (book === 'mat'){

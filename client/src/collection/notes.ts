@@ -8,8 +8,9 @@ export class NotesCollection extends GenericCollection {
     // Get the URL for a book's notes (useful for caching and manual retrieval)
     get_book_url(resource:string, book:string, format:'html'|'txt'|'typst'='html'){
         this._ensure_book_exists(resource, book)
-        const endpoint = this._items[resource]!.endpoint
-        return `${endpoint}notes/${resource}/${format}/${book}.json`
+        const real_id = this._resolve_book_resource(resource, book)
+        const endpoint = this._items[real_id]!.endpoint
+        return `${endpoint}notes/${real_id}/${format}/${book}.json`
     }
 
     // Fetch study notes for book

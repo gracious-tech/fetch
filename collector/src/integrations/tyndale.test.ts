@@ -66,7 +66,7 @@ const test_xml = `
 
 describe('study_notes_to_json', () => {
 
-    const notes = study_notes_to_json(test_xml)
+    const notes = study_notes_to_json(test_xml, 'eng_tyndale')
 
     it("Parses singe verse ref", ({expect}) => {
         expect(JSON.stringify(notes['mat']!.verses)).not.toBe('{}')

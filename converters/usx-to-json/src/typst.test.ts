@@ -407,7 +407,7 @@ describe("usx_to_json_typst", () => {
         expect(joined).not.toContain('Stray body text')
         expect(joined).toContain('Real verse one.')
         // The dropped real text should be reported via the warning callback
-        expect(warnings).toContain('Ignoring content before verse 1 marker for chapter 1')
+        expect(warnings).toContain('[typst] Ignoring content before verse 1:1')
     })
 
     it("does not warn when only empty structural markup precedes verse 1", ({expect}) => {
@@ -434,7 +434,7 @@ describe("usx_to_json_typst", () => {
             </usx>`
         const warnings:string[] = []
         usx_to_json_typst(xml, undefined, msg => warnings.push(msg))
-        expect(warnings).toContain('Ignoring non-para element at document root level: bogus')
+        expect(warnings).toContain('[typst] Ignoring non-para root element: bogus')
     })
 })
 

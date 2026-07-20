@@ -1,65 +1,28 @@
-import * as path from 'node:path'
-import {statSync} from 'node:fs'
-
 import {describe, it} from 'vitest'
 
-import {generate_index_content} from './indexes'
+import {generate_dir_index_content} from './indexes'
 
 
-describe('generate_index_content', () => {
+describe('generate_dir_index_content', () => {
+
+    const html = generate_dir_index_content('my-bucket', 'us-east-1')
+    const actual = html.toLowerCase()
 
     it("Returns a HTML string", ({expect}) => {
-        const html = generate_index_content(path.join('dist', 'bibles', 'eng_bsb'))
-        const actual = html.toLowerCase()
         expect(actual).toContain('<!doctype html>')
         expect(actual).toContain('<html>')
         expect(actual).toContain('</html>')
     })
 
-    it("Returns correct breadcrumbs", ({expect}) => {
-        const html = generate_index_content(path.join('dist', 'bibles', 'eng_bsb'))
-        const actual = html.toLowerCase()
-        expect(actual).not.toContain('<li><a href="../../../">/</a></li>')
-        expect(actual).not.toContain('<li><a href="../../">dist</a></li>')
-        expect(actual).toContain('<li><a href="../">bibles</a></li>')
-        expect(actual).toContain('<li class="last">eng_bsb</li>')
+    it("Embeds the bucket and region for client-side use", ({expect}) => {
+        expect(html).toContain("const BUCKET = 'my-bucket'")
+        expect(html).toContain("const REGION = 'us-east-1'")
     })
 
-    describe("Handling directories", () => {
-
-        const html = generate_index_content(path.join('dist', 'bibles', 'eng_bsb'))
-        const actual = html.toLowerCase()
-
-        it("Contains links to the different available directories", ({expect}) => {
-            expect(actual).toContain('<a href="./txt/">txt</a>')
-            expect(actual).toContain('<a href="./usfm/">usfm</a>')
-            expect(actual).toContain('<a href="./usx/">usx</a>')
-            expect(actual).toContain('<a href="./html/">html</a>')
-        })
-
-        it("Contains the number of files in directories", ({expect}) => {
-            expect(actual).toContain('<span data-entry-name="txt">66</span>')
-            expect(actual).toContain('<span data-entry-name="usfm">66</span>')
-            expect(actual).toContain('<span data-entry-name="usx">66</span>')
-            expect(actual).toContain('<span data-entry-name="html">66</span>')
-        })
-
-    })
-
-    describe("Handling files", () => {
-
-        const html = generate_index_content(path.join('dist'))
-        const actual = html.toLowerCase()
-
-        it("Contains links to the different available files", ({expect}) => {
-            expect(actual).toContain('<a href="./manifest.json">manifest.json</a>')
-        })
-
-        it("Contains the number of files", ({expect}) => {
-            const expected_size = statSync(path.join('dist', 'manifest.json')).size
-            expect(actual).toContain(`<span data-entry-name="manifest.json">${expected_size.toLocaleString()} bytes</span>`)
-        })
-
+    it("Contains the elements the client-side script renders into", ({expect}) => {
+        expect(actual).toContain('id="breadcrumbs"')
+        expect(actual).toContain('id="status"')
+        expect(actual).toContain('id="content"')
     })
 
 })

@@ -86,16 +86,16 @@ export const default_typst_definitions = `
     par(hanging-indent: 1in - (0.25in + (n - 1) * 0.25in), c),
 )
 
-// List entry — LeftMargin .5in × level, bullet on first line
+// List entry — LeftMargin .5in × level, hanging indent for wrapped lines
 #let li(n, c) = pad(
     left: (n - 1) * 0.25in + 0.125in,
-    par(hanging-indent: 0.375in, [• #c]),
+    par(hanging-indent: 0.375in, c),
 )
 
 // Embedded list entry — like li but deeper
 #let lim(n, c) = pad(
     left: (n - 1) * 0.25in + 0.375in,
-    par(hanging-indent: 0.375in, [• #c]),
+    par(hanging-indent: 0.375in, c),
 )
 
 // Non-leveled wrapped paragraphs

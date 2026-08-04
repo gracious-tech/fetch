@@ -70,10 +70,17 @@ export const headings_regular = ['s', 's1', 's2', 's3', 's4', 'sr']
 export const headings_minor = ['sp', 'qa']
 
 
-// Para styles that should have a single linebreak between them
+// Para styles that should have a single linebreak between them rather than a blank line
+// (poetry and list styles) — used by txt.ts's spacing algorithm, and by typst.ts to classify
+// a <para style="b"/> as within-poetry/list, within-prose, or a boundary between the two
 export const non_para_para = [
     'q', 'q1', 'q2', 'q3', 'q4',  // Poetry
+    'qc',  // Centered poetry line
     'qr',  // Poetic refrain
+    'qm', 'qm1', 'qm2', 'qm3',  // Embedded/indented poetry
+    'qd',  // Hebrew musical notation cue (e.g. "Higgaion. Selah"), typically within a poem
     'li', 'li1', 'li2', 'li3', 'li4',  // List item
     'lim', 'lim1', 'lim2', 'lim3', 'lim4',  // Embedded list item
+    'lh',  // List header
+    'lf',  // List footer
 ]

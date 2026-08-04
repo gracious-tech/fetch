@@ -3,7 +3,7 @@ import {escape_typst, escape_typst_postfix} from 'typst-utils'
 
 import {parse_usx} from './common.js'
 import {ignored_elements, ignored_para_styles, ignored_char_styles, ignored_note_styles,
-    headings_major, headings_regular, headings_minor} from './elements.js'
+    headings_major, headings_regular, headings_minor, non_para_para} from './elements.js'
 import type {BibleJsonTypst} from './shared_types.js'
 
 
@@ -70,6 +70,11 @@ export const default_typst_definitions = `
 // Verse number — Superscript (named vn to avoid shadowing Typst's builtin v() spacing)
 #let vn(n) = super(str(n))
 
+// Blank-line separator — used between poetry stanzas, list items, or prose scene breaks, or
+// forced at a boundary between poetry/list content and regular prose. Not a Typst builtin
+// (verified #b() alone errors "unknown variable: b" on a clean document).
+#let b() = v(1em)
+
 // Poetry — LeftMargin .75in, hanging indent depending on level
 //     q1: first line .25in / wrap .75in
 //     q2: first line .375in / wrap .75in
@@ -127,6 +132,30 @@ interface ParserState {
     after_inline_expr:boolean  // True if the last chunk closed an inline code expr (#vn(N), #wj[…])
     unknown_owner:string
     contents:BibleJsonTypst['contents']
+    last_content_category:'non_para'|'para'|'heading'|null  // Category of the most recent
+        // non-ignored para (content or heading); null until the first is seen
+    pending_b:boolean  // Whether a <para style="b"/> was seen since last_content_category was
+        // last updated, and hasn't yet been resolved (emitted or dropped)
+}
+
+
+// Classify a <para> style for b-boundary purposes only (separate from how it actually renders
+// below — e.g. psalm 'd' superscriptions still render as plain prose text, but are treated as
+// heading-like here so a boundary isn't force-inserted around every psalm's title, matching
+// txt.ts's existing precedent for 'd'). Reuses non_para_para (poetry + list styles, which flow
+// tightly together) as the "non_para" bucket, matching txt.ts's own spacing distinction
+function classify_b_category(style:string, book:string):'non_para'|'para'|'heading'{
+    if (headings_major.includes(style) || headings_regular.includes(style)
+            || headings_minor.includes(style)){
+        return 'heading'
+    }
+    if (book === 'psa' && style === 'd'){
+        return 'heading'
+    }
+    if (non_para_para.includes(style)){
+        return 'non_para'
+    }
+    return 'para'
 }
 
 
@@ -155,6 +184,8 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         buffer_para: false,  // Whether current <para>'s body should buffer rather than drop at v0
         after_inline_expr: false,
         unknown_owner: '',  // Content that should be prepended to next verse if current verse done
+        last_content_category: null,
+        pending_b: false,
         // Prepare output with empty strings for every verse
         contents: [
             [],  // Chapter 0
@@ -219,6 +250,35 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
             continue
         }
 
+        // Blank-line marker — buffer it, don't emit yet. Whether it becomes a `#b()` call,
+        // passes through, or gets dropped depends on what comes before/after it (decided
+        // below when the next content para or heading is reached)
+        if (style === 'b'){
+            state.pending_b = true
+            continue
+        }
+
+        // Classify this para for b-boundary purposes only (separate from how it actually
+        // renders below — e.g. psalm 'd' superscriptions still render as plain prose text,
+        // but are treated as heading-like here so a boundary isn't force-inserted around
+        // every psalm's title). A `b` adjacent to a heading (either side) is dropped; a `b`
+        // at a genuine non_para (poetry/list) ↔ regular-prose boundary is forced whether or
+        // not the source had one; a `b` between two paras of the same category passes
+        // through only if present
+        const category = classify_b_category(style, state.book)
+        if (category !== 'heading' && state.last_content_category !== null
+                && state.last_content_category !== 'heading'){
+            if (state.last_content_category === category){
+                if (state.pending_b){
+                    add_typst(state, '#b()\n', true)  // Passthrough — source signal only
+                }
+            } else {
+                add_typst(state, '#b()\n', true)  // Real boundary — always forced
+            }
+        }
+        state.pending_b = false
+        state.last_content_category = category
+
         // Convert major headings to `= ...`
         // TODO Not currently supporting nested elements within heading contents (like <char>)
         if (headings_major.includes(style)){
@@ -235,15 +295,6 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         // Convert minor headings to `=== ...`
         if (headings_minor.includes(style)) {
             add_typst(state, `=== ${escape_text(child.textContent ?? '')}\n`, true)
-            continue
-        }
-
-        // Blank-line marker — Typst collapses multiple newlines down to one paragraph
-        // break, so force an extra blank line with `\` on its own line AFTER an empty
-        // line. Leading `\n` guarantees the empty line regardless of how the prior
-        // paragraph closed (`\n\n` for regular, `]\n` for wrapped, `\n` for headings).
-        if (style === 'b'){
-            add_typst(state, '\n\\\n', true)
             continue
         }
 

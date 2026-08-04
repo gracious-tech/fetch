@@ -168,14 +168,137 @@ describe("usx_to_json_typst", () => {
         expect(verse1).toContain('\n\n')
     })
 
-    it("emits an empty line + forced linebreak for <para style='b'/>", ({expect}) => {
-        // <para style="b"/> appears throughout Haggai 1 between poetry stanzas.
-        // Typst collapses multiple newlines to a single paragraph break, so a forced
-        // line break (`\`) on its own line after a blank line is needed for extra space.
+    it("emits #b() as a passthrough for stanza breaks and scene breaks", ({expect}) => {
+        // Hag 1:5-6 has a poetry-poetry stanza break (q1 → b → q1) that already has a
+        // source b, so it should pass through as a #b() call rather than being dropped
+        const verse6 = cat(output.contents[1]![6]!)
+        expect(verse6).toContain('#b()')
+        // Hag 2:12-13 has several prose-prose scene breaks (m → b → m dialogue turns)
+        // that should pass through the same way
         const all = output.contents.flat().map(cat).join('')
-        expect(all).not.toContain('#b(')
-        // Sequence: previous para close + b's `\n\\\n` → contains `\n\\\n`
-        expect(all).toContain('\n\\\n')
+        expect((all.match(/#b\(\)/g) ?? []).length).toBeGreaterThan(1)
+    })
+
+    it("drops <para style='b'/> that's adjacent to a heading", ({expect}) => {
+        // Hag 1:12 has a heading ("The People Obey") directly followed by a <para style="b"/>
+        // then prose — the b sits between a heading and prose, so it must be dropped entirely,
+        // never emitted as #b(), since the heading already provides its own separation
+        const verse12 = cat(output.contents[1]![12]!)
+        expect(verse12).toContain('== The People Obey')
+        expect(verse12).not.toContain('#b(')
+    })
+
+    it("forces a #b() at a poetry/prose boundary even with no source b", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="q1"><verse number="1" style="v" sid="HAG 1:1"/>poem line<verse eid="HAG 1:1"/></para>
+                <para style="m"><verse number="2" style="v" sid="HAG 1:2"/>prose line<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        expect(cat(out.contents[1]![2]!)).toContain('#b()')
+
+        // And the reverse direction (prose → poetry)
+        const xml_reversed = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>prose line<verse eid="HAG 1:1"/></para>
+                <para style="q1"><verse number="2" style="v" sid="HAG 1:2"/>poem line<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out_reversed = usx_to_json_typst(xml_reversed)
+        expect(cat(out_reversed.contents[1]![2]!)).toContain('#b()')
+    })
+
+    it("emits exactly one #b() at a poetry/prose boundary when source b is present", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="q1"><verse number="1" style="v" sid="HAG 1:1"/>poem line<verse eid="HAG 1:1"/></para>
+                <para style="b"/>
+                <para style="m"><verse number="2" style="v" sid="HAG 1:2"/>prose line<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const joined = out.contents.flat().map(cat).join('')
+        expect((joined.match(/#b\(\)/g) ?? []).length).toBe(1)
+    })
+
+    it("never emits #b() for a b directly adjacent to a heading, either side", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="q1"><verse number="1" style="v" sid="HAG 1:1"/>poem line<verse eid="HAG 1:1"/></para>
+                <para style="b"/>
+                <para style="s1">A Heading</para>
+                <para style="b"/>
+                <para style="q1"><verse number="2" style="v" sid="HAG 1:2"/>poem line<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        const joined = out.contents.flat().map(cat).join('')
+        expect(joined).toContain('== A Heading')
+        expect(joined).not.toContain('#b(')
+    })
+
+    it("does not force #b() between same-category paragraphs with no source b", ({expect}) => {
+        const xml_poetry = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="q1"><verse number="1" style="v" sid="HAG 1:1"/>poem line one<verse eid="HAG 1:1"/></para>
+                <para style="q1"><verse number="2" style="v" sid="HAG 1:2"/>poem line two<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out_poetry = usx_to_json_typst(xml_poetry)
+        expect(out_poetry.contents.flat().map(cat).join('')).not.toContain('#b(')
+
+        const xml_prose = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>prose line one<verse eid="HAG 1:1"/></para>
+                <para style="m"><verse number="2" style="v" sid="HAG 1:2"/>prose line two<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out_prose = usx_to_json_typst(xml_prose)
+        expect(out_prose.contents.flat().map(cat).join('')).not.toContain('#b(')
+    })
+
+    it("forces a #b() at a list/prose boundary too, not just poetry", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="li1"><verse number="1" style="v" sid="HAG 1:1"/>list item<verse eid="HAG 1:1"/></para>
+                <para style="m"><verse number="2" style="v" sid="HAG 1:2"/>prose line<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        expect(cat(out.contents[1]![2]!)).toContain('#b()')
+    })
+
+    it("does not force #b() between poetry and a list (both non_para)", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="q1"><verse number="1" style="v" sid="HAG 1:1"/>poem line<verse eid="HAG 1:1"/></para>
+                <para style="li1"><verse number="2" style="v" sid="HAG 1:2"/>list item<verse eid="HAG 1:2"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        expect(out.contents.flat().map(cat).join('')).not.toContain('#b(')
+    })
+
+    it("keeps forcing a poetry/prose boundary break across a chapter marker", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="q1"><verse number="1" style="v" sid="HAG 1:1"/>poem line<verse eid="HAG 1:1"/></para>
+                <chapter number="2" style="c" sid="HAG 2"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 2:1"/>prose line<verse eid="HAG 2:1"/></para>
+            </usx>`
+        const out = usx_to_json_typst(xml)
+        expect(cat(out.contents[2]![1]!)).toContain('#b()')
     })
 
     it("handles mid-para verse transitions in wrapped paras", ({expect}) => {
@@ -364,7 +487,7 @@ describe("usx_to_json_typst", () => {
         // joined output compiles standalone when this string is appended.
         const defs = default_typst_definitions
         const expected_names = [
-            'ch', 'vn',  // markers
+            'ch', 'vn', 'b',  // markers
             'q', 'qm', 'li', 'lim',  // leveled wrapped paras
             'qc', 'qr', 'qd', 'lh', 'lf',  // non-leveled wrapped paras
             'wj', 'qac', 'qs', 'bk', 'tl', 'add', 'sig',  // consumer-defined char styles
@@ -550,11 +673,21 @@ describe("usx_to_json_typst (WEB Psalms)", () => {
         expect(all_chapters_joined).not.toContain('#q2[')
     })
 
-    it("emits forced linebreaks for <para style='b'/> stanza separators", ({expect}) => {
-        expect(all_chapters_joined).toContain('\n\\\n')
-        // And never as a function call
-        expect(all_chapters_joined).not.toContain('#b(')
+    it("emits <para style='b'/> stanza separators as #b()", ({expect}) => {
+        // Psalm 10:11-12 has a poetry-poetry stanza break (q2 → b → q1) with a source b
+        const verse12 = cat(output.contents[10]![12]!)
+        expect(verse12).toContain('#b()')
+        // Never as a bracketed call — b takes no content
         expect(all_chapters_joined).not.toContain('#b[')
+    })
+
+    it("never forces a #b() around psalm 'd' superscriptions", ({expect}) => {
+        // Every psalm's 'd' superscription sits directly against its poem with no heading
+        // and (in this fixture) no source b — 'd' is treated as heading-like for b-boundary
+        // purposes, so no #b() should be forced around it despite the poetry/prose adjacency
+        const psalm3_v1 = cat(output.contents[3]![1]!)
+        expect(psalm3_v1).toContain('A Psalm by David, when he fled from Absalom his son.')
+        expect(psalm3_v1).not.toContain('#b(')
     })
 
     it("default_typst_definitions covers every #fn(... actually emitted in Psalms",

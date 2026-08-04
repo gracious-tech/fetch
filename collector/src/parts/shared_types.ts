@@ -145,6 +145,26 @@ export interface DistTranslationExtra {
 }
 
 
+// One section's importance/popularity stats, self-describing via an explicit verse range
+export interface SectionStat {
+    start_chapter:number
+    start_verse:number
+    end_chapter:number
+    end_verse:number
+    importance:number  // 1-5 theological/doctrinal/narrative weight
+    popularity:number  // 1-5 cultural fame (including to non-religious people)
+    reason?:string  // Short generation rationale (may be omitted from the published file)
+}
+
+
+// The whole sections.json resource (translation-independent, keyed by USX book code)
+export interface DistSectionData {
+    model:string  // Provenance, e.g. "claude-opus-4-8"
+    generated:string  // ISO date the stats were generated
+    sections:Record<string, SectionStat[]>  // Book code -> sections in canonical order
+}
+
+
 // FORMATS
 
 export interface BookNames {

@@ -4,12 +4,13 @@ import {BookCrossref} from './book/crossref.js'
 import {GlossesBook} from './book/glosses.js'
 import {NotesBook} from './book/notes.js'
 import {TranslationExtra} from './collection/bibles_extra.js'
+import {SectionData} from './other/sections.js'
 import {SearchWords} from './other/search.js'
 import {BibleBook, BibleBookHtml, BibleBookTxt, BibleBookUsfm, BibleBookUsx} from './book/bible.js'
 import {RequestHandler} from './assets/request.js'
 
 import type {UsageOptions, UsageConfig} from './assets/types'
-import type {CrossrefData, DistManifest, DistTranslationExtra, OneOrMore}
+import type {CrossrefData, DistManifest, DistTranslationExtra, DistSectionData, OneOrMore}
     from './assets/shared_types'
 
 
@@ -156,6 +157,14 @@ export class FetchClient {
         const url = this._data_endpoint + `crossref/${size}/${book}.json`
         return this.requester.request(url).then(data => {
             return new BookCrossref(JSON.parse(data) as CrossrefData)
+        })
+    }
+
+    // Fetch section data (importance/popularity), a translation-independent resource
+    async fetch_sections():Promise<SectionData>{
+        const url = this._data_endpoint + 'sections/sections.json'
+        return this.requester.request(url).then(data => {
+            return new SectionData(JSON.parse(data) as DistSectionData)
         })
     }
 

@@ -45,6 +45,8 @@ export type {
 
 export type {FetchCollection} from './collection/collection.js'
 export type {BibleCollection} from './collection/bibles.js'
+export type {SectionData, LocatedSectionStat, GetSectionsOptions, SectionSortBy}
+    from './other/sections.js'
 export type {
     GetLanguagesOptions,
     GetLanguagesItem,
@@ -69,4 +71,6 @@ export type {
     GlossesData,
     NotesData,
     SearchData,
+    SectionStat,
+    DistSectionData,
 } from './assets/shared_types.js'

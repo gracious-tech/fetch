@@ -2,6 +2,8 @@
 import {join} from 'node:path'
 import {existsSync} from 'node:fs'
 
+import {book_names_english, book_abbrev_english} from '@gracious.tech/bible-references'
+
 import {build_native_extra} from './sections.js'
 import {read_json, write_json, list_dirs} from './utils.js'
 
@@ -10,7 +12,8 @@ import type {DistTranslationExtra} from './shared_types.js'
 
 
 export function build_extra_overlay(){
-    // Fill each translation's missing extra.json data from same-language sibling translations
+    // Fill each translation's missing extra.json data from same-language sibling translations, and
+    // force English translations' book normal/abbrev names to the canonical reference set
     // NOTE Donor data is always the freshly-recomputed native extra (never on-disk extra.json), so
     // repeat runs are idempotent and borrowed data is never re-borrowed by a third translation
 
@@ -35,6 +38,8 @@ export function build_extra_overlay(){
     let filled_name_fields = 0
     let filled_heading_books = 0
     const affected_translations = new Set<string>()
+    let canonical_name_fields = 0
+    const canonical_translations = new Set<string>()
 
     // Fill each translation's gaps from its same-language donors
     for (const id of ids){
@@ -70,6 +75,11 @@ export function build_extra_overlay(){
                 if (native.book_names[book]![field]){
                     continue
                 }
+                // English 'normal'/'abbrev' are overwritten with canonical data below regardless,
+                // so borrowing here would only be discarded (canonical has no 'long' equivalent)
+                if (lang === 'eng' && field !== 'long' && book in book_names_english){
+                    continue
+                }
                 for (const donor of donors){
                     const donor_value = natives[donor]!.book_names[book]?.[field]
                     if (donor_value){
@@ -98,6 +108,27 @@ export function build_extra_overlay(){
             }
         }
 
+        // English translations: use the canonical name/abbreviation set rather than each source's
+        // own vocabulary/formatting (e.g. eng_bsb's toc3 abbreviations are inconsistently cased
+        // between Testaments), so switching between English translations shows a consistent book
+        // list
+        if (lang === 'eng'){
+            for (const book of Object.keys(final.book_names)){
+                const canonical_normal = book_names_english[book]
+                const canonical_abbrev = book_abbrev_english[book]
+                if (canonical_normal && final.book_names[book]!.normal !== canonical_normal){
+                    final.book_names[book]!.normal = canonical_normal
+                    canonical_name_fields += 1
+                    canonical_translations.add(id)
+                }
+                if (canonical_abbrev && final.book_names[book]!.abbrev !== canonical_abbrev){
+                    final.book_names[book]!.abbrev = canonical_abbrev
+                    canonical_name_fields += 1
+                    canonical_translations.add(id)
+                }
+            }
+        }
+
         // Write the merged extra file (byte-identical to native when nothing was borrowed)
         write_json(join(bibles_dist, id, 'extra.json'), final)
     }
@@ -105,4 +136,6 @@ export function build_extra_overlay(){
     // Report what was actually borrowed (may be nothing if no translation needed a sibling)
     console.info(`Filled ${filled_name_fields} book name field(s) and ${filled_heading_books} `
         + `book heading set(s) across ${affected_translations.size} translation(s) from siblings`)
+    console.info(`Applied ${canonical_name_fields} canonical English name field(s) across `
+        + `${canonical_translations.size} translation(s)`)
 }

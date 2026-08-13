@@ -52,6 +52,8 @@ export interface GetResourcesItem {
     // NOTE Keeps flat structure for better dev experience
     id:string
     language:string
+    script:string|undefined
+    region:string|undefined
     direction:'ltr'|'rtl',
     year:number
     attribution:string
@@ -350,6 +352,8 @@ export class GenericCollection {
         return {
             id,
             language: id.slice(0, 3),
+            script: resource.script,
+            region: resource.region,
             direction: resource.direction,
             year: resource.year,
 

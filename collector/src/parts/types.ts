@@ -41,6 +41,8 @@ export interface CommonSourceMeta
     source:SourceProps<ServiceIds, PossibleFormats>
     notes?:string  // Notes relevant to sourcing the translation and any issues that came up
     partial?:string[]  // Book ids whose content is only partially included (pruned or in progress)
+    script?:string  // ISO 15924 script, Title Case, e.g. 'Hans', 'Hant' (omit if unambiguous)
+    region?:string  // ISO 3166-1 alpha-2, uppercase, e.g. 'HK', 'TW' (if script alone is ambiguous)
 }
 
 

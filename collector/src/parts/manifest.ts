@@ -74,6 +74,9 @@ function _process_resource_meta(sources_path:string, dist_path:string):DistManif
         books_nt: books_nt.length === 27 ? true : books_nt,
         // Optional, present when content is only partially included
         ...(meta.partial?.length ? {partial: meta.partial} : {}),
+        // Optional, present only when script/region disambiguation is needed
+        ...(meta.script ? {script: meta.script} : {}),
+        ...(meta.region ? {region: meta.region} : {}),
     }
 }
 

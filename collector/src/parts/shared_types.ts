@@ -86,6 +86,8 @@ export interface DistManifestItem {
     direction:'ltr'|'rtl'
     tags:MetaTag[]
     partial?:string[]  // Book ids that have only partial content (so apps can warn users)
+    script?:string  // ISO 15924 script, Title Case, e.g. 'Hans', 'Hant' (omit if unambiguous)
+    region?:string  // ISO 3166-1 alpha-2, uppercase, e.g. 'HK', 'TW' (if script alone is ambiguous)
 }
 
 export interface DistTranslation extends DistManifestItem {

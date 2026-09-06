@@ -18,7 +18,7 @@ cd "$(realpath -m "$0/../../../../../..")"
 # block that resets by 08:30 (see the resume gate in run_window). An evening block already in
 # progress at 22:30 resets even earlier. The 08:00 cutoff kills any still-running session well
 # before the morning.
-WINDOWS=("22:30 08:00")
+WINDOWS=("19:00 10:30")
 
 # The orchestrating session doesn't need heavy lifting (it spawns sonnet subagents and merges)
 MODEL="sonnet"
@@ -90,7 +90,9 @@ run_window(){
         remaining=$(( cutoff - $(date +%s) ))
         began="$(date +%s)"
         log "prompting claude (cutoff $cutoff_hhmm, $(( remaining / 60 ))min left in window)"
-        timeout "$remaining" claude -p \
+        # MAX_THINKING_TOKENS=0 disables thinking for this process only (incl. its subagents),
+        # saving block budget for actual judging without touching the global Claude config
+        MAX_THINKING_TOKENS=0 timeout "$remaining" claude -p \
             "Continue the one-time crossref LLM judging campaign. Read \
 collector/src/data/crossref/judge/README.md and follow it exactly: repeatedly run waves \
 (generate one slice, run a single sonnet subagent prompted with state/prompt.txt verbatim, N \

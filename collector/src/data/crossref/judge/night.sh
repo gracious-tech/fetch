@@ -18,7 +18,7 @@ cd "$(realpath -m "$0/../../../../../..")"
 # block that resets by 08:30 (see the resume gate in run_window). An evening block already in
 # progress at 22:30 resets even earlier. The 08:00 cutoff kills any still-running session well
 # before the morning.
-WINDOWS=("19:00 10:30")
+WINDOWS=("22:30 08:00")
 
 # The orchestrating session doesn't need heavy lifting (it spawns sonnet subagents and merges)
 MODEL="sonnet"

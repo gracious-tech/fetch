@@ -12,3 +12,4 @@ npx esbuild src/*.ts src/**/*.ts --sourcemap --target=node18 --format=esm \
 # Copy static data as esbuild won't include (unless whole thing bundled)
 mkdir -p dist/data
 cp src/data/population.json dist/data/population.json
+cp src/data/sections.json dist/data/sections.json

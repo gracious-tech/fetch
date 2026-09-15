@@ -46,8 +46,6 @@ const OUTPUT_RATE_PER_MTOK = 25
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..')
 const REF_EXTRA = join(REPO, 'collection', 'dist', 'bibles', 'eng_bsb', 'extra.json')
 const OUT_SOURCE = join(REPO, 'collector', 'src', 'data', 'sections.json')
-const OUT_DIST = join(REPO, 'collection', 'dist', 'sections', 'sections.json')
-const UNPUBLISHED = join(REPO, 'collection', 'unpublished.txt')
 
 
 // The fixed rubric applied to every call
@@ -153,45 +151,12 @@ async function rate_chunk(client:Anthropic, book_name:string, book:string,
 }
 
 
-// Append a path to the collection's unpublished tracking file (dedup, trailing newline)
-function add_unpublished(path:string){
-    const existing = existsSync(UNPUBLISHED)
-        ? readFileSync(UNPUBLISHED, 'utf-8').split('\n').map(l => l.trim()).filter(l => l.length)
-        : []
-    if (!existing.includes(path)){
-        existing.push(path)
-    }
-    writeFileSync(UNPUBLISHED, existing.join('\n') + '\n')
-}
-
-
-// Write the committed source and the publishable collection copy
+// Write the committed source of truth (publishing is the collector's `sections` command)
 function write_outputs(data:DistSectionData){
     mkdirSync(dirname(OUT_SOURCE), {recursive: true})
-    mkdirSync(dirname(OUT_DIST), {recursive: true})
 
-    // Committed source keeps `reason` for auditability (indented for readability)
+    // Keeps `reason` for auditability (indented for readability); the collector strips it
     writeFileSync(OUT_SOURCE, JSON.stringify(data, undefined, 4))
-
-    // Published copy drops `reason` to shrink the CDN payload
-    const published:DistSectionData = {
-        model: data.model,
-        generated: data.generated,
-        sections: Object.fromEntries(
-            Object.entries(data.sections).map(([book, sections]) => [
-                book,
-                sections.map(s => ({
-                    start_chapter: s.start_chapter,
-                    start_verse: s.start_verse,
-                    end_chapter: s.end_chapter,
-                    end_verse: s.end_verse,
-                    importance: s.importance,
-                    popularity: s.popularity,
-                })),
-            ]),
-        ),
-    }
-    writeFileSync(OUT_DIST, JSON.stringify(published))
 }
 
 
@@ -346,15 +311,11 @@ async function main(){
     }
     flush()
 
-    // Mark the resource for the next `.bin/collector publish`
-    add_unpublished('sections')
-
     console.info(`\nDone. Rated ${done_sections} sections across `
         + `${new Set(chunks.map(c => c.book)).size} book(s).`)
     console.info(`Actual cost: ~$${cost.toFixed(2)}`)
     console.info(`Wrote: ${OUT_SOURCE}`)
-    console.info(`Wrote: ${OUT_DIST}`)
-    console.info(`Marked "sections" in ${UNPUBLISHED}`)
+    console.info("Run `.bin/collector sections` to copy into a collection for publishing")
 }
 
 

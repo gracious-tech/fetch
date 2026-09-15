@@ -19,6 +19,7 @@ import {update_manifest} from './parts/manifest.js'
 import {update_notes} from './resources/notes.js'
 import {update_glosses} from './resources/gloss.js'
 import {crossref_process} from './data/crossref.js'
+import {sections_process} from './data/sections.js'
 
 import type {TransServiceId} from './parts/types'
 
@@ -56,6 +57,8 @@ await yargs(process.argv.slice(2))
         argv => update_glosses(!!argv['redownload']))
     .command('crossref', "Generate cross-references data", {},
         argv => crossref_process())
+    .command('sections', "Update section stats data (importance/popularity)", {},
+        argv => sections_process())
     .command('manifest', "Update manifest (without updating actual translations)", {},
         argv => update_manifest())
     .command('extra', "Fill missing extra.json data from sibling translations", {},

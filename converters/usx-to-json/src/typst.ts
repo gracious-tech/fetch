@@ -20,6 +20,7 @@ const wrapped_para_styles = [
     'lim', 'lim1', 'lim2', 'lim3', 'lim4',  // Embedded list item
     'lh',  // List header
     'lf',  // List footer
+    'd',  // Descriptive title (e.g. psalm superscription) — stays body text, not a heading
 ]
 
 
@@ -56,6 +57,23 @@ const kept_char_styles = [
 ]
 
 
+// Every consumer-bound marker name this converter can currently emit (structural markers,
+// wrapped paragraph styles, and kept char styles) — the authoritative vocabulary, derived from
+// the USX styles this converter is aware of rather than sampled from any particular collection.
+export const emittable_typst_markers = [
+    'ch', 'vn', 'b',
+    ...wrapped_para_styles,
+    ...kept_char_styles,
+]
+
+
+// Typst built-ins called directly rather than through a consumer-defined marker (#footnote,
+// #smallcaps, #super). A consumer wanting to restyle or suppress one of these must shadow the
+// built-in itself, since there's no #let indirection for it — see `char_shorthand` above and
+// the `#footnote[...]` call in `process_contents` below.
+export const typst_builtins_used = ['footnote', 'smallcaps', 'super']
+
+
 // Default Typst definitions for all of the consumer-defined functions emitted by this
 // converter (`#ch`, `#vn`, `#q`, `#wj`, etc). Append (or prepend) this string to the
 // joined verse output if you don't want to define your own — every function the emitter
@@ -63,61 +81,71 @@ const kept_char_styles = [
 // Values approximate the Paratext USFM default stylesheet (usfm.sty) — inches for
 // margins/indents, points for vertical spacing, bold/italic/colour as documented there.
 // See https://github.com/ubsicap/usfm/blob/master/sty/usfm.sty
+// NOTE Every function takes a trailing `..rest` sink. Typst has no unknown-function or
+// unknown-argument fallback — a marker name or argument a consumer's own definitions don't
+// accept is a fatal compile error for the whole book, not a degradation. A `..rest` sink
+// turns a future extra argument (e.g. a verse label, a heading kind) into a silent no-op
+// instead of a break, so consumer preambles should always define markers this way too.
 export const default_typst_definitions = `
 // Chapter number — Bold, FontSize 18, SpaceBefore 8pt, SpaceAfter 4pt
-#let ch(n) = block(above: 8pt, below: 4pt, text(size: 18pt, weight: "bold", str(n)))
+#let ch(n, ..rest) = block(above: 8pt, below: 4pt, text(size: 18pt, weight: "bold", str(n)))
 
 // Verse number — Superscript (named vn to avoid shadowing Typst's builtin v() spacing)
-#let vn(n) = super(str(n))
+#let vn(n, ..rest) = super(str(n))
 
 // Blank-line separator — used between poetry stanzas, list items, or prose scene breaks, or
 // forced at a boundary between poetry/list content and regular prose. Not a Typst builtin
 // (verified #b() alone errors "unknown variable: b" on a clean document).
-#let b() = v(1em)
+#let b(..rest) = v(1em)
 
 // Poetry — LeftMargin .75in, hanging indent depending on level
 //     q1: first line .25in / wrap .75in
 //     q2: first line .375in / wrap .75in
 //     q3: first line .5in / wrap .75in
 //     q4: first line .625in / wrap .75in
-#let q(n, c) = pad(
+#let q(n, c, ..rest) = pad(
     left: 0.25in + (n - 1) * 0.125in,
     par(hanging-indent: 0.75in - (0.25in + (n - 1) * 0.125in), c),
 )
 
 // Embedded poetry — LeftMargin 1in, hanging indent depending on level
-#let qm(n, c) = pad(
+#let qm(n, c, ..rest) = pad(
     left: 0.25in + (n - 1) * 0.25in,
     par(hanging-indent: 1in - (0.25in + (n - 1) * 0.25in), c),
 )
 
 // List entry — LeftMargin .5in × level, hanging indent for wrapped lines
-#let li(n, c) = pad(
+#let li(n, c, ..rest) = pad(
     left: (n - 1) * 0.25in + 0.125in,
     par(hanging-indent: 0.375in, c),
 )
 
 // Embedded list entry — like li but deeper
-#let lim(n, c) = pad(
+#let lim(n, c, ..rest) = pad(
     left: (n - 1) * 0.25in + 0.375in,
     par(hanging-indent: 0.375in, c),
 )
 
 // Non-leveled wrapped paragraphs
-#let qc(c) = align(center, c)  // Centered poetry
-#let qr(c) = align(right, c)  // Right-aligned poetry
-#let qd(c) = pad(left: 0.25in, emph(c))  // Hebrew musical notation — Italic
-#let lh(c) = strong(c)  // List header
-#let lf(c) = c  // List footer (no special styling)
+#let qc(c, ..rest) = align(center, c)  // Centered poetry
+#let qr(c, ..rest) = align(right, c)  // Right-aligned poetry
+#let qd(c, ..rest) = pad(left: 0.25in, emph(c))  // Hebrew musical notation — Italic
+#let lh(c, ..rest) = strong(c)  // List header
+#let lf(c, ..rest) = c  // List footer (no special styling)
+
+// Descriptive title (e.g. psalm superscription, musical/liturgical notation) — Italic, kept
+// as ordinary body text rather than a heading: it is original wording, not a modern section
+// title, so it should read as prose that happens to be set apart, not jump the heading hierarchy
+#let d(c, ..rest) = emph(c)
 
 // Character styles (no native Typst equivalent)
-#let wj(c) = text(fill: red, c)  // Words of Jesus
-#let qac(c) = emph(c)  // Acrostic letter — Italic
-#let qs(c) = emph(c)  // Selah — Italic
-#let bk(c) = emph(c)  // Quoted book title — Italic
-#let tl(c) = emph(c)  // Transliterated word — Italic
-#let add(c) = emph(c)  // Translational addition — Italic
-#let sig(c) = emph(c)  // Author's signature — Italic
+#let wj(c, ..rest) = text(fill: red, c)  // Words of Jesus
+#let qac(c, ..rest) = emph(c)  // Acrostic letter — Italic
+#let qs(c, ..rest) = emph(c)  // Selah — Italic
+#let bk(c, ..rest) = emph(c)  // Quoted book title — Italic
+#let tl(c, ..rest) = emph(c)  // Transliterated word — Italic
+#let add(c, ..rest) = emph(c)  // Translational addition — Italic
+#let sig(c, ..rest) = emph(c)  // Author's signature — Italic
 `
 
 
@@ -140,10 +168,11 @@ interface ParserState {
 
 
 // Classify a <para> style for b-boundary purposes only (separate from how it actually renders
-// below — e.g. psalm 'd' superscriptions still render as plain prose text, but are treated as
-// heading-like here so a boundary isn't force-inserted around every psalm's title, matching
-// txt.ts's existing precedent for 'd'). Reuses non_para_para (poetry + list styles, which flow
-// tightly together) as the "non_para" bucket, matching txt.ts's own spacing distinction
+// below — e.g. psalm 'd' superscriptions render as wrapped #d[...] body text, not a real
+// heading, but are treated as heading-like here so a boundary isn't force-inserted around
+// every psalm's title, matching txt.ts's existing precedent for 'd'). Reuses non_para_para
+// (poetry + list styles, which flow tightly together) as the "non_para" bucket, matching
+// txt.ts's own spacing distinction
 function classify_b_category(style:string, book:string):'non_para'|'para'|'heading'{
     if (headings_major.includes(style) || headings_regular.includes(style)
             || headings_minor.includes(style)){
@@ -299,10 +328,10 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         }
 
         // All other styles are paragraphs — wrapped only for special ones (poetry,
-        // lists). Regular prose paras have no wrapper, just a trailing blank line.
-        // For leveled families (q, qm, li, lim) the digit becomes a function argument:
-        // q1 → #q(1)[…], q4 → #q(4)[…], plain q → #q(1)[…] (defaults to level 1).
-        // Other wrapped styles (qc, qr, qd, lh, lf) emit #<style>[…] with no argument.
+        // lists, descriptive titles). Regular prose paras have no wrapper, just a trailing
+        // blank line. For leveled families (q, qm, li, lim) the digit becomes a function
+        // argument: q1 → #q(1)[…], q4 → #q(4)[…], plain q → #q(1)[…] (defaults to level 1).
+        // Other wrapped styles (qc, qr, qd, lh, lf, d) emit #<style>[…] with no argument.
         const wrapped = wrapped_para_styles.includes(style)
         let para_open = ''
         if (wrapped){

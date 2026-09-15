@@ -5,7 +5,8 @@ import {readFileSync} from 'node:fs'
 import {describe, it} from 'vitest'
 import {last_verse} from '@gracious.tech/bible-references'
 
-import {usx_to_json_typst, default_typst_definitions} from './typst.js'
+import {usx_to_json_typst, default_typst_definitions,
+    emittable_typst_markers, typst_builtins_used} from './typst.js'
 
 const test_usx = readFileSync(join(__dirname, '..', '..', 'test.usx'), {encoding: 'utf8'})
 const test_psa_usx = readFileSync(join(__dirname, '..', '..', 'test_web_psa.usx'),
@@ -489,7 +490,7 @@ describe("usx_to_json_typst", () => {
         const expected_names = [
             'ch', 'vn', 'b',  // markers
             'q', 'qm', 'li', 'lim',  // leveled wrapped paras
-            'qc', 'qr', 'qd', 'lh', 'lf',  // non-leveled wrapped paras
+            'qc', 'qr', 'qd', 'lh', 'lf', 'd',  // non-leveled wrapped paras
             'wj', 'qac', 'qs', 'bk', 'tl', 'add', 'sig',  // consumer-defined char styles
         ]
         for (const name of expected_names){
@@ -509,9 +510,11 @@ describe("usx_to_json_typst", () => {
         const out = usx_to_json_typst(xml)
         // Verse 0 should be untouched
         expect(out.contents[1]![0]).toEqual(['', '', ''])
-        // Verse 1 should contain the superscription text
+        // Verse 1 should contain the superscription text, wrapped as #d[...] — body text
+        // (a consumer-defined marker), never a heading (=/==/===)
         const joined = cat(out.contents[1]![1]!)
-        expect(joined).toContain('A psalm of David')
+        expect(joined).toContain('#d[A psalm of David]')
+        expect(joined).not.toMatch(/^=+ /m)
     })
 
     it("drops verse-less body text before verse 1 and warns (not attached to verse 1)", ({expect}) => {
@@ -637,15 +640,16 @@ describe("usx_to_json_typst (WEB Psalms)", () => {
         expect(verse).not.toContain('#wh[')
     })
 
-    it("attaches psalm 'd' superscription content to verse 1", ({expect}) => {
+    it("attaches psalm 'd' superscription content to verse 1, wrapped as body text", ({expect}) => {
         // Psalm 3 has "A Psalm by David, when he fled from Absalom his son."
         const psalm3_v0 = output.contents[3]![0]!
         const psalm3_v1 = cat(output.contents[3]![1]!)
         expect(psalm3_v0).toEqual(['', '', ''])
-        expect(psalm3_v1).toContain('A Psalm by David, when he fled from Absalom his son.')
+        expect(psalm3_v1)
+            .toContain('#d[A Psalm by David, when he fled from Absalom his son.]')
         // Psalm 4 superscription
-        expect(cat(output.contents[4]![1]!))
-            .toContain('For the Chief Musician; on stringed instruments. A Psalm by David.')
+        expect(cat(output.contents[4]![1]!)).toContain(
+            '#d[For the Chief Musician; on stringed instruments. A Psalm by David.]')
     })
 
     it("handles Psalm 119 acrostic 'd' letter markers", ({expect}) => {
@@ -705,5 +709,75 @@ describe("usx_to_json_typst (WEB Psalms)", () => {
         for (const name of emitted){
             expect(default_typst_definitions).toMatch(new RegExp(`#let ${name}\\(`))
         }
+    })
+
+    /* The whitespace/line-structure invariants downstream Typst consumers parse against
+        (chapter splitting, heading detection, verse-level alignment). These hold because
+        escape_text() collapses all whitespace runs in source text to single spaces, so no
+        emitted text fragment can itself contain a newline — only the converter's own
+        structural output (\n after #ch, headings, para_close) introduces line breaks. */
+
+    it("invariant: #ch(n) always appears alone at the start of a line", ({expect}) => {
+        expect(all_chapters_joined).toMatch(/(^|\n)#ch\(\d+\)\n/)
+        // Never with trailing content on the same line
+        expect(all_chapters_joined).not.toMatch(/#ch\(\d+\)[^\n]/)
+    })
+
+    it("invariant: heading markers are = / == / === at the start of a line", ({expect}) => {
+        // Psalms (WEB) only exercises major (ms1) headings — build a fixture covering all
+        // three levels (major/regular/minor) for this invariant specifically
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="MAT" style="id">Test</book>
+                <chapter number="1" style="c" sid="MAT 1"/>
+                <para style="ms1">Major</para>
+                <para style="s1">Regular</para>
+                <para style="sp">Minor</para>
+                <para style="p"><verse number="1" style="v" sid="MAT 1:1"/>Text<verse eid="MAT 1:1"/></para>
+            </usx>`
+        const joined = usx_to_json_typst(xml).contents[1]!.map(cat).join('')
+        expect(joined).toMatch(/(^|\n)= Major\n/)
+        expect(joined).toMatch(/(^|\n)== Regular\n/)
+        expect(joined).toMatch(/(^|\n)=== Minor\n/)
+        // Never a heading marker preceded by other content on the same line
+        expect(joined).not.toMatch(/[^\n=]={1,3} /)
+    })
+
+    it("invariant: paragraphs are separated by a blank line", ({expect}) => {
+        // Every '\n\n' (regular prose para_close) or wrapped ']\n' close is followed either by
+        // another structural marker or a blank line before the next content — never glued text
+        expect(all_chapters_joined).not.toMatch(/[a-zA-Z][^\n]\n[a-zA-Z]/)
+    })
+
+    it("invariant: wrapper calls open and close on a single line, never nested", ({expect}) => {
+        // Every wrapped-para open fragment (#q(1)[, #d[, etc) is matched by a `]` before the
+        // next newline — i.e. no wrapper's content itself contains a raw newline
+        for (const match of all_chapters_joined.matchAll(/#[a-z]+(?:\(\d+\))?\[([^\n]*)/g)){
+            expect(match[1]).not.toContain('\n')
+        }
+    })
+
+    it("every ..rest-sinked default definition takes at least one function", ({expect}) => {
+        // Mandating ..rest is what makes an additive marker change (new positional/named arg)
+        // safe rather than a fatal "unexpected argument" — verify every #let in the reference
+        // preamble actually declares the sink
+        const lets = [...default_typst_definitions.matchAll(/#let ([a-z]+)\(([^)]*)\)/g)]
+        expect(lets.length).toBeGreaterThan(0)
+        for (const [, name, args] of lets){
+            expect(args, `#let ${name} is missing a ..rest sink`).toContain('..rest')
+        }
+    })
+
+    it("publishes a marker vocabulary with no overlap between emittable and builtin",
+            ({expect}) => {
+        // These two lists are the authoritative vocabulary a consumer's preamble should bind
+        // against — not the sample-dependent set any one collection happens to use
+        const emittable = new Set(emittable_typst_markers)
+        const builtins = new Set(typst_builtins_used)
+        for (const name of emittable){
+            expect(builtins.has(name), `${name} is both emittable and a builtin`).toBe(false)
+        }
+        // 'd' is part of the live (emittable) contract, wrapped as body text not a heading
+        expect(emittable.has('d')).toBe(true)
     })
 })

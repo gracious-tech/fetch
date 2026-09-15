@@ -249,8 +249,10 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
             if (chapter_number < 1 || chapter_number >= state.contents.length){
                 throw new Error(`Chapter number isn't valid for the book: ${chapter_number}`)
             }
-            if (chapter_number !== state.chapter + 1){
-                throw new Error(`Chapter ${chapter_number} isn't +1 previous ${state.chapter}`)
+            // Allow gaps (missing chapters) so partial translations can still be converted; the
+            // skipped chapters are simply left empty. Completeness is the consumer's concern.
+            if (chapter_number <= state.chapter){
+                throw new Error(`Chapter ${chapter_number} isn't after previous ${state.chapter}`)
             }
             state.chapter = chapter_number
             state.verse = 0

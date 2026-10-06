@@ -2,4 +2,4 @@
 set -e
 cd "$(realpath -m "$0/../..")/collector/src/data/crossref/judge"
 
-./night.sh
+./night.sh "$@"

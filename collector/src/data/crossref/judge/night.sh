@@ -9,8 +9,16 @@
 #
 # Run it detached and forget about it:
 #   tmux new -d -s judging collector/src/data/crossref/judge/night.sh
+# Or pass --anytime to ignore the nightly window and resume gate, running around the clock:
+#   tmux new -d -s judging collector/src/data/crossref/judge/night.sh --anytime
 set -u
 cd "$(realpath -m "$0/../../../../../..")"
+
+# Whether to ignore the nightly window and resume gate entirely
+ANYTIME=0
+if [ "${1:-}" = "--anytime" ]; then
+    ANYTIME=1
+fi
 
 # The nightly window as a "start cutoff" pair (24h local time; a cutoff earlier than its start
 # falls on the following day). Starting at 22:30 is safe even in the worst case: if that first
@@ -81,12 +89,16 @@ run_window(){
     # the morning starts with untouched capacity. Blocks begin at the first prompt after a
     # limit reset, so never resume a reset that falls after this gate.
     local gate=$(( cutoff + 1800 - 18000 ))
+    # Anytime mode always resumes after a limit reset
+    if [ "$ANYTIME" -eq 1 ]; then
+        gate=$cutoff
+    fi
     while [ "$(date +%s)" -lt "$cutoff" ]; do
         if is_done; then
             return
         fi
         local cutoff_hhmm remaining began duration code
-        cutoff_hhmm="$(date -d "@$cutoff" '+%H:%M')"
+        cutoff_hhmm="$(date -d "@$cutoff" '+%F %H:%M')"
         remaining=$(( cutoff - $(date +%s) ))
         began="$(date +%s)"
         log "prompting claude (cutoff $cutoff_hhmm, $(( remaining / 60 ))min left in window)"
@@ -145,12 +157,27 @@ not work on anything other than the judging campaign." \
     done
 }
 
-log "night runner started (windows: ${WINDOWS[*]})"
+if [ "$ANYTIME" -eq 1 ]; then
+    log "night runner started (anytime mode, no window restriction)"
+else
+    log "night runner started (windows: ${WINDOWS[*]})"
+fi
 log_status "starting"
 while true; do
     if is_done; then
         log "campaign complete — all pairs judged. Exiting."
         exit 0
+    fi
+
+    # Anytime mode: one week-long window, cooling off between runs if it gives up early (e.g.
+    # repeated quick failures) so a broken setup isn't hammered
+    if [ "$ANYTIME" -eq 1 ]; then
+        run_window $(( $(date +%s) + 604800 ))
+        if ! is_done; then
+            log "window gave up early; retrying in 30min"
+            sleep 1800
+        fi
+        continue
     fi
 
     # Find the current window (if inside one) or the soonest upcoming start

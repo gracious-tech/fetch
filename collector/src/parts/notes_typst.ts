@@ -28,17 +28,19 @@ const span_class_wraps:[string, string, string][] = [
 ]
 
 
-// Elements that map to native Typst shorthand, wrapping outside any semantic classes
-const native_shorthand:Record<string, [string, string]> = {
-    strong: ['*', '*'],
-    em: ['_', '_'],
+// Elements that map to native Typst functions, wrapping outside any semantic classes
+// NOTE Never `*…*`/`_…_` shorthand — Typst reads those as literal when touching a word character
+// (e.g. intraword "_Priest_s"), leaving the delimiter unclosed and the whole document failing
+const native_wraps:Record<string, [string, string]> = {
+    strong: ['#strong[', ']'],
+    em: ['#emph[', ']'],
     sup: ['#super[', ']'],
     sub: ['#sub[', ']'],
 }
 
 
 // Default Typst definitions for every consumer-defined function this converter emits (#greek,
-// #hebrew, #aramaic, #latin). Native builtins (#smallcaps, #super, #sub) need no definition.
+// #hebrew, #aramaic, #latin). Native builtins (#emph, #strong, #smallcaps, ...) need none.
 // Append to converted note output to compile it standalone.
 export const default_notes_typst_definitions = `
 #let greek(c) = c
@@ -102,8 +104,8 @@ function process_node(state:State, node:ChildNode):void{
     // Only ever appears on a bare <span> (never combined with <strong>/<em>), so it's safe to
     // take priority over the tag-based lookup below
     const [native_open, native_close] = classes.includes('fbn-excerpt')
-        ? ['_', '_']
-        : native_shorthand[element.nodeName] ?? ['', '']
+        ? native_wraps['em']!
+        : native_wraps[element.nodeName] ?? ['', '']
 
     add(state, native_open)
     for (const [, open] of matched){

@@ -11,16 +11,18 @@ describe('html_note_to_typst', () => {
             .toEqual('uses \\#hash and \\[bracket\\]')
     })
 
-    it('converts <strong> to native bold', ({expect}) => {
-        expect(html_note_to_typst('The <strong>title</strong> of')).toEqual('The *title* of')
+    it('converts <strong> to native #strong[…]', ({expect}) => {
+        expect(html_note_to_typst('The <strong>title</strong> of')).toEqual('The #strong[title] of')
     })
 
-    it('converts <em> to native italic', ({expect}) => {
-        expect(html_note_to_typst('Beelzeboul; <em>see</em> note')).toEqual('Beelzeboul; _see_ note')
+    it('converts <em> to native #emph[…]', ({expect}) => {
+        expect(html_note_to_typst('Beelzeboul; <em>see</em> note'))
+            .toEqual('Beelzeboul; #emph[see] note')
     })
 
     it('converts nested <em><strong> (ital-bold)', ({expect}) => {
-        expect(html_note_to_typst('<em><strong>Peace</strong></em>')).toEqual('_*Peace*_')
+        expect(html_note_to_typst('<em><strong>Peace</strong></em>'))
+            .toEqual('#emph[#strong[Peace]]')
     })
 
     it('converts <sup> and <sub> to native super/sub', ({expect}) => {
@@ -34,16 +36,16 @@ describe('html_note_to_typst', () => {
         expect(html_note_to_typst('<span class="fbn-sc">title</span> was'))
             .toEqual('#smallcaps[title] was')
         expect(html_note_to_typst('The Lord <strong class="fbn-sc">Jesus</strong> is King'))
-            .toEqual('The Lord *#smallcaps[Jesus]* is King')
+            .toEqual('The Lord #strong[#smallcaps[Jesus]] is King')
         expect(html_note_to_typst('The Lord <em class="fbn-sc">Jesus</em> is King'))
-            .toEqual('The Lord _#smallcaps[Jesus]_ is King')
+            .toEqual('The Lord #emph[#smallcaps[Jesus]] is King')
     })
 
     it('converts fbn-yhwh (divine name) and fbn-era to #smallcaps[…]', ({expect}) => {
         expect(html_note_to_typst('The Lord <em class="fbn-yhwh">Jesus</em> is King'))
-            .toEqual('The Lord _#smallcaps[Jesus]_ is King')
+            .toEqual('The Lord #emph[#smallcaps[Jesus]] is King')
         expect(html_note_to_typst('The year 2300 <strong class="fbn-era">AD</strong> it'))
-            .toEqual('The year 2300 *#smallcaps[AD]* it')
+            .toEqual('The year 2300 #strong[#smallcaps[AD]] it')
     })
 
     it('converts original-language spans (greek/hebrew/aramaic/latin) to consumer functions',
@@ -65,23 +67,23 @@ describe('html_note_to_typst', () => {
         }
     })
 
-    it('converts fbn-excerpt to native italic (_…_), no consumer function', ({expect}) => {
+    it('converts fbn-excerpt to native #emph[…], no consumer function', ({expect}) => {
         expect(html_note_to_typst('In <span class="fbn-excerpt">the beginning God</span> created'))
-            .toEqual('In _the beginning God_ created')
+            .toEqual('In #emph[the beginning God] created')
         expect(default_notes_typst_definitions).not.toContain('excerpt')
     })
 
     it('stacks fbn-excerpt with a nested semantic class (yhwh/sc)', ({expect}) => {
         expect(html_note_to_typst('The <span class="fbn-excerpt fbn-yhwh">Jesus</span> is King'))
-            .toEqual('The _#smallcaps[Jesus]_ is King')
+            .toEqual('The #emph[#smallcaps[Jesus]] is King')
         expect(html_note_to_typst('<span class="fbn-excerpt fbn-sc">Mene, Tekel,</span> and'))
-            .toEqual('_#smallcaps[Mene, Tekel,]_ and')
+            .toEqual('#emph[#smallcaps[Mene, Tekel,]] and')
     })
 
     it('ignores fbn-roman (occurs once in the whole source) — falls back to plain excerpt',
             ({expect}) => {
         expect(html_note_to_typst('lots were called <span class="fbn-excerpt fbn-roman">purim</span>'))
-            .toEqual('lots were called _purim_')
+            .toEqual('lots were called #emph[purim]')
     })
 
     it('renders fbn-list-N spans as regular text, no special indent handling', ({expect}) => {
@@ -120,6 +122,21 @@ describe('html_note_to_typst', () => {
     it('escapes a leading "." right after a closing inline expression', ({expect}) => {
         expect(html_note_to_typst('<span class="fbn-sc">Sc</span>...trailing'))
             .toEqual('#smallcaps[Sc]\\...trailing')
+    })
+
+    it('emits emphasis as calls so it survives touching word characters', ({expect}) => {
+        // Shorthand `_…_` is literal next to a letter, leaving an unclosed delimiter
+        expect(html_note_to_typst('<span class="fbn-excerpt">Priest</span>s also'))
+            .toEqual('#emph[Priest]s also')
+        expect(html_note_to_typst('a <em>Bath</em>sheba’s name'))
+            .toEqual('a #emph[Bath]sheba’s name')
+        expect(html_note_to_typst('make just <span class="fbn-excerpt">decision</span>s. As'))
+            .toEqual('make just #emph[decision]s. As')
+    })
+
+    it('escapes a "." or "(" directly after a closing #emph[…]', ({expect}) => {
+        expect(html_note_to_typst('<em>died</em>.Then')).toEqual('#emph[died]\\.Then')
+        expect(html_note_to_typst('<em>died</em>(4:2)')).toEqual('#emph[died]\\(4:2)')
     })
 
     it('default_notes_typst_definitions covers every consumer function the converter emits',

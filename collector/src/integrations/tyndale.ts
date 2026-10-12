@@ -15,6 +15,18 @@ import type {NotesData, MultiVerseNote} from '../parts/shared_types'
 export const tyndale_source_dir = join('sources', 'notes', 'tyndale')
 
 
+// Exact-match corrections for typos in the source XML (misplaced/missing spaces around excerpts)
+const source_fixes:[string, string][] = [
+    // 1 Sam 4:10 — space misplaced before rather than after "had"
+    ['as many as  had<span class="sn-excerpt">died</span>',
+        'as many as had <span class="sn-excerpt">died</span>'],
+    // 2 Sam 22:34
+    ['<span class="sn-excerpt">deer</span>during', '<span class="sn-excerpt">deer</span> during'],
+    // Ezra 3:10-11 — stray excerpt "sing" (NLT has "sang"), leaving "give praise and thanks"
+    ['to give<span class="sn-excerpt">sing</span> ', 'to give '],
+]
+
+
 // Generate the meta.json
 function _generate_meta(url:string, revision:number):CommonSourceMeta{
     return {
@@ -79,7 +91,17 @@ export async function download_notes(){
 export function sources_to_dist():Record<string, NotesData> {
     const notes_id = 'eng_tyndale'
     const notes_path = join(tyndale_source_dir, notes_id, 'StudyNotes.xml')
-    const xml = readFileSync(notes_path, {encoding: 'utf8'})
+    let xml = readFileSync(notes_path, {encoding: 'utf8'})
+
+    // Correct known source typos, warning when one no longer matches (e.g. fixed upstream)
+    for (const [find, replace] of source_fixes){
+        if (!xml.includes(find)){
+            console.warn(`Tyndale source fix no longer applies: ${find}`)
+            continue
+        }
+        xml = xml.replace(find, replace)
+    }
+
     return study_notes_to_json(xml, notes_id)
 }
 

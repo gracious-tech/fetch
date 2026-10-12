@@ -30,14 +30,16 @@ const wrapped_para_styles = [
 const leveled_para_families = ['q', 'qm', 'li', 'lim']
 
 
-// Char styles that map directly to native Typst syntax or built-in functions, keyed by
-// USX style and giving [open, close] fragments to wrap around the inner content
-const char_shorthand:Record<string, [string, string]> = {
-    bd: ['*', '*'],  // Strong (bold)
-    em: ['_', '_'],  // Emphasis (italic)
-    it: ['_', '_'],  // Italic
-    bdit: ['*_', '_*'],  // Strong + emphasis
-    k: ['*_', '_*'],  // Keyword (bold italic by convention)
+// Char styles that map directly to Typst built-in functions, keyed by USX style and giving
+// [open, close] fragments to wrap around the inner content
+// NOTE Never `*…*`/`_…_` shorthand — Typst reads those as literal when touching a word character
+// (intraword styling, or scripts without spaces), leaving the delimiter unclosed
+const char_builtins:Record<string, [string, string]> = {
+    bd: ['#strong[', ']'],  // Strong (bold)
+    em: ['#emph[', ']'],  // Emphasis (italic)
+    it: ['#emph[', ']'],  // Italic
+    bdit: ['#strong[#emph[', ']]'],  // Strong + emphasis
+    k: ['#strong[#emph[', ']]'],  // Keyword (bold italic by convention)
     sc: ['#smallcaps[', ']'],  // Small caps (built-in)
     nd: ['#smallcaps[', ']'],  // Name of deity (small caps by convention)
     sup: ['#super[', ']'],  // Superscript (built-in)
@@ -68,10 +70,10 @@ export const emittable_typst_markers = [
 
 
 // Typst built-ins called directly rather than through a consumer-defined marker (#footnote,
-// #smallcaps, #super). A consumer wanting to restyle or suppress one of these must shadow the
-// built-in itself, since there's no #let indirection for it — see `char_shorthand` above and
-// the `#footnote[...]` call in `process_contents` below.
-export const typst_builtins_used = ['footnote', 'smallcaps', 'super']
+// #emph, #strong, #smallcaps, #super). A consumer wanting to restyle or suppress one of these
+// must shadow the built-in itself (or use a show rule), since there's no #let indirection for
+// it — see `char_builtins` above and the `#footnote[...]` call in `process_contents` below.
+export const typst_builtins_used = ['footnote', 'emph', 'strong', 'smallcaps', 'super']
 
 
 // Default Typst definitions for all of the consumer-defined functions emitted by this
@@ -501,12 +503,12 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
                 continue
             }
 
-            const shorthand = char_shorthand[char_style]
-            if (shorthand){
+            const builtin = char_builtins[char_style]
+            if (builtin){
                 // Native Typst syntax or built-in function
-                add_typst(state, shorthand[0])
+                add_typst(state, builtin[0])
                 process_contents(state, element.childNodes, allow_nonbib)
-                add_typst(state, shorthand[1])
+                add_typst(state, builtin[1])
             } else if (kept_char_styles.includes(char_style)){
                 // Consumer-defined function (no native equivalent)
                 add_typst(state, `#${char_style}[`)

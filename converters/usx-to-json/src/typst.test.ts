@@ -104,7 +104,7 @@ describe("usx_to_json_typst", () => {
     it("preserves char-style formatting inside footnotes", ({expect}) => {
         // Footnote contents can include FootnoteChar styles (ft, fr, fk, fq, ...) and
         // generic char styles (it, bd, sc, ...). FootnoteChar styles are pass-through,
-        // but generic char styles inside notes should still render with native shorthand.
+        // but generic char styles inside notes should still render as native functions.
         const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <usx version="3.0">
                 <book code="HAG" style="id">Test</book>
@@ -113,10 +113,10 @@ describe("usx_to_json_typst", () => {
             </usx>`
         const out = usx_to_json_typst(xml)
         const content = out.contents[1]![1]![1]!
-        // The footnote should contain the italic and bold portions as native Typst syntax
+        // The footnote should contain the italic and bold portions as native Typst functions
         expect(content).toContain('#footnote[')
-        expect(content).toContain('_italic_')
-        expect(content).toContain('*bold*')
+        expect(content).toContain('#emph[italic]')
+        expect(content).toContain('#strong[bold]')
         // The fr/ft wrapper char styles themselves should NOT emit function calls
         expect(content).not.toContain('#fr[')
         expect(content).not.toContain('#ft[')
@@ -376,7 +376,18 @@ describe("usx_to_json_typst", () => {
         expect(out.contents[1]![1]![1]).toContain('#super[st]')
     })
 
-    it("uses native Typst shorthand for bold and italic", ({expect}) => {
+    it("keeps intraword italic valid and escapes a following '.'", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+                <book code="HAG" style="id">Test</book>
+                <chapter number="1" style="c" sid="HAG 1"/>
+                <para style="m"><verse number="1" style="v" sid="HAG 1:1"/>the <char style="it">Priest</char>s and <char style="bd">end</char>.That<verse eid="HAG 1:1"/></para>
+            </usx>`
+        const content = usx_to_json_typst(xml).contents[1]![1]![1]!
+        expect(content).toContain('#emph[Priest]s and #strong[end]\\.That')
+    })
+
+    it("uses native Typst functions for bold and italic", ({expect}) => {
         const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <usx version="3.0">
                 <book code="HAG" style="id">Test</book>
@@ -385,12 +396,14 @@ describe("usx_to_json_typst", () => {
             </usx>`
         const out = usx_to_json_typst(xml)
         const content = out.contents[1]![1]![1]!
-        expect(content).toContain('*bold*')
-        expect(content).toContain('_italic_')
-        expect(content).toContain('_emph_')
-        expect(content).toContain('*_both_*')
-        expect(content).toContain('*_keyword_*')
-        // No #bd[…] / #it[…] etc. — should be native shorthand
+        expect(content).toContain('#strong[bold]')
+        expect(content).toContain('#emph[italic]')
+        expect(content).toContain('#emph[emph]')
+        expect(content).toContain('#strong[#emph[both]]')
+        expect(content).toContain('#strong[#emph[keyword]]')
+        // Shorthand `_…_`/`*…*` would be literal when touching a word character
+        expect(content).not.toMatch(/[_*]/)
+        // No #bd[…] / #it[…] etc. — should be native functions
         expect(content).not.toContain('#bd[')
         expect(content).not.toContain('#it[')
         expect(content).not.toContain('#em[')

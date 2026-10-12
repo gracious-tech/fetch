@@ -8,7 +8,10 @@ import * as tyndale from '../integrations/tyndale.js'
 import {clean_dir, list_dirs, list_dirs_if, mkdir_exist, write_json} from '../parts/utils.js'
 import {update_manifest} from '../parts/manifest.js'
 import {add_unpublished} from '../parts/unpublished.js'
-import {html_note_to_typst} from '../parts/notes_typst.js'
+import {html_note_to_typst, default_notes_typst_definitions} from '../parts/notes_typst.js'
+import {check_typst_snippets} from '../parts/typst_check.js'
+
+import type {TypstSnippet} from '../parts/typst_check.js'
 
 import type {NotesData} from '../parts/shared_types'
 
@@ -41,6 +44,12 @@ export async function notes_process(){
         const notes = tyndale.sources_to_dist()
         if (notes){
 
+            // Convert to Typst first and confirm every note compiles before writing anything
+            const typst_books = Object.fromEntries(Object.keys(notes).map(
+                book => [book, notes_to_typst(notes[book]!)]))
+            check_typst_snippets(Object.values(typst_books).flatMap(notes_typst_snippets),
+                default_notes_typst_definitions)
+
             // Separate into individual books
             const html_dir = join('dist', 'notes', id, 'html')
             const txt_dir = join('dist', 'notes', id, 'txt')
@@ -52,7 +61,7 @@ export async function notes_process(){
                 write_json(join(html_dir, `${book}.json`), notes[book])
                 // Also write plain text and Typst (for print/PDF) versions
                 write_json(join(txt_dir, `${book}.json`), notes_to_txt(notes[book]!))
-                write_json(join(typst_dir, `${book}.json`), notes_to_typst(notes[book]!))
+                write_json(join(typst_dir, `${book}.json`), typst_books[book])
             }
         }
     }
@@ -117,4 +126,21 @@ function notes_to_typst(notes:NotesData):NotesData{
     }
 
     return typst
+}
+
+
+// List every note body in a book with a reference label, for compile checking
+function notes_typst_snippets(notes:NotesData):TypstSnippet[]{
+    const prefix = `${notes.notes_id} ${notes.book}`
+    const snippets:TypstSnippet[] = notes.ranges.map(range => ({
+        label: `${prefix} ${range.start_chapter}:${range.start_verse}-`
+            + `${range.end_chapter}:${range.end_verse}`,
+        body: range.contents,
+    }))
+    for (const ch in notes.verses){
+        for (const verse in notes.verses[ch]){
+            snippets.push({label: `${prefix} ${ch}:${verse}`, body: notes.verses[ch]![verse]!})
+        }
+    }
+    return snippets
 }

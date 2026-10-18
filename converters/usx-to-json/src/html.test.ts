@@ -178,3 +178,56 @@ describe("usx_to_json_html", () => {
     })
 
 })
+
+// A table whose rows split across verses (verse 2 starts inside a cell), followed by a para that
+// starts with the previous verse's end marker (as usfmtc emits after a table)
+const table_usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<usx version="3.0">
+    <book code="HAG" style="id">Test</book>
+    <chapter number="1" style="c" sid="HAG 1"/>
+    <para style="li1"><verse number="1" style="v" sid="HAG 1:1"/>The singers:</para>
+    <table>
+        <row style="tr">
+            <cell style="tc1" align="start">Asaph </cell>
+            <cell style="tcr2" align="end">128</cell>
+        </row>
+        <row style="tr">
+            <cell style="tc1" align="start">
+                <verse eid="HAG 1:1"/>
+                <verse number="2" style="v" sid="HAG 1:2"/>Gatekeepers</cell>
+            <cell style="tcr2" align="end">139</cell>
+        </row>
+    </table>
+    <para style="li1" vid="HAG 1:2">
+        <verse eid="HAG 1:2"/>
+        <verse number="3" style="v" sid="HAG 1:3"/>Temple servants:<verse eid="HAG 1:3"/></para>
+</usx>`
+
+
+// A para whose first content is a footnote before the verse 1 marker (e.g. Lamentations)
+const note_first_usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<usx version="3.0">
+    <book code="HAG" style="id">Test</book>
+    <chapter number="1" style="c" sid="HAG 1"/>
+    <para style="q1"><note caller="+" style="f"><char style="ft">Acrostic</char></note><verse number="1" style="v" sid="HAG 1:1"/>How lonely<verse eid="HAG 1:1"/></para>
+    <para style="q1"><verse number="2" style="v" sid="HAG 1:2"/>She weeps<verse eid="HAG 1:2"/></para>
+</usx>`
+
+
+
+describe("usx_to_json_html tables and pre-verse content", () => {
+
+    it("converts table rows to fb-li1 paras, splitting verses within cells", ({expect}) => {
+        const contents = usx_to_json_html(table_usx).contents[1]!
+        expect(contents[1]![1]).toContain('<p class="fb-li1">Asaph 128</p>')
+        expect(contents[2]).toEqual(
+            ['', '<p class="fb-li1"><sup data-v="1:2">2</sup>Gatekeepers 139</p>', ''])
+        expect(contents[3]![0]).toBe('')
+    })
+
+    it("doesn't duplicate a para's opening tag when a footnote precedes verse 1", ({expect}) => {
+        const contents = usx_to_json_html(note_first_usx).contents[1]!
+        expect(contents[1]![0]).toBe('')
+        expect(contents[1]![1]!.match(/<p /g)).toHaveLength(1)
+    })
+})

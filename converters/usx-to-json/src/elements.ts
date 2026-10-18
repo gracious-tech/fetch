@@ -1,9 +1,6 @@
 
 export const ignored_elements:readonly string[] = [
     'book',     // Book marker meaningless since books served separately
-    'table',    // TODO Tables are probably non-biblical content (but confirm)
-    'row',      // Part of a table
-    'cell',     // Part of a table
     'sidebar',  // Non-biblical info not tied to specific verse
     'periph',   // Non-biblical extra info
     'figure',   // Illustrations etc

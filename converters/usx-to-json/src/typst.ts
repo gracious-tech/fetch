@@ -157,7 +157,7 @@ interface ParserState {
     verse:number
     para_open:string  // Opening fragment for current <para> (e.g. '#q1[' or '' for regular)
     para_close:string  // Closing fragment for current <para> (e.g. ']\n' or '\n\n')
-    mid_para:boolean  // True once non-verse content has been processed in current para
+    para_owned:boolean  // True once current para's open fragment is in a real verse (not buffered)
     buffer_para:boolean  // Whether current <para>'s body should buffer rather than drop at v0
     after_inline_expr:boolean  // True if the last chunk closed an inline code expr (#vn(N), #wj[…])
     unknown_owner:string
@@ -211,7 +211,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         verse: 0,
         para_open: '',
         para_close: '',
-        mid_para: false,
+        para_owned: false,
         buffer_para: false,  // Whether current <para>'s body should buffer rather than drop at v0
         after_inline_expr: false,
         unknown_owner: '',  // Content that should be prepended to next verse if current verse done
@@ -357,7 +357,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         state.buffer_para = is_superscription
         state.para_open = para_open
         state.para_close = wrapped ? ']\n' : '\n\n'
-        state.mid_para = false
+        state.para_owned = false
         add_typst(state, state.para_open, !verse_less)
         process_contents(state, child.childNodes)
         add_typst(state, state.para_close)
@@ -422,12 +422,12 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
         if (index === 0 && node.nodeName !== 'verse' && state.verse){
             state.contents[state.chapter]![state.verse]![1] += state.unknown_owner
             state.unknown_owner = ''
+            state.para_owned = true
         }
 
         // Handle text nodes
         if (node.nodeType === 3){
             add_typst(state, escape_text(node.textContent ?? ''))
-            state.mid_para = true
             continue
         }
 
@@ -468,8 +468,11 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
                     `${new_number} less than ${state.book} ${state.chapter}:${state.verse}`)
             }
 
-            // If mid-paragraph, close the prior verse with the current para's close fragment
-            if (state.mid_para && state.verse > 0){
+            // If the para was already opened in a prior verse, close it there and reopen below
+            // NOTE Otherwise the open fragment is still buffered (e.g. only a footnote or
+            //      whitespace preceded this verse) and flushes into the new verse below
+            const continuing = state.para_owned
+            if (continuing){
                 state.contents[state.chapter]![state.verse]![2] = state.para_close
             }
 
@@ -483,16 +486,13 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
             // Add verse marker inline (consumer-defined #vn function)
             add_typst(state, `#vn(${state.verse})`)
 
-            // If mid-paragraph, the new verse needs the para's open fragment in [0]
-            if (state.mid_para && new_number > 0){
+            // If continuing a para, the new verse needs the para's open fragment in [0]
+            if (continuing){
                 state.contents[state.chapter]![state.verse]![0] = state.para_open
             }
+            state.para_owned = true
             continue
         }
-
-        // Mark that we've now seen real content in this para — used to detect mid-para
-        // when the next verse element arrives
-        state.mid_para = true
 
         // Handle char elements
         if (element.nodeName === 'char'){

@@ -827,3 +827,60 @@ describe("usx_to_json_typst (WEB Psalms)", () => {
         expect(emittable.has('d')).toBe(true)
     })
 })
+
+// A table whose rows split across verses (verse 2 starts inside a cell), followed by a para that
+// starts with the previous verse's end marker (as usfmtc emits after a table)
+const table_usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<usx version="3.0">
+    <book code="HAG" style="id">Test</book>
+    <chapter number="1" style="c" sid="HAG 1"/>
+    <para style="li1"><verse number="1" style="v" sid="HAG 1:1"/>The singers:</para>
+    <table>
+        <row style="tr">
+            <cell style="tc1" align="start">Asaph </cell>
+            <cell style="tcr2" align="end">128</cell>
+        </row>
+        <row style="tr">
+            <cell style="tc1" align="start">
+                <verse eid="HAG 1:1"/>
+                <verse number="2" style="v" sid="HAG 1:2"/>Gatekeepers</cell>
+            <cell style="tcr2" align="end">139</cell>
+        </row>
+    </table>
+    <para style="li1" vid="HAG 1:2">
+        <verse eid="HAG 1:2"/>
+        <verse number="3" style="v" sid="HAG 1:3"/>Temple servants:<verse eid="HAG 1:3"/></para>
+</usx>`
+
+
+// A para whose first content is a footnote before the verse 1 marker (e.g. Lamentations)
+const note_first_usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<usx version="3.0">
+    <book code="HAG" style="id">Test</book>
+    <chapter number="1" style="c" sid="HAG 1"/>
+    <para style="q1"><note caller="+" style="f"><char style="ft">Acrostic</char></note><verse number="1" style="v" sid="HAG 1:1"/>How lonely<verse eid="HAG 1:1"/></para>
+    <para style="q1"><verse number="2" style="v" sid="HAG 1:2"/>She weeps<verse eid="HAG 1:2"/></para>
+</usx>`
+
+
+
+describe("usx_to_json_typst tables and pre-verse content", () => {
+
+    it("converts table rows to #li(1)[…] paras, splitting verses within cells", ({expect}) => {
+        const contents = usx_to_json_typst(table_usx).contents[1]!
+        expect(contents[1]![1]).toContain('#li(1)[Asaph 128]')
+        expect(contents[2]).toEqual(['', '#li(1)[#vn(2)Gatekeepers 139]\n', ''])
+        // Para starting with a verse end marker shouldn't reopen/close around the new verse
+        expect(contents[3]![0]).toBe('')
+        const joined = contents.flat().join('')
+        expect(joined.split('[').length).toBe(joined.split(']').length)
+    })
+
+    it("doesn't duplicate a para's open fragment when a footnote precedes verse 1", ({expect}) => {
+        const contents = usx_to_json_typst(note_first_usx).contents[1]!
+        expect(contents[1]![0]).toBe('')
+        expect(contents[1]![1]).toContain('#q(1)[#vn(1)How lonely]')
+        const joined = contents.flat().join('')
+        expect(joined.split('[').length).toBe(joined.split(']').length)
+    })
+})

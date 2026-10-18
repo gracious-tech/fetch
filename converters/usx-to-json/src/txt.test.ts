@@ -480,3 +480,48 @@ describe("usx_to_json_txt", () => {
     })
 
 })
+
+// A table whose rows split across verses (verse 2 starts inside a cell), followed by a para that
+// starts with the previous verse's end marker (as usfmtc emits after a table)
+const table_usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<usx version="3.0">
+    <book code="HAG" style="id">Test</book>
+    <chapter number="1" style="c" sid="HAG 1"/>
+    <para style="li1"><verse number="1" style="v" sid="HAG 1:1"/>The singers:</para>
+    <table>
+        <row style="tr">
+            <cell style="tc1" align="start">Asaph </cell>
+            <cell style="tcr2" align="end">128</cell>
+        </row>
+        <row style="tr">
+            <cell style="tc1" align="start">
+                <verse eid="HAG 1:1"/>
+                <verse number="2" style="v" sid="HAG 1:2"/>Gatekeepers</cell>
+            <cell style="tcr2" align="end">139</cell>
+        </row>
+    </table>
+    <para style="li1" vid="HAG 1:2">
+        <verse eid="HAG 1:2"/>
+        <verse number="3" style="v" sid="HAG 1:3"/>Temple servants:<verse eid="HAG 1:3"/></para>
+</usx>`
+
+
+// A para whose first content is a footnote before the verse 1 marker (e.g. Lamentations)
+const note_first_usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<usx version="3.0">
+    <book code="HAG" style="id">Test</book>
+    <chapter number="1" style="c" sid="HAG 1"/>
+    <para style="q1"><note caller="+" style="f"><char style="ft">Acrostic</char></note><verse number="1" style="v" sid="HAG 1:1"/>How lonely<verse eid="HAG 1:1"/></para>
+    <para style="q1"><verse number="2" style="v" sid="HAG 1:2"/>She weeps<verse eid="HAG 1:2"/></para>
+</usx>`
+
+
+
+describe("usx_to_json_txt tables and pre-verse content", () => {
+
+    it("converts table rows to lines, splitting verses within cells", ({expect}) => {
+        const contents = usx_to_json_txt(table_usx).contents[1]!
+        expect(contents[1]!.join('')).toContain('The singers:\nAsaph 128\n')
+        expect(contents[2]!.join('')).toMatch(/^Gatekeepers 139\n/)
+    })
+})

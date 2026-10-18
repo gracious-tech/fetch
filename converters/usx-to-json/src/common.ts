@@ -14,6 +14,9 @@ export function parse_usx(xml:string, parser:typeof DOMParser){
         throw new Error("Contents is not USX (missing <usx> root element)")
     }
 
+    // Tables hold scripture (e.g. lists of names/numbers) so convert to paras all formats handle
+    flatten_tables(doc, usx_element)
+
     // Identify book so can determine expected chapter/verse numbers
     const book_element = usx_element.getElementsByTagName('book')[0]
     if (!book_element){
@@ -48,5 +51,38 @@ export function parse_usx(xml:string, parser:typeof DOMParser){
             abbrev: name_abbrev,
         },
         num_verses: last_verse[book_code]!,
+    }
+}
+
+
+// Replace each root <table> with one <para style="li1"> per row, joining cells with a space
+// NOTE A list item rather than a new style, so existing consumers (e.g. Typst preambles) work
+// NOTE Verses often start/end mid-table, which normal para handling then splits as usual
+function flatten_tables(doc:XMLDocument, usx_element:Element):void{
+    const children_named = (parent:Element, name:string) =>
+        Array.from(parent.children).filter(child => child.nodeName === name)
+    for (const table of children_named(usx_element, 'table')){
+        for (const row of children_named(table, 'row')){
+            const para = doc.createElement('para')
+            para.setAttribute('style', 'li1')
+            children_named(row, 'cell').forEach((cell, index) => {
+                if (index > 0 && !/\s$/.test(para.lastChild?.textContent ?? '')){
+                    para.appendChild(doc.createTextNode(' '))
+                }
+                const nodes = Array.from(cell.childNodes)
+                nodes.forEach((node, i) => {
+                    // Drop indentation whitespace at cell edges or beside verse markers
+                    const indentation = node.nodeType === 3 && !node.textContent?.trim()
+                        && (i === 0 || i === nodes.length - 1
+                            || nodes[i - 1]!.nodeName === 'verse'
+                            || nodes[i + 1]!.nodeName === 'verse')
+                    if (!indentation){
+                        para.appendChild(node)
+                    }
+                })
+            })
+            usx_element.insertBefore(para, table)
+        }
+        usx_element.removeChild(table)
     }
 }

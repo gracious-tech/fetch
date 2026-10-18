@@ -10,6 +10,7 @@ interface ParserState {
     chapter:number
     verse:number
     para_open:string
+    para_owned:boolean  // True once current para's opening tag is in a real verse (not buffered)
     unknown_owner:string
     buffer_para:boolean
     contents:BibleJsonHtml['contents']
@@ -48,6 +49,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
         chapter: 0,
         verse: 0,
         para_open: '',  // The opening tag of the current <para> element
+        para_owned: false,
         unknown_owner: '',  // Content that should be prepended to next verse if current verse done
         buffer_para: false,  // Whether current <para>'s body should buffer rather than drop at v0
         // Prepare output with empty strings for every verse
@@ -151,6 +153,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
         const verse_less = !state.verse && !has_verse && !is_superscription
         state.buffer_para = is_superscription
         state.para_open = `<p class="fb-${style}">`
+        state.para_owned = false
         add_html(state, state.para_open, !verse_less)
         process_contents(state, child.childNodes, escape_text)
         add_html(state, '</p>')
@@ -209,6 +212,7 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
         if (index === 0 && node.nodeName !== 'verse' && state.verse){
             state.contents[state.chapter]![state.verse]![1] += state.unknown_owner
             state.unknown_owner = ''
+            state.para_owned = true
         }
 
         // Handle text nodes
@@ -254,8 +258,11 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
                     `${new_number} less than ${state.book} ${state.chapter}:${state.verse}`)
             }
 
-            // If not at beginning of a <para> then verse now ending is mid-paragraph
-            if (index > 0){
+            // If the para was already opened in a prior verse, close it there and reopen below
+            // NOTE Otherwise the opening tag is still buffered (e.g. only a footnote or
+            //      whitespace preceded this verse) and flushes into the new verse below
+            const continuing = state.para_owned
+            if (continuing){
                 state.contents[state.chapter]![state.verse]![2] = '</p>'
             }
 
@@ -269,10 +276,11 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
             // Add verse number to contents
             add_html(state, `<sup data-v="${state.chapter}:${state.verse}">${state.verse}</sup>`)
 
-            // If in middle of a <para> then need opening data
-            if (index > 0){
+            // If continuing a <para> then need opening data
+            if (continuing){
                 state.contents[state.chapter]![state.verse]![0] = state.para_open
             }
+            state.para_owned = true
         }
 
         // Handle char elements

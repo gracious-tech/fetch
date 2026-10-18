@@ -1,0 +1,6 @@
+#!/bin/bash
+# Compile every Bible and study notes book's Typst output, reporting failures (see .mts for args)
+set -e
+cd "$(realpath -m "$0/../..")"
+
+node .bin/test_typst_all.mts "$@"

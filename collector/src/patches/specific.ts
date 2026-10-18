@@ -429,23 +429,6 @@ export function pre_convert_specific(translation:string, book:string, contents:s
 // Single-translation quirk fixes that must run BEFORE reverse_usx
 export function pre_reverse_specific(translation:string, book:string, usx:string):string{
 
-    // eng_aila / eng_ailb LUK 22:1: a stray verse marker splits the cross-reference citation under
-    // the Lord's-Supper heading (duplicating the real 22:1) — drop the markers and rejoin the two
-    // citation <char> runs into one so it stays as prose
-    if ((translation === 'eng_aila' || translation === 'eng_ailb') && book === 'luk'){
-        usx = usx.replace(
-            /<char style="it">([^<]*)<\/char>\s*<verse number="1" style="v" sid="LUK 22:1"\/>\s*<char style="it">([^<]*)<\/char>\s*<verse eid="LUK 22:1"\/>/,
-            '<char style="it">$1$2</char>')
-    }
-
-    // eng_aipa / eng_aipb JHN 5: a text-critical note about the omitted verse 4 is parked at the end
-    // of the chapter wrapped in a duplicate 5:3 verse marker — drop the markers so it stays as prose
-    if ((translation === 'eng_aipa' || translation === 'eng_aipb') && book === 'jhn'){
-        usx = usx.replace(
-            /<verse number="3" style="v" sid="JHN 5:3"\/>(\s*Some ancient manuscripts add verse 4[\s\S]*?)<verse eid="JHN 5:3"\/>/,
-            '$1')
-    }
-
     // nyy_wft ACT 23 is a verbatim duplicate of ACT 10 (the Cornelius narrative), giving the chapter
     // 48 verses against the canonical 35 — empty it so Acts publishes (the chapter is recorded as
     // partial; the real content remains in ACT 10).

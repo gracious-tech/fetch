@@ -45,6 +45,13 @@ const IGNORE:string[] = [
     '1c18e3bbb2704a35',  // Included as second zip (some OT) for sch_wft
     '324f457845cb5d21',  // NT already contained in OT+NT ace2eca02cc539c3
     '355792a03079ccdd',  // NT already contained in OT+NT 4ae38a8d32ca9871
+    // African International NT (Word Biblical Ministries, 2026): dropped for poor source markup —
+    // chapter-end footnote paras leak into verse text, verse markers missing/mislabelled, thousands
+    // of stray '*' markers. Text itself is decent, so reconsider if a cleaner revision is uploaded.
+    'e368831dd78a4451',  // eng_aila (Literal, American)
+    'b2a377edb4454c0e',  // eng_ailb (Literal, British)
+    'dc26e2222f1b4f0c',  // eng_aipa (Paraphrase, American)
+    '55933bbd04844303',  // eng_aipb (Paraphrase, British)
 ]
 
 // Some language codes are outdated

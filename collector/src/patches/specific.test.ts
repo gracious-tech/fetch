@@ -132,24 +132,6 @@ describe('pre_convert_specific', () => {
 
 describe('pre_reverse_specific', () => {
 
-    it("Rejoins the eng_aila LUK 22:1 citation split by a stray verse marker", ({expect}) => {
-        const usx = '<char style="it">first part</char>'
-            + '<verse number="1" style="v" sid="LUK 22:1"/>'
-            + '<char style="it">second part</char><verse eid="LUK 22:1"/>'
-        const out = pre_reverse_specific('eng_aila', 'luk', usx)
-        expect(out).toContain('<char style="it">first partsecond part</char>')
-        expect(out).not.toContain('LUK 22:1')
-    })
-
-    it("Unwraps the eng_aipa JHN 5 text-critical note from a duplicate verse", ({expect}) => {
-        const usx = '<verse number="3" style="v" sid="JHN 5:3"/>'
-            + ' Some ancient manuscripts add verse 4 here<verse eid="JHN 5:3"/>'
-        const out = pre_reverse_specific('eng_aipa', 'jhn', usx)
-        expect(out).toContain('Some ancient manuscripts add verse 4')
-        expect(out).not.toContain('sid="JHN 5:3"')
-        expect(out).not.toContain('eid="JHN 5:3"')
-    })
-
     it("Empties nyy_wft ACT 23 (a duplicate of ACT 10)", ({expect}) => {
         const usx = '<chapter number="23" style="c" sid="ACT 23" /><para style="p">'
             + `${v('ACT 23:1', '1', 'cornelius ')}</para><chapter eid="ACT 23" />`

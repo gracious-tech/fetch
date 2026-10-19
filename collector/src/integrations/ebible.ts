@@ -29,9 +29,9 @@ const IGNORE = [
 
     // Ignored for being a duplicate
     'eng-kjv',  // Same as 'eng-kjv2006' with Apoc.
-    'eng-web',  // Copy of existing translation with added deuterocanon
-    'eng-webbe',  // Copy of existing translation with added deuterocanon
-    'eng-web-c',  // Copy of existing translation with added deuterocanon
+    'engwebu',  // Same as 'engwebp' (eng_webu) with added deuterocanon
+    'eng-webbe',  // Same as 'engwebpb' (eng_webb) with added deuterocanon
+    'eng-web-c',  // Same as 'engwebp' (eng_webu) with deuterocanon in Catholic book order
     'aka',  // An incorrect mix of twiasante and twi, one of which has same text
     'hbo',  // Assumed to be same text as hboWLC
     'pon2006a',  // Same as pon2006 but with Apoc.

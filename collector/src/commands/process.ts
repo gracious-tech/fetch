@@ -188,9 +188,10 @@ async function _update_dist_single(id:string, force:boolean){
         }
     }
 
-    // Don't write extra.json if no books were converted
-    const dist_books = list_files(join(dist_dir, 'txt'))
-    if (!dist_books.length){
+    // Remove dist dir if no books were converted (so manifest skips it rather than complaining)
+    if (!list_files(join(dist_dir, 'txt')).length){
+        console.warn(`IGNORED ${id} (no valid books)`)
+        fs.rmSync(dist_dir, {force: true, recursive: true})
         return
     }
 

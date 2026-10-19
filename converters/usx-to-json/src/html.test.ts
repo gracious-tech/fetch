@@ -231,3 +231,53 @@ describe("usx_to_json_html tables and pre-verse content", () => {
         expect(contents[1]![1]!.match(/<p /g)).toHaveLength(1)
     })
 })
+
+
+// Wrap verse 1 content in a minimal single-verse book
+function single_verse_usx(content:string):string{
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<usx version="3.0">
+    <book code="HAG" style="id">Test</book>
+    <chapter number="1" style="c" sid="HAG 1"/>
+    <para style="p"><verse number="1" style="v" sid="HAG 1:1"/>${content}<verse eid="HAG 1:1"/></para>
+</usx>`
+}
+
+// Get verse 1's html for given verse content
+function verse_html(content:string):string{
+    return usx_to_json_html(single_verse_usx(content)).contents[1]![1]![1]!
+}
+
+
+describe("usx_to_json_html references within footnotes", () => {
+
+    it("keeps a <ref> nested in an xt char", ({expect}) => {
+        const html = verse_html('Text<note caller="+" style="f"><char style="ft">See </char>'
+            + '<char style="xt"><ref loc="DAN 10:4">Daniel 10:4</ref></char>.</note> more.')
+        expect(html).toContain('<span class="fb-ft">See </span>'
+            + '<span class="fb-xt">Daniel 10:4</span>.')
+    })
+
+    it("keeps a <ref> nested in an ft char", ({expect}) => {
+        const html = verse_html('Text<note caller="+" style="f">'
+            + '<char style="ft">See <ref loc="GEN 3:20">3:20</ref> also.</char></note>')
+        expect(html).toContain('<span class="fb-ft">See 3:20 also.</span>')
+    })
+
+    it("keeps a <ref> nested in chars within chars", ({expect}) => {
+        const html = verse_html('Text<note caller="+" style="f"><char style="ft">See '
+            + '<char style="xt"><ref loc="GEN 2:7">2:7</ref></char></char></note>')
+        expect(html).toContain('<span class="fb-ft">See <span class="fb-xt">2:7</span></span>')
+    })
+
+    it("keeps a <ref> directly within a note", ({expect}) => {
+        const html = verse_html('Text<note caller="+" style="f">'
+            + 'See <ref loc="GEN 3:20">3:20</ref>.</note>')
+        expect(html).toContain('<span class="fb-note"><span>See 3:20.</span></span>')
+    })
+
+    it("still ignores a <ref> within a char outside a note", ({expect}) => {
+        const html = verse_html('Text <char style="bd"><ref loc="GEN 3:20">3:20</ref></char> end')
+        expect(html).toContain('Text <span class="fb-bd"></span> end')
+    })
+})

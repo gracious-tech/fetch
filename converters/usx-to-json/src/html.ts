@@ -292,24 +292,25 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
                 continue
             }
 
+            // NOTE Pass on allow_nonbib so a <ref> nested in a char within a note is kept
             if (char_style === 'w'){
                 // Handle alignment data
                 if (state.alignment){
                     // TODO Convert strong/lemma data to actual word by consulting a critical text
                     add_html(state, '<span>')
-                    process_contents(state, element.childNodes, escape_text)
+                    process_contents(state, element.childNodes, escape_text, allow_nonbib)
                     add_html(state, '</span>')
                 } else {
                     // Include element contents only
-                    process_contents(state, element.childNodes, escape_text)
+                    process_contents(state, element.childNodes, escape_text, allow_nonbib)
                 }
             } else if (['ord', 'sup'].includes(char_style)){
                 add_html(state, '<sup>')
-                process_contents(state, element.childNodes, escape_text)
+                process_contents(state, element.childNodes, escape_text, allow_nonbib)
                 add_html(state, '</sup>')
             } else if (char_style === 'rb'){
                 add_html(state, '<ruby>')
-                process_contents(state, element.childNodes, escape_text)
+                process_contents(state, element.childNodes, escape_text, allow_nonbib)
                 // TODO Handle splitting of words with ':' (currently ignoring)
                 const gloss = element.getAttribute('gloss')?.replaceAll(':', '')
                 add_html(state, `<rt>${escape_text(gloss)}</rt>`)
@@ -317,7 +318,7 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
             } else {
                 // Turn all other char styles into a <span>
                 add_html(state, `<span class="fb-${char_style}">`)
-                process_contents(state, element.childNodes, escape_text)
+                process_contents(state, element.childNodes, escape_text, allow_nonbib)
                 add_html(state, '</span>')
             }
         }

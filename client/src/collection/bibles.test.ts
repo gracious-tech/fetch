@@ -240,3 +240,70 @@ describe('get_resources / get_languages', () => {
     })
 
 })
+
+
+// Build a collection with a language that has resources in two scripts
+function make_script_collection(){
+    const full = {books_ot: true, books_nt: true, books_ot_list: books_ordered.slice(0, 39),
+        books_nt_list: books_ordered.slice(39)} as const
+    const items:Record<string, RuntimeManifestItem> = {
+        cmn_hans: make_item({endpoint: 'https://hans.example/', script: 'Hans', year: 2010, ...full}),
+        cmn_hant: make_item({endpoint: 'https://hant.example/', script: 'Hant', year: 2000, ...full}),
+        eng_bsb: make_item({endpoint: 'https://eng.example/', ...full}),
+        san_deva: make_item({endpoint: 'https://deva.example/', script: 'Deva', ...full}),
+        san_latn: make_item({endpoint: 'https://latn.example/', script: 'Latn', ...full}),
+        san_beng: make_item({endpoint: 'https://beng.example/', script: 'Beng', ...full}),
+    }
+    const languages = {
+        cmn: {local: '中文', english: 'Chinese', pop: 1000, direction: 'ltr' as const},
+        eng: {local: 'English', english: 'English', pop: 1000, direction: 'ltr' as const},
+        san: {local: 'संस्कृत भाषा', english: 'Sanskrit', pop: 1000, direction: 'ltr' as const},
+    }
+    return new BibleCollection(items, new RequestHandler(false), languages, {zh: 'cmn'}, [], usage)
+}
+
+
+describe('scripts', () => {
+
+    it("Lists each script separately only when asked", ({expect}) => {
+        const collection = make_script_collection()
+        expect(collection.get_languages().map(l => l.code)).toEqual(['eng', 'san', 'cmn'])
+        const split = collection.get_languages({split_scripts: true, object: true})
+        expect(Object.keys(split).sort()).toEqual(['cmn-Hans', 'cmn-Hant', 'eng', 'san'])
+        expect(split['cmn-Hant']!.name_english).toBe("Chinese (Traditional)")
+        expect(split['cmn-Hant']!.name_local).toBe("中文 (繁體)")
+        expect(split['cmn-Hant']!.id).toBe('cmn-Hant')
+        expect(split['cmn-Hant']!.code).toBe('cmn')
+        expect(split['eng']!.id).toBe('eng')
+        expect(split['eng']!.script).toBe(undefined)
+    })
+
+    it("Ignores script for languages that aren't split into two", ({expect}) => {
+        const collection = make_script_collection()
+        expect(collection.get_language('eng', 'Latn')!.name_english).toBe("English")
+        expect(collection.get_language('san', 'Deva')!.script).toBe(undefined)
+    })
+
+    it("Filters resources by script", ({expect}) => {
+        const collection = make_script_collection()
+        const ids = collection.get_resources({language: 'cmn', script: 'Hant'}).map(r => r.id)
+        expect(ids).toEqual(['cmn_hant'])
+    })
+
+    it("Prefers resources in the script implied by the user's language tag", ({expect}) => {
+        const collection = make_script_collection()
+        expect(collection.get_preferred_resource(['zh-TW']).id).toBe('cmn_hant')
+        expect(collection.get_preferred_resource(['zh-CN']).id).toBe('cmn_hans')
+        expect(collection.get_preferred_resource(['zh-Hant']).id).toBe('cmn_hant')
+        // 3 char codes imply a script too
+        expect(collection.get_preferred_resource(['cmn']).id).toBe('cmn_hans')
+    })
+
+    it("Prefers a recommended resource only within the preferred script", ({expect}) => {
+        const collection = make_script_collection()
+        collection._items['cmn_hans']!.tags = ['recommended']
+        expect(collection.get_preferred_resource(['zh-TW']).id).toBe('cmn_hant')
+        expect(collection.get_preferred_resource(['zh']).id).toBe('cmn_hans')
+    })
+
+})

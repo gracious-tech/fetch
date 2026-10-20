@@ -5,6 +5,7 @@ import {book_names_english, books_ordered, book_abbrev_english,
 
 import {filter_licenses} from '../assets/licenses.js'
 import {deep_copy, fuzzy_search} from '../assets/utils.js'
+import {likely_script, script_name} from '../assets/intl.js'
 
 import type {BookNames, MetaTag, MetaLanguage} from '../assets/shared_types.js'
 import type {UsageOptions, UsageConfig, RuntimeLicense, RuntimeManifestItem}
@@ -28,10 +29,16 @@ export interface GetLanguagesOptions {
     exclude_old?:boolean
     sort_by?:'local'|'english'|'population'|'population_L1'
     search?:string
+    // List each script separately for languages with resources in exactly two scripts
+    split_scripts?:boolean
 }
 
 export interface GetLanguagesItem {
+    // Unique id of the item (same as `code` unless split by script, e.g. 'cmn-Hant')
+    id:string
     code:string
+    // Only set for languages split by script (names will include the script)
+    script:string|undefined
     name_local:string
     name_english:string
     name_bilingual:string
@@ -40,6 +47,8 @@ export interface GetLanguagesItem {
 
 export interface GetResourcesOptions {
     language?:string
+    // Only include resources in this script (or with no script specified)
+    script?:string|undefined
     object?:boolean
     sort_by_year?:boolean
     usage?:UsageOptions
@@ -219,18 +228,51 @@ export class GenericCollection {
             || resource_meta.books_nt_list.includes(book)
     }
 
+    // @internal Get the scripts to list a language under separately (none unless exactly two)
+    // NOTE Languages with more scripts (e.g. Sanskrit) would clutter the list so aren't split
+    _split_scripts(code:string):string[]{
+        const scripts = new Set<string>()
+        for (const [id, item] of Object.entries(this._items)){
+            if (item.script && id.slice(0, 3) === code){
+                scripts.add(item.script)
+            }
+        }
+        return scripts.size === 2 ? [...scripts].sort() : []
+    }
+
     // Get a language's metadata
-    get_language(code:string):GetLanguagesItem|undefined{
+    // (names include the script if given and the language is split into its two scripts)
+    get_language(code:string, script?:string):GetLanguagesItem|undefined{
         const data = this._languages[code]
         if (!data){
             return undefined
         }
+
+        // Plain language when script not needed to distinguish
+        if (!script || !this._split_scripts(code).includes(script)){
+            return {
+                id: code,
+                code,
+                script: undefined,
+                name_local: data.local,
+                name_english: data.english,
+                name_bilingual:
+                    data.english === data.local ? data.local : `${data.local} (${data.english})`,
+                population: data.pop,
+            }
+        }
+
+        // Include script in names
+        const name_local = `${data.local} (${script_name(script, `${code}-${script}`)})`
+        const name_english = `${data.english} (${script_name(script, 'en')})`
         return {
+            id: `${code}-${script}`,
             code,
-            name_local: data.local,
-            name_english: data.english,
+            script,
+            name_local,
+            name_english,
             name_bilingual:
-                data.english === data.local ? data.local : `${data.local} (${data.english})`,
+                name_english === name_local ? name_local : `${name_local} – ${name_english}`,
             population: data.pop,
         }
     }
@@ -238,11 +280,17 @@ export class GenericCollection {
     // Get available languages as either a list or an object
     get_languages(options:ObjT<GetLanguagesOptions>):Record<string, GetLanguagesItem>
     get_languages(options?:ObjF<GetLanguagesOptions>):GetLanguagesItem[]
-    get_languages({object, exclude_old, sort_by, search}:GetLanguagesOptions={}):
+    get_languages({object, exclude_old, sort_by, search, split_scripts}:GetLanguagesOptions={}):
             GetLanguagesItem[]|Record<string, GetLanguagesItem>{
 
         // Start with list and dereference internal objects so manifest can't be modified
-        let list = Object.keys(this._languages).map(code => this.get_language(code)!)
+        let list = Object.keys(this._languages).flatMap(code => {
+            const scripts = split_scripts ? this._split_scripts(code) : []
+            if (scripts.length){
+                return scripts.map(script => this.get_language(code, script)!)
+            }
+            return [this.get_language(code)!]
+        })
 
         // Optionally exclude non-living languages
         if (exclude_old){
@@ -256,7 +304,7 @@ export class GenericCollection {
 
         // Return object if desired
         if (object){
-            return Object.fromEntries(list.map(item => [item.code, item]))
+            return Object.fromEntries(list.map(item => [item.id, item]))
         }
 
         // Sort list and return it
@@ -296,24 +344,28 @@ export class GenericCollection {
         return this.get_language(this._get_preferred_language_code(preferences))!
     }
 
+    // @internal Get user's language preferences (defaulting to navigator property when in browser)
+    _get_preferences(preferences:string[]):string[]{
+        if (preferences.length === 0 && typeof self !== 'undefined'){
+            return [...(self.navigator.languages ?? [self.navigator.language ?? 'eng'])]
+        }
+        return preferences
+    }
+
+    // @internal Convert a language tag (e.g. 'zh-TW') to a 3 char language code
+    _tag_to_language_code(tag:string):string{
+        const code = tag.toLowerCase().split('-')[0] ?? ''
+        return this._language2to3[code] ?? code
+    }
+
     // @internal Get preferred language code
     _get_preferred_language_code(preferences:string[]=[]):string{
 
-        // Default to navigator property when in browser
-        if (preferences.length === 0 && typeof self !== 'undefined'){
-            preferences = [...(self.navigator.languages ?? [self.navigator.language ?? 'eng'])]
-        }
-
         // Loop through user's preferences (first is most preferred)
-        for (let code of preferences){
-
-            // Normalise the code to 2/3 lowercase char
-            code = code.toLowerCase().split('-')[0] ?? ''
-
-            // Convert 2 char codes to 3 chars
-            code = this._language2to3[code] ?? code
+        for (const tag of this._get_preferences(preferences)){
 
             // If resources includes language, use it
+            const code = this._tag_to_language_code(tag)
             if (code in this._languages){
                 return code
             }
@@ -377,8 +429,9 @@ export class GenericCollection {
     // Get available resources as either a list or an object
     get_resources(options:ObjT<GetResourcesOptions>):Record<string, GetResourcesItem>
     get_resources(options?:ObjF<GetResourcesOptions>):GetResourcesItem[]
-    get_resources({language, object, sort_by_year, usage, exclude_obsolete, exclude_incomplete}:
-            GetResourcesOptions={}):GetResourcesItem[]|Record<string, GetResourcesItem>{
+    get_resources({language, script, object, sort_by_year, usage, exclude_obsolete,
+            exclude_incomplete}:GetResourcesOptions={}):
+            GetResourcesItem[]|Record<string, GetResourcesItem>{
 
         // Start with list of resources, extracting properties that don't need extra processing
         // NOTE Filters out resources not compatible with usage config
@@ -390,6 +443,11 @@ export class GenericCollection {
         // Optionally limit to single language
         if (language){
             list = list.filter(item => item.language === language)
+        }
+
+        // Optionally limit to single script (keeping those that don't specify one)
+        if (script){
+            list = list.filter(item => !item.script || item.script === script)
         }
 
         // Optionally exclude obsolete resources (as long as better alternative exists)
@@ -442,33 +500,41 @@ export class GenericCollection {
         // First get preferred language
         const language = this._get_preferred_language_code(languages)
 
+        // Get script implied by the preference that matched (e.g. 'zh-TW' -> 'Hant')
+        const tag = this._get_preferences(languages)
+            .find(pref => this._tag_to_language_code(pref) === language)
+        const script = tag === undefined ? undefined : likely_script(tag)
+
+        // Limit to resources of the language, and its preferred script if any use it
+        let items = Object.entries(this._items).filter(([id]) => id.slice(0, 3) === language)
+        const in_script = items.filter(([, data]) => data.script === script)
+        if (in_script.length){
+            items = in_script
+        }
+
         // Return recommended resource, or otherwise the most modern full resource
         let candidate:string|null = null
         let candidate_full = false
         let candidate_year = -9999
-        for (const [id, data] of Object.entries(this._items)){
+        for (const [id, data] of items){
 
-            // Obviously must be desired language
-            if (id.slice(0, 3) === language){
+            // If recommended, don't bother checking any others
+            if (data.tags.includes('recommended')){
+                return id
+            }
 
-                // If recommended, don't bother checking any others
-                if (data.tags.includes('recommended')){
-                    return id
-                }
-
-                // Consider as a candidate until something better comes up
-                // NOTE Not considering tags as if any tagged then one would be recommended already
-                const full = data.books_ot === true && data.books_nt === true
-                if (
-                    !candidate  // Something better than nothing
-                    || (!candidate_full && full)  // Full resource better than partial
-                    // Otherwise only consider if more modern
-                    || (full && data.year > candidate_year)
-                ){
-                    candidate = id
-                    candidate_year = data.year
-                    candidate_full = full
-                }
+            // Consider as a candidate until something better comes up
+            // NOTE Not considering tags as if any tagged then one would be recommended already
+            const full = data.books_ot === true && data.books_nt === true
+            if (
+                !candidate  // Something better than nothing
+                || (!candidate_full && full)  // Full resource better than partial
+                // Otherwise only consider if more modern
+                || (full && data.year > candidate_year)
+            ){
+                candidate = id
+                candidate_year = data.year
+                candidate_full = full
             }
         }
 

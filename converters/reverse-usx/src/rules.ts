@@ -115,7 +115,7 @@ const hand_rules_pre:Record<string, BookRuleSet[]> = {
         }),
     ],
     'JER': [
-        // Masoretic-style editions (eng_tojb, yid_oyt) follow org plus put 31:1 as 30:25
+        // Masoretic-style editions (eng_tojb, ydd_oyt) follow org plus put 31:1 as 30:25
         rules_from('JER 30:25', {
             'JER 9:1': 'JER 8:23',
             'JER 9:2-26': 'JER 9:1-25',
@@ -348,7 +348,7 @@ const hand_rules:Record<string, BookRuleSet[]> = {
         }),
     ],
     'JOB': [
-        // Masoretic-style editions (eng_tojb, yid_oyt) put 3:1 as 2:14
+        // Masoretic-style editions (eng_tojb, ydd_oyt) put 3:1 as 2:14
         rules_from('JOB 2:14', {
             'JOB 3:1': 'JOB 2:14',
             'JOB 3:2-26': 'JOB 3:1-25',

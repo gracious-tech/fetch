@@ -27,8 +27,8 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide' :max-width=
                 | {{ displayed_language_name }}
 
         v-list(v-if='show_languages' ref='lang_list_comp')
-            v-list-item(v-for='lang of languages_filtered' :key='lang.code' density='compact'
-                    @click='change_lang(lang.code)')
+            v-list-item(v-for='lang of languages_filtered' :key='lang.id' density='compact'
+                    @click='change_lang(lang)')
                 v-list-item-title {{ lang.name_bilingual }}
             v-btn(v-if='!languages_search && !languages_show_all' variant='text' color='primary'
                     @click='languages_show_all = true')
@@ -54,17 +54,25 @@ v-dialog(v-model='state.show_trans_dialog' :fullscreen='!state.wide' :max-width=
 
 import {computed, onUnmounted, reactive, ref, watch} from 'vue'
 
-import {state, langs, dialog_max_width} from '@/services/state'
+import {state, dialog_max_width} from '@/services/state'
 import {content} from '@/services/content'
 
-import type {GetResourcesItem} from '@gracious.tech/fetch-client'
+import type {GetLanguagesItem, GetResourcesItem} from '@gracious.tech/fetch-client'
 
 
 // Contants
-const languages = content.collection.bibles.get_languages()
+// NOTE Languages with Bibles in two scripts (e.g. Chinese) are listed once per script
+const languages = content.collection.bibles.get_languages({split_scripts: true})
 // NOTE Just show 10 initially as scanning too many wastes time since not initially in ABC order
-const languages_by_pop = content.collection.bibles.get_languages({sort_by: 'population'})
-    .slice(0, 10)
+const languages_by_pop = content.collection.bibles.get_languages({sort_by: 'population',
+    split_scripts: true}).slice(0, 10)
+
+
+// Get the language list item for a translation (distinguishing script if language has multiple)
+const trans_language = (id:string):GetLanguagesItem => {
+    const trans = content.translations[id]!
+    return content.collection.bibles.get_language(trans.language, trans.script)!
+}
 
 
 // State
@@ -72,7 +80,7 @@ const languages_by_pop = content.collection.bibles.get_languages({sort_by: 'popu
 const edited_trans = reactive([...state.trans] as [string, ...string[]])
 const selected_trans_index = ref(0)
 const show_languages = ref(false)
-const displayed_language = ref(langs.value[0])
+const displayed_language = ref(trans_language(edited_trans[0]))
 const languages_search = ref('')
 const languages_show_all = ref(false)
 const lang_list_comp = ref<{$el: HTMLElement}>()
@@ -81,12 +89,11 @@ const lang_list_comp = ref<{$el: HTMLElement}>()
 // Computes
 const chosen_translations = computed(() => edited_trans.map(id => content.translations[id]!))
 const selected_trans = computed(() => chosen_translations.value[selected_trans_index.value]!)
-const displayed_language_name = computed(() => {
-    return content.languages[displayed_language.value]!.name_local
-})
+const displayed_language_name = computed(() => displayed_language.value.name_local)
 const languages_filtered = computed(() => {
     if (languages_search.value){
-        return content.collection.bibles.get_languages({search: languages_search.value})
+        return content.collection.bibles.get_languages({search: languages_search.value,
+            split_scripts: true})
     }
     return languages_show_all.value ? languages : languages_by_pop
 })
@@ -94,9 +101,10 @@ const languages_filtered = computed(() => {
 const translations = computed(() => {
 
     // Get translations by category
-    const decent = content.collection.bibles.get_resources({language: displayed_language.value,
-        exclude_obsolete: true})
-    const niche = content.collection.bibles.get_resources({language: displayed_language.value})
+    const {code, script} = displayed_language.value
+    const filter = {language: code, script}
+    const decent = content.collection.bibles.get_resources({...filter, exclude_obsolete: true})
+    const niche = content.collection.bibles.get_resources(filter)
         .filter(i => !decent.find(di => di.id === i.id))
 
     // Add in separate groups
@@ -116,7 +124,7 @@ const translations_selectable = computed(() => {
 
 // Watches
 watch(selected_trans_index, () => {
-    displayed_language.value = chosen_translations.value[selected_trans_index.value]!.language
+    displayed_language.value = trans_language(edited_trans[selected_trans_index.value]!)
     show_languages.value = false
 })
 watch(languages_show_all, () => {
@@ -127,8 +135,8 @@ watch(languages_show_all, () => {
 
 // Methods
 
-const change_lang = (code:string) => {
-    displayed_language.value = code
+const change_lang = (lang:GetLanguagesItem) => {
+    displayed_language.value = lang
     if (translations_selectable.value.length === 1){
         confirm_trans(translations_selectable.value[0]!.id)
     }

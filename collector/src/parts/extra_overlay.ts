@@ -51,8 +51,10 @@ export function build_extra_overlay(){
             continue
         }
 
-        // Order same-language donors: those tagged 'recommended' first, then most recent year
-        const donors = ids.filter(other => other !== id && other.slice(0, 3) === lang)
+        // Order same-language-and-script donors: those tagged 'recommended' first, then most recent
+        const script = metas[id]?.script
+        const donors = ids.filter(other => other !== id && other.slice(0, 3) === lang
+            && metas[other]?.script === script)
         donors.sort((a, b) => {
             const a_rec = metas[a]?.tags.includes('recommended') ? 1 : 0
             const b_rec = metas[b]?.tags.includes('recommended') ? 1 : 0

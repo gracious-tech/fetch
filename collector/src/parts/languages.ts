@@ -31,14 +31,26 @@ interface CLDRMisc {
     }
 }
 
+interface CLDRAliases {
+    supplemental:{
+        metadata:{
+            alias:{
+                languageAlias:Record<string, {_reason:string, _replacement:string}>
+            }
+        }
+    }
+}
+
 interface LanguageData {
     languages:Record<string, MetaLanguage>
     language2to3:Record<string, string>
+    macro_to_individual:Record<string, string>
 }
 
 interface LanguageDataPartial {
     languages:Record<string, Partial<MetaLanguage>>
     language2to3:Record<string, string>
+    macro_to_individual:Record<string, string>
 }
 
 
@@ -61,7 +73,10 @@ const overrides:LanguageDataPartial = {
     },
     language2to3: {
         // TODO Modify to support including country codes and routing to correct spoken language
-        zh: 'cmn',  // Default to cmn for now which contains all Chinese bibles
+        no: 'nob',  // CLDR treats "no" as Bokmål but has no macrolanguage alias for it
+    },
+    macro_to_individual: {
+        nor: 'nob',
     },
 }
 
@@ -78,7 +93,8 @@ export async function gen_language_data(){
     const cldr_path_misc = cldr_path.replace('cldr-localenames-full', 'cldr-misc-full')
 
     // Init data object
-    const data:LanguageData = {languages: {}, language2to3: {}}
+    const data:LanguageData = {languages: {}, language2to3: {}, macro_to_individual: {}}
+    const macros = new Set<string>()
 
     // Setup access to English names of languages
     const en_path = join(cldr_path, 'en', 'languages.json')
@@ -100,6 +116,9 @@ export async function gen_language_data(){
         const two = parts[3]!
         const pop = parts[5] !== 'L' ? null : (population[three]?.pop ?? 0)
         const label = parts[6]!
+        if (parts[4] === 'M'){
+            macros.add(three)
+        }
 
         // Insert into data object
         const english_name = english[three] || english[two] || population[three]?.english || label
@@ -134,6 +153,34 @@ export async function gen_language_data(){
         }
     }
 
+    // Find the individual language CLDR uses for each macrolanguage (e.g. 'arb' for 'ara'/'ar')
+    // NOTE Resources use individual codes but browsers send macrolanguage codes
+    const aliases_path = join(cldr_path, '..', '..', 'cldr-core', 'supplemental', 'aliases.json')
+    const aliases = read_json<CLDRAliases>(aliases_path).supplemental.metadata.alias.languageAlias
+    const candidates:Record<string, string[]> = {}
+    for (const [code, alias] of Object.entries(aliases)){
+        if (alias._reason !== 'macrolanguage'){
+            continue
+        }
+        const individual = data.language2to3[code] ?? code
+        const macro = data.language2to3[alias._replacement] ?? alias._replacement
+        if (macros.has(macro) && individual in data.languages){
+            (candidates[macro] ??= []).push(individual)
+        }
+    }
+
+    // Skip macrolanguages that CLDR merges several individual languages into (e.g. Akan)
+    for (const [macro, individuals] of Object.entries(candidates)){
+        if (individuals.length === 1){
+            data.macro_to_individual[macro] = individuals[0]!
+        }
+    }
+
+    // Point 2 char codes of macrolanguages to their individual language
+    for (const [two, three] of Object.entries(data.language2to3)){
+        data.language2to3[two] = data.macro_to_individual[three] ?? three
+    }
+
     // Apply overrides
     merge(data, overrides)
 
@@ -152,9 +199,11 @@ export class Languages {
     }
 
     normalise(code:string):string|null{
-        // Normalise a language code to a known 3 char version (else null)
+        // Normalise a language code to a known 3 char individual language (else null)
         code = code.split('-')[0]!.toLocaleLowerCase()
-        return this.data.language2to3[code] ?? (code in this.data.languages ? code : null)
+        code = this.data.language2to3[code] ?? code
+        code = this.data.macro_to_individual[code] ?? code
+        return code in this.data.languages ? code : null
     }
 
 }

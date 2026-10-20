@@ -6,6 +6,7 @@ import {book_names_english, books_ordered} from './bible.js'
 import {languages_by_total_speakers} from '../data/languages.js'
 import {get_language_data} from './languages.js'
 import {LICENSES} from './license.js'
+import {check_bible_scripts} from './scripts.js'
 import {read_json, write_json, list_dirs, list_files, list_dirs_if} from './utils.js'
 import type {DistManifest, DistManifestItem} from './shared_types'
 import type {TranslationSourceMeta} from './types'
@@ -141,6 +142,9 @@ export async function update_manifest(){
     _add_resources(manifest, included_languages, 'bibles')
     _add_resources(manifest, included_languages, 'glosses')
     _add_resources(manifest, included_languages, 'notes')
+
+    // Warn if any Bible's script needs specifying or looks wrong
+    check_bible_scripts(manifest.bibles)
 
     // Populate language data
     // NOTE Only include languages that have a resource

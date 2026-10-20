@@ -101,7 +101,7 @@ export interface DistNotes extends DistManifestItem {
 
 
 /* Tags:
-    recommended: Only one per language, the best default resource for most people
+    recommended: Only one per language (or per script if multiple), the best default for most people
     archaic: Uses old language (only used when year is modern as can assume all old are archaic)
     questionable: Substantial criticism or concerning origins
     niche: Only useful for academic study or for people with a certain ideology

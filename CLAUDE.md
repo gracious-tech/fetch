@@ -265,6 +265,20 @@ Run these in separate terminals:
 .bin/switch_collections
 ```
 
+### Official collection (`collection_official/`)
+
+`collection_official/` holds the real published collection. Its `sources/` and `dist/` dirs are
+each a **separate git repository** (independent of the platform repo), so changes to each are
+tracked separately:
+
+- **`sources/`** — downloaded source files plus metadata. Pushed to GitHub
+  (`gracious-tech/fetch_collection`) as an off-site backup.
+- **`dist/`** — processed output. Local git only (too large for GitHub); the published copy in
+  the S3 bucket serves as its effective backup.
+
+Use `git -C collection_official/sources ...` / `git -C collection_official/dist ...` to inspect
+their history and diffs.
+
 ### Publishing
 
 Publishing deploys to AWS S3 + CloudFront. Each publish script rebuilds dependencies first.

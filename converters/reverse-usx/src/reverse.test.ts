@@ -186,7 +186,8 @@ describe("reverse_usx versification systems", () => {
                 expect(res[+ch - 1]).toEqual(n)
             }
         }
-        check('1CH', {21: 31}, {21: 30})  // spa_rv splits 21:15
+        check('1CH', {21: 31, 22: 19}, {21: 30, 22: 19})  // spa_rv splits 21:15
+        check('1CH', {21: 31, 22: 18}, {21: 30, 22: 19})  // cmn_cuvmp* boundary eng 22:1 as 21:31
         check('2CH', {16: 15}, {16: 14})  // spa_rv splits 16:14
         check('JDG', {14: 21}, {14: 20})  // spa_rv splits 14:18
         check('GAL', {3: 30}, {3: 29})  // ita_db splits 3:28

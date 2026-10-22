@@ -282,8 +282,14 @@ const hand_rules:Record<string, BookRuleSet[]> = {
             '1CH 6:16-81': '1CH 6:1-66',
         }),
         // spa_rv splits eng 21:15 ("…said to the angel that destroyed, It is enough…") into 15-16
-        rules_from('1CH 21:31', {
+        // NOTE Also gated on 22:19 to distinguish from the cmn_cuvmp* 21/22 boundary below
+        rules_from(['1CH 21:31', '1CH 22:19'], {
             '1CH 21:15-30': '1CH 21:16-31',
+        }),
+        // cmn_cuvmps/cmn_cuvmpt put eng 22:1 at the end of ch 21
+        rules_from('1CH 21:31', {
+            '1CH 22:1': '1CH 21:31',
+            '1CH 22:2-19': '1CH 22:1-18',
         }),
         // bis_obb splits eng 19:19 ("…served him" / "neither would the Syrians help Ammon…") into
         // 19-20

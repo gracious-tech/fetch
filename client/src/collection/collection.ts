@@ -122,21 +122,23 @@ function resolve_books(ot:true|string[], nt:true|string[]){
 // Resolve raw license data to usable form
 function resolve_license_data(standard_licenses:Record<string, MetaStandardLicense>,
         usage:UsageConfig, copyright:MetaCopyright){
-    const licenses:RuntimeLicense[] = copyright.licenses.map(item => {
+    // NOTE An unknown standard license is skipped (sanitize_manifest normally removes these)
+    const licenses = copyright.licenses.flatMap((item):RuntimeLicense[] => {
         if (typeof item.license === 'string'){
-            return {
+            const standard = standard_licenses[item.license]
+            return standard ? [{
                 id: item.license,
-                name: standard_licenses[item.license]!.name,
-                restrictions: standard_licenses[item.license]!.restrictions,
+                name: standard.name,
+                restrictions: standard.restrictions,
                 url: item.url,
-            }
+            }] : []
         } else {
-            return {
+            return [{
                 id: null,
                 name: "Custom license",
                 restrictions: item.license,
                 url: item.url,
-            }
+            }]
         }
     })
 

@@ -8,6 +8,7 @@ import {SectionData} from './other/sections.js'
 import {SearchWords} from './other/search.js'
 import {BibleBook, BibleBookHtml, BibleBookTxt, BibleBookUsfm, BibleBookUsx} from './book/bible.js'
 import {RequestHandler} from './assets/request.js'
+import {sanitize_manifest} from './assets/sanitize.js'
 
 import type {UsageOptions, UsageConfig} from './assets/types'
 import type {CrossrefData, DistManifest, DistTranslationExtra, DistSectionData, OneOrMore}
@@ -96,10 +97,12 @@ export class FetchClient {
 
         // Request all manifests and combine into a single FetchCollection instance
         return Promise.all(this._endpoints.map(async endpoint => {
-            const manifest_str = await this.requester.request(endpoint + 'manifest.json')
+            // Keep only valid entries, so one bad entry can't break the whole collection
+            const manifest_url = endpoint + 'manifest.json'
+            const manifest_str = await this.requester.request(manifest_url)
             return [
                 endpoint,
-                JSON.parse(manifest_str) as DistManifest,
+                sanitize_manifest(JSON.parse(manifest_str), manifest_url),
             ]
         })).then(manifests => {
             // Store instance in `this.collection` for synchronous access

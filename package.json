@@ -14,9 +14,10 @@
     "@anthropic-ai/sdk": "^0.115.0",
     "@aws-sdk/client-cloudfront": "^3.352.0",
     "@aws-sdk/client-s3": "^3.352.0",
-    "@types/node": "^18.19.113",
+    "@types/node": "^26.6.5",
     "@typescript-eslint/eslint-plugin": "^5.59.11",
     "@typescript-eslint/parser": "^5.59.11",
+    "@vitest/coverage-v8": "^5.0.5",
     "esbuild": "^0.18.2",
     "eslint": "^8.42.0",
     "eslint-plugin-import": "^2.27.5",
@@ -26,7 +27,7 @@
     "npm-check-updates": "^16.10.12",
     "typescript": "^5.8.3",
     "undici-types": "^7.11.0",
-    "vitest": "^0.32.4",
+    "vitest": "^5.0.5",
     "vue-tsc": "^2.2.10",
     "yaml": "^2.3.1"
   }

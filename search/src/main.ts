@@ -42,38 +42,19 @@ export class BibleIndex {
     }
 
     // Prepare items for book to add to index
-    _get_items_for_book(book:BibleBookHtml|BibleBookTxt){
-
-        // Get the raw contents for speedier indexing
-        // NOTE Forcing format to 'txt' to keep TS happy, even though both valid
-        const json_data = (book as BibleBookTxt)[`_${this._format}` as '_txt']
-        const raw_contents = json_data.contents
-
-        // Add each individual verse
-        const items:{id:string, text:string}[] = []
-        for (let ch_num = 1; ch_num < raw_contents.length; ch_num++){
-            for (let v_num = 1; v_num < raw_contents[ch_num]!.length; v_num++){
-
-                // Get plain text version of verse
-                // NOTE txt format is ideal for this, but strip HTML if available to reduce requests
-                let passage_text:string
-                if (this._format === 'txt'){
-                    passage_text = strip_objects_from_txt(raw_contents[ch_num]![v_num]!)
-                } else {
-                    passage_text = strip_tags_and_commentary(
-                        raw_contents[ch_num]![v_num]![1] as string)
-                }
-
-                // Add to list
-                items.push({
-                    id: `${json_data.book}${ch_num}:${v_num}`,  // Serialized PassageReference
-                    text: passage_text,
-                })
-            }
-        }
-
-        return items
+    // NOTE Uses the books' public verse lists (internal fields differ between formats)
+    _get_items_for_book(book_id:string, book:BibleBookHtml|BibleBookTxt){
+        const verses = this._format === 'html'
+            ? (book as BibleBookHtml).get_list().map(verse => ({...verse,
+                text: strip_tags_and_commentary(verse.content)}))
+            : (book as BibleBookTxt).get_list().map(verse => ({...verse,
+                text: strip_objects_from_txt(verse.content)}))
+        return verses.map(verse => ({
+            id: `${book_id}${verse.chapter}:${verse.verse}`,  // Serialized PassageReference
+            text: verse.text,
+        }))
     }
+
 
     // Index given books
     async index_books(books:string[]):Promise<void>{
@@ -90,7 +71,7 @@ export class BibleIndex {
                 this._bible, book_id, this._format as 'txt')
 
             // Append all items for this book to the shared chain, capturing the new tail
-            const items = this._get_items_for_book(book)
+            const items = this._get_items_for_book(book_id, book)
             const book_tail = items.reduce((prev, item) => {
                 return prev.then(() => this._flexsearch.addAsync(item))
             }, chain)
@@ -198,13 +179,9 @@ export class BibleIndex {
             // Sort and join verses for each book
             for (const book in grouped_by_book){
 
-                // Sort by verse
-                grouped_by_book[book]!.sort((a, b) => {
-                    if (a.ref.equals(b.ref)){
-                        return 0
-                    }
-                    return a.ref.is_before(b.ref.start_chapter, b.ref.start_verse) ? -1 : 1
-                })
+                // Sort by verse (each result is a single verse at this point)
+                grouped_by_book[book]!.sort((a, b) => a.ref.start_chapter - b.ref.start_chapter
+                    || a.ref.start_verse - b.ref.start_verse)
 
                 // Join consecutive verses
                 const consecutive:SearchResult[] = [grouped_by_book[book]!.shift()!]  // Add 1st

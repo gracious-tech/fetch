@@ -5,8 +5,9 @@ import * as door43 from '../integrations/door43.js'
 import * as ebible from '../integrations/ebible.js'
 import * as dbl from '../integrations/dbl.js'
 import {list_dirs, read_json} from '../parts/utils.js'
+import {translation_source_meta} from '../parts/schemas.js'
 
-import type {TransServiceId, TranslationSourceMeta} from '../parts/types.js'
+import type {TransServiceId} from '../parts/types.js'
 
 
 export async function discover_translations(service:TransServiceId, discover_specific_id?:string){
@@ -23,7 +24,8 @@ export async function discover_translations(service:TransServiceId, discover_spe
     const ids = Object.fromEntries(services.map(
         service => [service, [] as string[]])) as Record<TransServiceId, string[]>
     for (const trans of list_dirs(join('sources', 'bibles'))){
-        const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', trans, 'meta.json'))
+        const meta_path = join('sources', 'bibles', trans, 'meta.json')
+        const meta = read_json(meta_path, translation_source_meta)
         for (const service of Object.keys(meta.ids) as TransServiceId[]){
             ids[service].push(meta.ids[service]!)
         }

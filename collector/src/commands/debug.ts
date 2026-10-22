@@ -8,8 +8,8 @@ import {JSDOM} from 'jsdom'
 import {pre_convert, pre_reverse, post_reverse} from '../patches/generic.js'
 import {convert} from '../parts/usfmtc.js'
 import {read_json, list_files} from '../parts/utils.js'
+import {translation_source_meta} from '../parts/schemas.js'
 
-import type {TranslationSourceMeta} from '../parts/types.js'
 
 
 const DOM = new JSDOM()
@@ -25,7 +25,7 @@ export async function debug_convert(id:string, book:string, stage:string):Promis
 
     // Locate the source book file
     const src_dir = join('sources', 'bibles', id)
-    const meta = read_json<TranslationSourceMeta>(join(src_dir, 'meta.json'))
+    const meta = read_json(join(src_dir, 'meta.json'), translation_source_meta)
     const src_fmt = meta.source.format
     const format_dir = join(src_dir, src_fmt)
     const file = list_files(format_dir)

@@ -3,6 +3,8 @@ import {Dirent, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSy
 } from 'fs'
 import {dirname, join} from 'path'
 
+import {z} from 'zod'
+
 /**
  * Files/dirs to ignore when reading a directory
  */
@@ -23,23 +25,54 @@ export interface DirectoryEntry {
 }
 
 
-export async function request<T>(url:string, type?:'json', headers?:Record<string, string>):
-    Promise<T>
 export async function request(url:string, type:'text', headers?:Record<string, string>):
     Promise<string>
 export async function request(url:string, type:'blob', headers?:Record<string, string>):
     Promise<Blob>
 export async function request(url:string, type:'arrayBuffer', headers?:Record<string, string>):
     Promise<ArrayBuffer>
-export async function request(url:string, type:'json'|'blob'|'arrayBuffer'|'text'='json',
+export async function request(url:string, type:'blob'|'arrayBuffer'|'text',
         headers?:Record<string, string>):Promise<unknown>{
     // Simple wrapper around fetch with optional custom headers
+    // NOTE Use request_json for JSON so the response is validated rather than trusted
     const resp = await fetch(url, headers ? {headers} : undefined)
     if (!resp.ok){
         const body = await resp.text().catch(() => '')
         throw new Error(`${resp.status} ${resp.statusText}: ${url}${body ? `\n${body}` : ''}`)
     }
     return resp[type]() as Promise<unknown>
+}
+
+
+export async function request_json<S extends z.ZodType>(url:string, schema:S,
+        headers?:Record<string, string>):Promise<z.infer<S>>{
+    // Fetch JSON and validate it against the schema (external data is never trusted)
+    return parse_json(await request(url, 'text', headers), schema, url)
+}
+
+
+export function parse_json<S extends z.ZodType>(text:string, schema:S, source:string):z.infer<S>{
+    // Parse JSON text and validate it, throwing an error that identifies the source if invalid
+    let data:unknown
+    try {
+        data = JSON.parse(text)
+    } catch (error){
+        throw new Error(`Invalid JSON from ${source}: ${String(error)}`)
+    }
+    return validate(data, schema, source)
+}
+
+
+export function validate<S extends z.ZodType>(data:unknown, schema:S, source:string):z.infer<S>{
+    // Validate data against a schema, throwing an error that identifies the source if invalid
+    const result = schema.safeParse(data)
+    if (!result.success){
+        throw new Error(`Invalid data from ${source}:\n${z.prettifyError(result.error)}`)
+    }
+    // Return the original (now verified) data rather than zod's copy, as the copy reorders keys to
+    // match the schema, which would churn files that are read and written back
+    // WARN Only valid as schemas don't use transforms/defaults (so the copy has the same values)
+    return data as z.infer<S>
 }
 
 
@@ -167,9 +200,9 @@ export function read_dir_deep(directory:string):{dirs: string[], files: string[]
 }
 
 
-export function read_json<T>(path:string):T{
-    // Read a JSON file and cast as given type
-    return JSON.parse(readFileSync(path, 'utf-8')) as T
+export function read_json<S extends z.ZodType>(path:string, schema:S):z.infer<S>{
+    // Read a JSON file and validate it against the schema (files on disk are never trusted)
+    return parse_json(readFileSync(path, 'utf-8'), schema, path)
 }
 
 

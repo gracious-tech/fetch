@@ -5,7 +5,7 @@ import {writeFileSync} from 'node:fs'
 import StreamZip from 'node-stream-zip'
 
 import {mkdir_exist, request} from '../parts/utils.js'
-import {books_ordered} from '../parts/bible.js'
+import {books_ordered, is_valid_range} from '../parts/bible.js'
 
 
 // Types
@@ -62,6 +62,7 @@ export function cross_references_to_json(content:string): Record<string, BookCro
      */
     const cross_ref_table = new Map<string, CrossRefItem>()
     const total_votes: number[] = []
+    const invalid_lines:string[] = []
     const lines = content.split('\n')
     for (let index = 0; index < lines.length; index++) {
         const line = lines[index]
@@ -69,15 +70,21 @@ export function cross_references_to_json(content:string): Record<string, BookCro
             // Skip the header or empty lines
             continue
         }
-        const parts = line.split('\t')
-        const from = extract_reference(parts[0]!)
-        const to = extract_reference(parts[1]!)
+        const [from_str, to_str, votes_str] = line.split('\t')
+        const from = extract_reference(from_str ?? '')
+        const to = extract_reference(to_str ?? '')
         if ((!from) || (!to)) {
             // Scripture is missing
             continue
         }
-        const votes_string = parts[2] || '0'
-        const votes = parseInt(votes_string, 10)
+
+        // Reject (and report) lines whose refs don't exist or whose votes aren't an integer
+        if (!is_valid_ref(from) || !is_valid_ref(to)
+                || !/^-?\d+$/.test((votes_str ?? '0').trim())){
+            invalid_lines.push(line)
+            continue
+        }
+        const votes = parseInt(votes_str ?? '0', 10)
         if (votes < 0) {
             // ignore negative voted references
             continue
@@ -103,6 +110,12 @@ export function cross_references_to_json(content:string): Record<string, BookCro
             cross_references: [cross_ref],
         }
         cross_ref_table.set(key, item)
+    }
+
+    // Report skipped lines (a few are expected; many would suggest the format has changed)
+    if (invalid_lines.length){
+        console.warn(`Skipped ${invalid_lines.length} invalid OpenBible cross-reference line(s),`
+            + ` e.g. ${JSON.stringify(invalid_lines.slice(0, 3))}`)
     }
 
     // Set up the results
@@ -187,6 +200,13 @@ export interface OBBibleReference {
  *
  * @returns Details about the passage
  */
+// Whether a parsed reference exists in the standard versification
+function is_valid_ref(ref:OBBibleReference):boolean{
+    return is_valid_range(ref.usx, ref.start_chapter, ref.start_verse, ref.end_chapter,
+        ref.end_verse)
+}
+
+
 export function extract_reference(reference: string): OBBibleReference|null {
     const pattern = /\b\w+\b/g
     const parts = reference.split('-')

@@ -6,6 +6,7 @@ import {book_names_english, book_abbrev_english} from '@gracious.tech/bible-refe
 
 import {build_native_extra} from './sections.js'
 import {read_json, write_json, list_dirs} from './utils.js'
+import {translation_source_meta} from './schemas.js'
 
 import type {TranslationSourceMeta} from './types.js'
 import type {DistTranslationExtra} from './shared_types.js'
@@ -30,7 +31,7 @@ export function build_extra_overlay(){
         natives[id] = build_native_extra(join(bibles_dist, id)).extra
         const meta_path = join('sources', 'bibles', id, 'meta.json')
         if (existsSync(meta_path)){
-            metas[id] = read_json<TranslationSourceMeta>(meta_path)
+            metas[id] = read_json(meta_path, translation_source_meta)
         }
     }
 

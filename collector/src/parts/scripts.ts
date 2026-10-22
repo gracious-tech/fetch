@@ -3,6 +3,7 @@ import {join} from 'node:path'
 import {existsSync} from 'node:fs'
 
 import {list_files, read_json} from './utils.js'
+import {bible_json_txt} from './schemas.js'
 
 import type {DistManifestItem} from './shared_types'
 
@@ -95,7 +96,7 @@ export function detect_bible_script(dist_path:string):string|null{
         return null
     }
     const strings:string[] = []
-    collect_strings(read_json<{contents:unknown}>(join(txt_dir, book_file)).contents, strings)
+    collect_strings(read_json(join(txt_dir, book_file), bible_json_txt).contents, strings)
     return detect_script(strings.join(' ').slice(0, 50000))
 }
 

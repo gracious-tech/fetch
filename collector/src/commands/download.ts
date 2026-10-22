@@ -5,9 +5,11 @@ import {existsSync, writeFileSync, rmSync} from 'fs'
 import StreamZip from 'node-stream-zip'
 
 import {books_ordered} from '../parts/bible.js'
-import {clean_dir, concurrent, request, read_json, write_json,
+import {clean_dir, concurrent, request, read_json,
     list_dirs, list_files} from '../parts/utils.js'
-import {dbl_headers, get_remote_versions as dbl_remote_versions} from '../integrations/dbl.js'
+import {translation_source_meta, write_translation_meta} from '../parts/schemas.js'
+import {dbl_zip_download_url, get_remote_versions as dbl_remote_versions}
+    from '../integrations/dbl.js'
 import {get_remote_versions as ebible_remote_versions} from '../integrations/ebible.js'
 import {TranslationSourceMeta} from '../parts/types.js'
 
@@ -28,7 +30,7 @@ export async function download_source(recheck:boolean, trans_id?:string){
         if (trans_id && id !== trans_id){
             continue  // Only updating a single translation
         }
-        const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
+        const meta = read_json(join('sources', 'bibles', id, 'meta.json'), translation_source_meta)
         const format_dir = join('sources', 'bibles', id, meta.source.format)
         const downloaded = existsSync(format_dir) && list_files(format_dir).length > 0
         candidates.push({id, meta, downloaded})
@@ -154,9 +156,7 @@ async function _update_source(id:string, meta:TranslationSourceMeta,
         let download_url = url
         if (meta.source.service === 'dbl'){
             // DBL zip endpoint returns JSON with a presigned URL, not the zip directly
-            const dbl_resp = await request<{presignedURL:string}>(
-                url, 'json', dbl_headers(url))
-            download_url = dbl_resp.presignedURL
+            download_url = await dbl_zip_download_url(url)
         }
         const zip = await request(download_url, 'arrayBuffer')
         writeFileSync(join(src_dir, `source${index || ''}.zip`), Buffer.from(zip))
@@ -197,7 +197,7 @@ async function _update_source(id:string, meta:TranslationSourceMeta,
         meta_dirty = true
     }
     if (meta_dirty){
-        write_json(join(src_dir, 'meta.json'), meta, true)
+        write_translation_meta(join(src_dir, 'meta.json'), meta)
     }
 }
 

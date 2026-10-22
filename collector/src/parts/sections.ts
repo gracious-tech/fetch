@@ -5,6 +5,7 @@ import {existsSync, readFileSync} from 'node:fs'
 import {PassageReference} from '@gracious.tech/bible-references'
 
 import {read_json, list_files} from './utils.js'
+import {bible_json_txt} from './schemas.js'
 
 import type {BibleJsonTxt, BookSection, DistTranslationExtra} from './shared_types'
 
@@ -137,7 +138,7 @@ export function build_native_extra(dist_dir:string):
     // Assemble each book's native extra from its txt JSON
     for (const filename of list_files(txt_dir)){
         const book = filename.split('.')[0]!
-        const json_txt = read_json<BibleJsonTxt>(join(txt_dir, filename))
+        const json_txt = read_json(join(txt_dir, filename), bible_json_txt)
 
         // Names/sections/chapter headings (WARN also nulls chapter-start headings to save transfer)
         const book_extra = build_native_book_extra(json_txt)

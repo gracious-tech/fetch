@@ -9,6 +9,7 @@ import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 
 import Anthropic from '@anthropic-ai/sdk'
+import {z} from 'zod'
 import {books_ordered, book_names_english} from '@gracious.tech/bible-references'
 
 
@@ -78,6 +79,46 @@ under 20 words). Return a rating for every section listed, keyed by its given in
 
 
 // JSON schema constraining the structured output
+// Runtime validation of everything read in (the API response and JSON files are never trusted)
+const score = z.number().int().min(1).max(5)
+const range_fields = {
+    start_chapter: z.number().int().positive(),
+    start_verse: z.number().int().positive(),
+    end_chapter: z.number().int().positive(),
+    end_verse: z.number().int().positive(),
+}
+const ratings_response = z.strictObject({
+    ratings: z.array(z.strictObject({
+        index: z.number().int(),
+        importance: score,
+        popularity: score,
+        reason: z.string(),
+    })),
+})
+const ref_extra = z.object({
+    sections: z.record(z.string(), z.array(z.object({...range_fields,
+        heading: z.string().nullable()}))),
+    chapter_headings: z.record(z.string(), z.array(z.string())),
+})
+const section_data = z.strictObject({
+    model: z.string(),
+    generated: z.string(),
+    sections: z.record(z.string(), z.array(z.strictObject({...range_fields, importance: score,
+        popularity: score, reason: z.exactOptional(z.string())}))),
+})
+
+
+// Parse JSON text and validate it, throwing an error identifying the source if invalid
+function parse_checked<S extends z.ZodType>(text:string, schema:S, source:string):z.infer<S>{
+    const result = schema.safeParse(JSON.parse(text))
+    if (!result.success){
+        throw new Error(`Invalid data from ${source}:\n${z.prettifyError(result.error)}`)
+    }
+    return result.data
+}
+
+
+// JSON schema the API must follow (validated again with ratings_response once received)
 const SCHEMA = {
     type: 'object',
     properties: {
@@ -141,8 +182,7 @@ async function rate_chunk(client:Anthropic, book_name:string, book:string,
     if (!text_block || text_block.type !== 'text'){
         throw new Error(`No text block returned for ${book}${chunk_label}`)
     }
-    const parsed = JSON.parse(text_block.text) as {ratings:{index:number, importance:number,
-        popularity:number, reason:string}[]}
+    const parsed = parse_checked(text_block.text, ratings_response, `API ratings for ${book}`)
 
     return {
         ratings: parsed.ratings,
@@ -183,12 +223,11 @@ async function main(){
             + `Run: .bin/collector discover ebible eng_bsb && .bin/collector download eng_bsb `
             + `&& .bin/collector process`)
     }
-    const ref = JSON.parse(readFileSync(REF_EXTRA, 'utf-8')) as {
-        sections:Record<string, RefSection[]>, chapter_headings:Record<string, string[]>}
+    const ref = parse_checked(readFileSync(REF_EXTRA, 'utf-8'), ref_extra, REF_EXTRA)
 
     // Load existing output (to merge and to skip already-rated books)
     const existing:DistSectionData = existsSync(OUT_SOURCE)
-        ? JSON.parse(readFileSync(OUT_SOURCE, 'utf-8')) as DistSectionData
+        ? parse_checked(readFileSync(OUT_SOURCE, 'utf-8'), section_data, OUT_SOURCE)
         : {model: MODEL, generated: '', sections: {}}
     const output:DistSectionData = {
         model: MODEL,

@@ -2,10 +2,12 @@
 import fs from 'node:fs'
 import {join, sep} from 'node:path'
 
+import {z} from 'zod'
+
 import {concurrent, type_from_path, read_dir_deep, read_json} from '../parts/utils.js'
+import {validate_manifest} from './schemas.js'
 import {read_unpublished, remove_unpublished, clear_unpublished, mark_all_unpublished}
     from './unpublished.js'
-import type {DistManifest} from './shared_types'
 
 
 // Categories that are keyed by resource id in the manifest (and reconciled against it)
@@ -88,7 +90,8 @@ export abstract class Publisher {
         }
 
         // Collect the valid resource ids per category from the freshly-generated manifest
-        const manifest = read_json<DistManifest>(join('dist', 'manifest.json'))
+        const manifest_path = join('dist', 'manifest.json')
+        const manifest = validate_manifest(read_json(manifest_path, z.unknown()), manifest_path)
         const valid_ids = new Map<string, Set<string>>()
         for (const category of RESOURCE_CATEGORIES){
             valid_ids.set(category, new Set(Object.keys(manifest[category])))

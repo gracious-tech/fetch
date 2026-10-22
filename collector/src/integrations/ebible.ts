@@ -4,24 +4,29 @@ import {existsSync, mkdirSync} from 'fs'
 
 import {parse as csv_parse} from 'csv-parse/sync'
 
-import {request, concurrent, write_json, read_json} from '../parts/utils.js'
+import {z} from 'zod'
+
+import {request, concurrent, read_json, validate} from '../parts/utils.js'
+import {translation_source_meta, write_translation_meta} from '../parts/schemas.js'
 import {license_from_text, detect_year} from '../parts/license.js'
 import {get_language_data} from '../parts/languages.js'
 import type {TranslationSourceMeta} from '../parts/types'
 
 
-interface EbibleRow {
-    translationId:string
-    FCBHID:string
-    title:string
-    description:string
-    shortTitle:string
-    languageCode:string
-    textDirection:string
-    Copyright:string
-    UpdateDate:string
-    swordName:string
-}
+// One row of eBible's translations.csv (only the columns used; others are stripped)
+const ebible_row = z.object({
+    translationId: z.string().min(1),
+    FCBHID: z.string(),
+    title: z.string(),
+    description: z.string(),
+    shortTitle: z.string(),
+    languageCode: z.string(),
+    textDirection: z.string(),
+    Copyright: z.string(),
+    UpdateDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected a yyyy-mm-dd date"),
+    swordName: z.string(),
+})
+type EbibleRow = z.infer<typeof ebible_row>
 
 
 // Translations that can be sourced from a better location (or other issue)
@@ -165,7 +170,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
         const trans_dir = join('sources', 'bibles', trans_id)
         const meta_file = join(trans_dir, 'meta.json')
         if (existsSync(meta_file)){
-            const existing_meta = read_json<TranslationSourceMeta>(meta_file)
+            const existing_meta = read_json(meta_file, translation_source_meta)
             if (existing_meta.ids.ebible){
                 // Translation already has a different eBible id so need to resolve manually
                 console.error(`INVALID Matched ${ebible_id} to ${trans_id} but it already has `
@@ -173,7 +178,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
                 return
             }
             existing_meta.ids.ebible = ebible_id
-            write_json(meta_file, existing_meta, true)
+            write_translation_meta(meta_file, existing_meta)
             exists.push(ebible_id)
             return
         }
@@ -216,7 +221,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
 
         // Save meta file
         mkdirSync(trans_dir, {recursive: true})
-        write_json(meta_file, meta, true)
+        write_translation_meta(meta_file, meta)
         added.push(ebible_id)
     }))
 
@@ -228,17 +233,25 @@ export async function discover(existing:string[], discover_specific_id?:string):
 }
 
 
-// Fetch and parse the eBible translations CSV
+// Fetch and parse the eBible translations CSV, reporting and skipping any malformed rows
 async function fetch_rows():Promise<EbibleRow[]>{
-    const csv_buffer =
-        await request('https://ebible.org/Scriptures/translations.csv', 'arrayBuffer')
-    return csv_parse(Buffer.from(csv_buffer), {
+    const csv_url = 'https://ebible.org/Scriptures/translations.csv'
+    const records:unknown = csv_parse(Buffer.from(await request(csv_url, 'arrayBuffer')), {
         bom: true,
         columns: true,
         skip_empty_lines: true,
         trim: true,
-        escape: '\\',  // eBible uses \ for escaping " instead of double ("")
-    }) as EbibleRow[]
+    })
+    const rows:EbibleRow[] = []
+    for (const [index, record] of validate(records, z.array(z.unknown()), csv_url).entries()){
+        const row = ebible_row.safeParse(record)
+        if (row.success){
+            rows.push(row.data)
+        } else {
+            console.error(`INVALID eBible row ${index + 2} (skipped):\n${z.prettifyError(row.error)}`)
+        }
+    }
+    return rows
 }
 
 

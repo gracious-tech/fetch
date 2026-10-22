@@ -7,6 +7,7 @@ import {DOMParser, XMLSerializer} from '@xmldom/xmldom'
 import {select} from 'xpath'
 
 import {mkdir_exist, request, write_json} from '../parts/utils.js'
+import {is_valid_range} from '../parts/bible.js'
 
 import type {CommonSourceMeta} from '../parts/types'
 import type {NotesData, MultiVerseNote} from '../parts/shared_types'
@@ -81,6 +82,9 @@ export async function download_notes(){
     if (!existsSync(meta_path)){
         const xml = readFileSync(xml_file_out, {encoding: 'utf8'})
         const revision = parseFloat(/^<items release="(.*?)">/.exec(xml.trim())?.[1] ?? '')
+        if (!Number.isFinite(revision)){
+            throw new Error(`Could not read release number from ${xml_file_out}`)
+        }
         const meta_data = _generate_meta(url, revision)
         write_json(meta_path, meta_data, true)
     }
@@ -123,8 +127,9 @@ export function study_notes_to_json(xml:string, notes_id:string):Record<string, 
 
     // Parse the XML
     const doc = new DOMParser().parseFromString(xml, 'text/xml')
-    const elements = select('//item', doc) as Element[]
+    const elements = select_elements('//item', doc)
     const serializer = new XMLSerializer()
+    const invalid_refs:string[] = []
     elements.forEach((element: Element) => {
         const name = element.getAttribute('name') ?? ''
         const reference = extract_reference(name)
@@ -132,7 +137,13 @@ export function study_notes_to_json(xml:string, notes_id:string):Record<string, 
             // Move on. Unable to determine reference
             return
         }
-        const body_element = select('body/p', element)[0] as Element
+        // Reject (and report) references to chapters/verses that don't exist
+        if (!is_valid_range(reference.usx, reference.start_chapter, reference.start_verse,
+            reference.end_chapter, reference.end_verse)){
+            invalid_refs.push(name)
+            return
+        }
+        const body_element = select_elements('body/p', element)[0]
         let body = (body_element !== undefined) ? serializer.serializeToString(body_element) : ''
         body = clean_note(body)
         if (!reference.is_range) {
@@ -154,6 +165,12 @@ export function study_notes_to_json(xml:string, notes_id:string):Record<string, 
             output[reference.usx]!.ranges.push(note)
         }
     })
+
+    // Report skipped notes (a few are expected; many would suggest the format has changed)
+    if (invalid_refs.length){
+        console.warn(`Skipped ${invalid_refs.length} Tyndale note(s) with invalid references,`
+            + ` e.g. ${JSON.stringify(invalid_refs.slice(0, 3))}`)
+    }
 
     // Remove books with no notes
     for (const book in output){
@@ -194,6 +211,17 @@ export interface TyndaleBibleReference {
  *
  * @returns The extracted verse details
  */
+// Select nodes by XPath, keeping only elements (results are otherwise untyped)
+function select_elements(expression:string, node:Node):Element[]{
+    const result = select(expression, node)
+    if (!Array.isArray(result)){
+        throw new Error(`Expected nodes from XPath ${expression}`)
+    }
+    return result.filter((item):item is Element =>
+        typeof item === 'object' && item.nodeType === 1)
+}
+
+
 export function extract_reference(reference: string): TyndaleBibleReference|null {
 
     const regex = /\b\w+\b/g

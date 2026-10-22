@@ -1,3 +1,5 @@
+import {last_verse} from '@gracious.tech/bible-references'
+
 
 // TODO Get from client and publish separate to manifest as only needed for non-JS languages
 
@@ -80,4 +82,18 @@ export const book_names_english: Record<string, string> = {
     '3jn': "3 John",
     'jud': "Jude",
     'rev': "Revelation",
+}
+
+
+// Whether a verse range exists in the standard versification (known book, chapters/verses in range,
+// ascending). Used to reject references parsed from external data rather than store them blindly.
+export function is_valid_range(book:string, start_chapter:number, start_verse:number,
+        end_chapter:number, end_verse:number):boolean{
+    const chapters = last_verse[book]
+    const exists = (chapter:number, verse:number) => Number.isInteger(chapter)
+        && Number.isInteger(verse) && chapter >= 1 && verse >= 1
+        && verse <= (chapters?.[chapter - 1] ?? 0)
+    return exists(start_chapter, start_verse) && exists(end_chapter, end_verse)
+        && (end_chapter > start_chapter
+            || (end_chapter === start_chapter && end_verse >= start_verse))
 }

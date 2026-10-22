@@ -3,6 +3,7 @@ import {join} from 'node:path'
 
 import {mkdir_exist, read_json, write_json, PKG_PATH} from '../parts/utils.js'
 import {add_unpublished} from '../parts/unpublished.js'
+import {dist_section_data} from '../parts/schemas.js'
 
 import type {DistSectionData} from '../parts/shared_types'
 
@@ -12,7 +13,7 @@ import type {DistSectionData} from '../parts/shared_types'
 export function sections_process(){
 
     // Read the committed source of truth (bundled with the package)
-    const data = read_json<DistSectionData>(join(PKG_PATH, 'dist', 'data', 'sections.json'))
+    const data = read_json(join(PKG_PATH, 'dist', 'data', 'sections.json'), dist_section_data)
 
     // Strip each section's `reason` as it's only kept in the source for auditability
     const published:DistSectionData = {

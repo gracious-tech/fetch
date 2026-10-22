@@ -11,11 +11,11 @@ import {pre_convert, pre_reverse, post_reverse} from '../patches/generic.js'
 import {update_manifest} from '../parts/manifest.js'
 import {add_unpublished} from '../parts/unpublished.js'
 import {concurrent, read_json, write_json, list_files, list_dirs} from '../parts/utils.js'
+import {translation_source_meta, write_translation_meta} from '../parts/schemas.js'
 import {build_native_extra, book_has_text} from '../parts/sections.js'
 import {build_extra_overlay} from '../parts/extra_overlay.js'
 import {convert} from '../parts/usfmtc.js'
 
-import type {TranslationSourceMeta} from '../parts/types.js'
 
 
 const DOM = new JSDOM()
@@ -63,7 +63,7 @@ async function _update_dist_single(id:string, force:boolean){
     const dist_dir = join('dist', 'bibles', id)
 
     // Get translation's meta data
-    const meta = read_json<TranslationSourceMeta>(join(src_dir, 'meta.json'))
+    const meta = read_json(join(src_dir, 'meta.json'), translation_source_meta)
     const src_fmt = meta.source.format  // 'usfm' | 'usx'
 
     // Confirm have downloaded source already
@@ -219,6 +219,6 @@ async function _update_dist_single(id:string, force:boolean){
         } else {
             delete meta.partial
         }
-        write_json(join(src_dir, 'meta.json'), meta, true)
+        write_translation_meta(join(src_dir, 'meta.json'), meta)
     }
 }

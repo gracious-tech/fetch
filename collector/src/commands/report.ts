@@ -5,15 +5,15 @@ import {existsSync} from 'fs'
 import {books_ordered} from '@gracious.tech/bible-references'
 
 import {read_json, list_dirs, list_files} from '../parts/utils.js'
+import {translation_source_meta} from '../parts/schemas.js'
 import {_missing_meta, _missing_meta_fields} from '../parts/manifest.js'
 
-import type {TranslationSourceMeta} from '../parts/types'
 
 
 export function report_items(){
     // Output a list of all included translations
     for (const id of list_dirs(join('sources', 'bibles'))){
-        const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
+        const meta = read_json(join('sources', 'bibles', id, 'meta.json'), translation_source_meta)
 
         // Report the first license if any
         let license = meta.copyright.licenses[0]?.license
@@ -41,7 +41,7 @@ export function report_items(){
 export function report_invalid_meta(){
     // Output a list of translations that have invalid metadata
     for (const id of list_dirs(join('sources', 'bibles'))){
-        const meta = read_json<TranslationSourceMeta>(join('sources', 'bibles', id, 'meta.json'))
+        const meta = read_json(join('sources', 'bibles', id, 'meta.json'), translation_source_meta)
 
         // See if missing any metadata
         const missing = _missing_meta_fields(meta)

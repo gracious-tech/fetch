@@ -8,12 +8,18 @@ import {get_language_data} from './languages.js'
 import {LICENSES} from './license.js'
 import {check_bible_scripts} from './scripts.js'
 import {read_json, write_json, list_dirs, list_files, list_dirs_if} from './utils.js'
+import {glosses_source_meta, notes_source_meta, translation_source_meta, validate_manifest}
+    from './schemas.js'
 import type {DistManifest, DistManifestItem} from './shared_types'
 import type {TranslationSourceMeta} from './types'
 
 
+// The meta fields every resource needs before it can be published
+type RequiredMetaFields = Pick<TranslationSourceMeta, 'year'|'copyright'|'name'>
+
+
 // Return list of missing required meta field names
-export function _missing_meta_fields(meta:TranslationSourceMeta):string[]{
+export function _missing_meta_fields(meta:RequiredMetaFields):string[]{
     const missing:string[] = []
     if (!meta.year) missing.push('year')
     if (!meta.copyright.licenses.length) missing.push('licenses')
@@ -24,20 +30,23 @@ export function _missing_meta_fields(meta:TranslationSourceMeta):string[]{
 
 
 // See if any important meta data missing
-export function _missing_meta(meta:TranslationSourceMeta){
+export function _missing_meta(meta:RequiredMetaFields){
     // True if missing (and so shouldn't publish)
     return _missing_meta_fields(meta).length > 0
 }
 
 
 // Get the meta data for a resource that is to be added to the manifest
-function _process_resource_meta(sources_path:string, dist_path:string):DistManifestItem|undefined{
+function _process_resource_meta(category:'bibles'|'glosses'|'notes', sources_path:string,
+        dist_path:string):DistManifestItem|undefined{
 
-    // Load the meta data for the translation
-    const meta = read_json<TranslationSourceMeta>(join(sources_path, 'meta.json'))
+    // Load the meta data for the resource (each category has its own source meta shape)
+    const meta_schema = {bibles: translation_source_meta, glosses: glosses_source_meta,
+        notes: notes_source_meta}[category]
+    const meta = read_json(join(sources_path, 'meta.json'), meta_schema)
 
     // Skip if meta data missing
-    if (_missing_meta(meta)){
+    if (_missing_meta(meta) || meta.year === null){
         console.error(`IGNORING ${sources_path} (missing year, license, name, etc)`)
         return
     }
@@ -66,7 +75,7 @@ function _process_resource_meta(sources_path:string, dist_path:string):DistManif
     // NOTE Not including meta data that client doesn't need (users can still check git repo)
     return {
         name: meta.name,
-        year: meta.year as number,  // Verified to exist above
+        year: meta.year,
         direction: meta.direction,
         copyright: meta.copyright,
         tags: meta.tags,
@@ -99,7 +108,7 @@ function _add_resources(manifest:DistManifest, included_languages:Set<string>,
             if (!existsSync(dist_path)){
                 continue  // Haven't processed dist files yet
             }
-            const processed_meta = _process_resource_meta(sources_path, dist_path)
+            const processed_meta = _process_resource_meta(category, sources_path, dist_path)
             if (processed_meta){
                 manifest[category][id] = processed_meta
                 // Language is to be added to manifest
@@ -153,6 +162,7 @@ export async function update_manifest(){
     manifest.language2to3 = Object.fromEntries(Object.entries(language_data.data.language2to3)
         .filter(([, three]) => included_languages.has(three)))
 
-    // Save the manifest to dist dir
-    write_json(join('dist', 'manifest.json'), manifest, true)
+    // Verify the manifest is something clients can rely on, then save it to dist dir
+    write_json(join('dist', 'manifest.json'), validate_manifest(manifest, 'generated manifest'),
+        true)
 }

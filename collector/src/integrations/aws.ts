@@ -9,7 +9,8 @@ import {CloudFront} from '@aws-sdk/client-cloudfront'
 import {Publisher} from '../parts/publisher.js'
 import {generate_dir_index_content} from '../parts/indexes.js'
 
-import type {CollectionConfig} from '../parts/types'
+import {validate} from '../parts/utils.js'
+import {collection_config} from '../parts/schemas.js'
 
 
 export class PublisherAWS extends Publisher {
@@ -23,8 +24,8 @@ export class PublisherAWS extends Publisher {
     constructor(){
         super()
         // Load config and init clients
-        const config =
-            (parse_yaml(readFileSync('config.yaml', 'utf-8')) as CollectionConfig).integrations.aws
+        const raw_config:unknown = parse_yaml(readFileSync('config.yaml', 'utf-8'))
+        const config = validate(raw_config, collection_config, 'config.yaml').integrations.aws
         this._s3 = new S3({region: config.region})
         this._bucket = config.bucket
         this._region = config.region

@@ -3,7 +3,10 @@ import {join} from 'path'
 import {existsSync, mkdirSync} from 'fs'
 
 import {LICENSES} from '../parts/license.js'
-import {read_json, request, write_json} from '../parts/utils.js'
+import {z} from 'zod'
+
+import {read_json, request_json} from '../parts/utils.js'
+import {translation_source_meta, write_translation_meta} from '../parts/schemas.js'
 import {get_language_data} from '../parts/languages.js'
 
 import type {TranslationSourceMeta} from '../parts/types'
@@ -17,28 +20,27 @@ const IGNORE = [
 ]
 
 
-interface Door43Language {
-    language:string
-    resources:Door43Resource[]
-    direction:string
-    title:string
-}
+// Door43 catalog schemas (only the fields used; unknown fields are stripped)
+const door43_format = z.object({
+    format: z.string(),
+    modified: z.string(),
+    url: z.url(),
+})
+type Door43Format = z.infer<typeof door43_format>
 
-
-interface Door43Resource {
-    creator:string
-    formats:Door43Format[]
-    identifier:string
-    rights:string
-    title:string
-    issued:string
-}
-
-interface Door43Format {
-    format:string
-    modified:string
-    url:string
-}
+const door43_catalog = z.array(z.object({
+    language: z.string().min(1),
+    direction: z.string(),
+    title: z.string(),
+    resources: z.array(z.object({
+        creator: z.string(),
+        formats: z.array(door43_format),
+        identifier: z.string().min(1),
+        rights: z.string(),
+        title: z.string(),
+        issued: z.string(),
+    })),
+}))
 
 
 function detect_license(rights:string, door43_id:string):{license:string|null, license_url:string}{
@@ -52,11 +54,11 @@ function detect_license(rights:string, door43_id:string):{license:string|null, l
             license_url: src_license_url,
         }
     }
-    const parts = rights.split(' ')
-    const license = `${parts[0]!}-${parts[1]!}`
-    const version = parts[2]
-    const license_url = `https://creativecommons.org/licenses/${parts[1]!}/${version!}/`
-    if (license in LICENSES){
+    // Expect e.g. "cc by-sa 4.0" (anything else isn't a recognised license)
+    const [family, kind, version] = rights.split(' ')
+    const license = `${family ?? ''}-${kind ?? ''}`
+    const license_url = `https://creativecommons.org/licenses/${kind ?? ''}/${version ?? ''}/`
+    if (kind && version && license in LICENSES){
         return {license, license_url}
     }
     return {license: null, license_url: src_license_url}
@@ -93,7 +95,7 @@ async function _discover(subject:string, existing:string[], discover_specific_id
 
     // Fetch the catalog
     const catalog =
-        await request<Door43Language[]>(`https://api.door43.org/v3/subjects/${subject}.json`)
+        await request_json(`https://api.door43.org/v3/subjects/${subject}.json`, door43_catalog)
 
     // Load language data for code conversion
     const languages = get_language_data()
@@ -136,9 +138,9 @@ async function _discover(subject:string, existing:string[], discover_specific_id
 
             // If already added via another service, add door43 id to it
             if (existsSync(meta_file)){
-                const existing_meta = read_json<TranslationSourceMeta>(meta_file)
+                const existing_meta = read_json(meta_file, translation_source_meta)
                 existing_meta.ids.door43 = door43_id
-                write_json(meta_file, existing_meta, true)
+                write_translation_meta(meta_file, existing_meta)
                 exists.push(door43_id)
                 continue
             }
@@ -197,7 +199,7 @@ async function _discover(subject:string, existing:string[], discover_specific_id
 
             // Save meta file
             mkdirSync(trans_dir, {recursive: true})
-            write_json(meta_file, translation, true)
+            write_translation_meta(meta_file, translation)
             added.push(door43_id)
         }
     }

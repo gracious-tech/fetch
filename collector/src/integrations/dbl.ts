@@ -3,7 +3,10 @@ import {join} from 'node:path'
 import {existsSync, mkdirSync} from 'node:fs'
 import {createHmac} from 'node:crypto'
 
-import {request, concurrent, write_json, read_json} from '../parts/utils.js'
+import {z} from 'zod'
+
+import {request_json, concurrent, read_json} from '../parts/utils.js'
+import {translation_source_meta, write_translation_meta} from '../parts/schemas.js'
 import {license_from_text} from '../parts/license.js'
 import {get_language_data} from '../parts/languages.js'
 
@@ -64,61 +67,54 @@ const OUTDATED_LANG:Record<string, string> = {cug: 'cnq', plj: 'zlu'}
 
 
 
-interface ListContentEntriesResponse {
-    items:ContentEntryDetailed[]
-    totalCount:number
-}
+// DBL API response schemas (only the fields used; unknown fields are stripped)
+// NOTE Optional fields use nullish() as the API returns null for unset values in places
+const dbl_datetime = z.string().regex(/^\d{4}-\d{2}-\d{2}T/, "Expected an ISO 8601 datetime")
+const dbl_year_or_date = z.string().regex(/^\d{4}(-\d{2}-\d{2})?$/, "Expected yyyy or yyyy-mm-dd")
+const dbl_org = z.object({uid: z.string(), name: z.string()})
 
-interface ContentEntry {
-    uid:string
-    countries?:{name:string, isoCode?:string}[]
-    isConfidential?:boolean
-    isLatest?:boolean
-    isObsolete?:boolean
-    language?:{isoCode?:string, name?:string}
-    latestRevision:number
-    medium?:'audio'|'braille'|'paratextZipResource'|'print'|'text'|'video'
-    name:string
-    providedByOrg?:{uid:string, name:string}
-    primaryLicensorOrg?:{uid:string, name:string}
-}
+// One content entry from the list endpoint (with include_full_details=true)
+const dbl_content_entry = z.object({
+    uid: z.string().regex(/^[0-9a-f]{16}$/, "Expected a 16 char hex uid"),
+    name: z.string(),
+    medium: z.string().nullish(),
+    language: z.object({
+        isoCode: z.string().nullish(),
+        scriptDirection: z.enum(['LTR', 'RTL']).nullish(),
+    }).nullish(),
+    providedByOrg: dbl_org.nullish(),
+    primaryLicensorOrg: dbl_org.nullish(),
+    copyrightStatement: z.string().nullish(),
+    dateFirstSubmitted: dbl_datetime.nullish(),
+    dateUpdated: dbl_datetime,
+    dateTranslationFinished: dbl_year_or_date.nullish(),  // Sometimes just a year
+    nameLocal: z.string().nullish(),
+    nameAbbreviation: z.string().nullish(),
+    nameAbbreviationLocal: z.string().nullish(),
+    revision: z.number().int().nonnegative(),
+})
+type DblContentEntry = z.infer<typeof dbl_content_entry>
 
-interface ContentEntryDetailed extends ContentEntry {
-    // Fields only present when include_full_details=true or from details endpoint
-    // NOTE Haven't included some fields that are unlikely to be of use
-    language?:{
-        isoCode?:string
-        name?:string
-        nameLocal?:string
-        numeralSystem?:string
-        scriptCode?:string
-        scriptDirection?:'LTR'|'RTL'
-        scriptName?:string
-    }
-    copyrightStatement?:string
-    dateFirstSubmitted?:string  // ISO 8601 datetime e.g. "2014-04-24T11:18:58.804614"
-    dateUpdated?:string  // ISO 8601 datetime e.g. "2014-04-24T20:18:57.819830"
-    dateTranslationFinished?:string  // ISO 8601 datetime (absent if not set)
-    description?:string
-    nameLocal?:string
-    nameAbbreviation?:string
-    nameAbbreviationLocal?:string
-    promotionInfo?:string
-    revision?:number
-    revisionComment?:string
-    scope?:string  // E.g. OT, NT, etc. (lookup codes if needed)
-    translationType?:string  // First, New, Revision
-}
+// List endpoint envelope (entries validated individually so one bad entry doesn't block the rest)
+const dbl_list_response = z.object({items: z.array(z.unknown())})
 
-interface LicenseAgreementsResponse {
-    items:{licenseTemplateRevisionID?:number}[]
-}
+const dbl_agreements_response = z.object({
+    items: z.array(z.object({licenseTemplateRevisionID: z.number().int().positive().nullish()})),
+})
 
-interface LicenseTemplateRevision {
-    isExternalLicense:boolean
-    externalURL:string
-    summary?:string
-    licenseText?:string
+const dbl_template_revision = z.object({
+    externalURL: z.string().nullish(),
+    summary: z.string().nullish(),
+    licenseText: z.string().nullish(),
+})
+
+// The zip endpoint returns a short-lived download link rather than the zip itself
+const dbl_zip_response = z.object({presignedURL: z.url()})
+
+
+// Resolve a DBL zip endpoint url to the presigned url the zip can actually be downloaded from
+export async function dbl_zip_download_url(url:string):Promise<string>{
+    return (await request_json(url, dbl_zip_response, dbl_headers(url))).presignedURL
 }
 
 
@@ -204,11 +200,11 @@ export async function discover(existing:string[], discover_specific_id?:string):
         let meta_file = join(trans_dir, 'meta.json')
         if (existsSync(meta_file) || claimed_ids.has(trans_id)){
             const existing_meta = existsSync(meta_file)
-                ? read_json<TranslationSourceMeta>(meta_file) : null
+                ? read_json(meta_file, translation_source_meta) : null
             if (existing_meta && !existing_meta.ids.dbl){
                 // Already added via another service so add dbl id to it
                 existing_meta.ids.dbl = item.uid
-                write_json(meta_file, existing_meta, true)
+                write_translation_meta(meta_file, existing_meta)
                 num_existing += 1
                 return
             } else {
@@ -269,15 +265,15 @@ export async function discover(existing:string[], discover_specific_id?:string):
                 service: 'dbl',
                 format: 'usx',
                 url: `${DBL_API}/content-entries/${item.uid}/zip`,
-                updated: item.dateUpdated!.slice(0, 10),
-                revision: item.revision!,
+                updated: item.dateUpdated.slice(0, 10),
+                revision: item.revision,
             },
             tags: [],
         }
 
         // Save meta file
         mkdirSync(trans_dir, {recursive: true})
-        write_json(meta_file, meta, true)
+        write_translation_meta(meta_file, meta)
         num_added += 1
         existing.push(item.uid)
     }))
@@ -307,8 +303,8 @@ async function fetch_license_from_template(
 
     // Get the license agreement for this entry
     const agreements_url = `${DBL_API}/license-agreements?content_entry_uid=${entry_uid}`
-    const agreements = await request<LicenseAgreementsResponse>(
-        agreements_url, 'json', dbl_headers(agreements_url))
+    const agreements = await request_json(
+        agreements_url, dbl_agreements_response, dbl_headers(agreements_url))
     const revision_id = agreements.items[0]?.licenseTemplateRevisionID
     if (!revision_id){
         return null
@@ -318,14 +314,15 @@ async function fetch_license_from_template(
     if (!template_revision_cache.has(revision_id)){
         template_revision_cache.set(revision_id, (async () => {
             const template_url = `${DBL_API}/license-template-revisions/${revision_id}`
-            let template:LicenseTemplateRevision
+            let template:z.infer<typeof dbl_template_revision>
             try {
-                template = await request<LicenseTemplateRevision>(
-                    template_url, 'json', dbl_headers(template_url))
+                template = await request_json(
+                    template_url, dbl_template_revision, dbl_headers(template_url))
             } catch {
                 // Revision not accessible to our org — check hardcoded fallbacks first
-                if (revision_id in KNOWN_TEMPLATE_LICENSES){
-                    return KNOWN_TEMPLATE_LICENSES[revision_id]!
+                const known = KNOWN_TEMPLATE_LICENSES[revision_id]
+                if (known){
+                    return known
                 }
                 throw new Error(`License template revision ${revision_id} not accessible via API.`
                     + ` Look up the license at https://app.library.bible/content/${entry_uid}`
@@ -343,8 +340,8 @@ async function fetch_license_from_template(
 
 
 // Fetch all open-access text entries, paginating through results
-async function fetch_all_entries():Promise<ContentEntryDetailed[]> {
-    const all_items:ContentEntry[] = []
+async function fetch_all_entries():Promise<DblContentEntry[]> {
+    const all_items:DblContentEntry[] = []
     const limit = 500
     let offset = 0
 
@@ -352,9 +349,18 @@ async function fetch_all_entries():Promise<ContentEntryDetailed[]> {
         // Build the request URL with filters
         const url = `${DBL_API}/content-entries?is_open_access=true&medium=text`
             + `&include_full_details=true&limit=${limit}&offset=${offset}`
-        const headers = dbl_headers(url)
-        const resp = await request<ListContentEntriesResponse>(url, 'json', headers)
-        all_items.push(...resp.items)
+        const resp = await request_json(url, dbl_list_response, dbl_headers(url))
+
+        // Validate each entry, reporting and skipping any that don't match what we rely on
+        for (const [index, raw] of resp.items.entries()){
+            const entry = dbl_content_entry.safeParse(raw)
+            if (entry.success){
+                all_items.push(entry.data)
+            } else {
+                const uid = z.object({uid: z.string()}).safeParse(raw).data?.uid ?? `#${offset + index}`
+                console.error(`INVALID DBL entry ${uid} (skipped):\n${z.prettifyError(entry.error)}`)
+            }
+        }
 
         // Fewer items than requested means this was the last page
         if (resp.items.length < limit){
@@ -374,8 +380,8 @@ export async function get_remote_versions()
     const versions = new Map<string, {updated:string, revision:number}>()
     for (const item of await fetch_all_entries()){
         versions.set(item.uid, {
-            updated: (item.dateUpdated ?? '').slice(0, 10),
-            revision: item.revision ?? 0,
+            updated: item.dateUpdated.slice(0, 10),
+            revision: item.revision,
         })
     }
     return versions

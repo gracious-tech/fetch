@@ -5,6 +5,7 @@ import {join} from 'node:path'
 import {existsSync, writeFileSync} from 'node:fs'
 
 import StreamZip from 'node-stream-zip'
+import {z} from 'zod'
 import {last_verse} from '@gracious.tech/bible-references'
 
 import {list_dirs, list_files, mkdir_exist, read_json, request, word_to_original, write_json}
@@ -16,33 +17,32 @@ import type {GlossesData, MetaLanguage, SearchData} from '../parts/shared_types.
 import type {CommonSourceMeta} from '../parts/types.js'
 
 
-interface GbtWordOriginal {
-    id:string
-    text:string
-    grammar:string
-    lemma:string  // Actually a strong code
-}
+// GBT data schemas (only the fields used; unknown fields are stripped)
+const gbt_data_original = z.object({
+    chapters: z.array(z.object({
+        verses: z.array(z.object({
+            words: z.array(z.object({
+                id: z.string(),
+                text: z.string(),
+                grammar: z.string(),
+                lemma: z.string(),  // Actually a strong code
+            })),
+        })),
+    })),
+})
+type GbtDataOriginal = z.infer<typeof gbt_data_original>
+type GbtWordOriginal = GbtDataOriginal["chapters"][number]["verses"][number]["words"][number]
 
-interface GbtWordGloss {
-    id:string
-    gloss:string|null
-}
-
-interface GbtDataOriginal {
-    chapters:{
-        verses:{
-            words:GbtWordOriginal[]
-        }[]
-    }[]
-}
-
-interface GbtDataGloss {
-    chapters:{
-        verses:{
-            words:GbtWordGloss[]
-        }[]
-    }[]
-}
+const gbt_data_gloss = z.object({
+    chapters: z.array(z.object({
+        verses: z.array(z.object({
+            words: z.array(z.object({
+                id: z.string(),
+                gloss: z.string().nullable(),
+            })),
+        })),
+    })),
+})
 
 
 export const gbt_source_dir = join('sources', 'glosses', 'gbt')
@@ -122,6 +122,8 @@ export async function download_glosses(){
         } else {
             if (gbt_id === 'idn'){
                 lang = 'ind'  // Bug https://github.com/globalbibletools/data/issues/1
+            } else if (gbt_id === 'are'){
+                lang = 'arb'  // GBT's "are" glosses are Standard Arabic, not Western Arrarnta
             }
             lang = language_data.normalise(lang) ?? ''
             if (!lang){
@@ -162,7 +164,7 @@ export async function sources_to_dist(){
     const originals_path = join(gbt_source_dir, '.original', 'json')
     for (const filename of list_files(originals_path)){
         const book = filename.slice(0, 3)
-        original_books[book] = read_json(join(originals_path, filename))
+        original_books[book] = read_json(join(originals_path, filename), gbt_data_original)
     }
     if (Object.keys(original_books).length !== books_ordered.length){
         throw new Error("Missing book for original data?")
@@ -180,25 +182,40 @@ export async function sources_to_dist(){
         const lang_path = join(gbt_source_dir, trans_id, 'json')
         for (const filename of list_files(lang_path)){
 
-            // Read data
+            // Read data (book comes from an external filename so confirm it's a real book)
             const book = filename.slice(0, 3)
-            const book_words = original_books[book]!
-            const book_glosses = read_json<GbtDataGloss>(join(lang_path, filename))
+            const last_verses_for_book = last_verse[book]
+            if (!last_verses_for_book){
+                throw new Error(`Unknown book "${book}" in GBT data (${trans_id} ${filename})`)
+            }
+            const book_words = original_books[book]
+            if (!book_words){
+                throw new Error(`No original language data for ${book} (${trans_id})`)
+            }
+            const book_glosses = read_json(join(lang_path, filename), gbt_data_gloss)
 
             // 3JN 1:15 is common in only half of bibles, so insert empty verse
+            // NOTE Chapters may not exist yet as structure is only verified below
             if (book === '3jn'){
-                book_words.chapters[0]!.verses[15-1] ??= {words: []}
-                book_glosses.chapters[0]!.verses[15-1] ??= {words: []}
+                for (const data of [book_words, book_glosses]){
+                    const chapter = data.chapters[0]
+                    if (chapter){
+                        chapter.verses[15-1] ??= {words: []}
+                    }
+                }
             }
             // REV 12:18 is common in only half of bibles, so insert empty verse
             if (book === 'rev'){
-                book_words.chapters[12-1]!.verses[18-1] ??= {words: []}
-                book_glosses.chapters[12-1]!.verses[18-1] ??= {words: []}
+                for (const data of [book_words, book_glosses]){
+                    const chapter = data.chapters[12-1]
+                    if (chapter){
+                        chapter.verses[18-1] ??= {words: []}
+                    }
+                }
             }
 
             // Verify same number of chapters and verses as expected (for both original and gloss)
             for (const gbt_data of [book_words, book_glosses]){
-                const last_verses_for_book = last_verse[book]!
                 if (last_verses_for_book.length !== gbt_data.chapters.length){
                     throw new Error(`Different number of chapters for ${trans_id} ${book}`)
                 }
@@ -222,10 +239,10 @@ export async function sources_to_dist(){
                 book,
                 contents: [[]],  // Start with chapter 0
             }
-            for (let chapter_i = 0; chapter_i < last_verse[book]!.length; chapter_i++){
+            for (let chapter_i = 0; chapter_i < last_verses_for_book.length; chapter_i++){
                 const current_chapter:[string, string][][] = [[]]  // Start with verse 0
                 processed_data.contents.push(current_chapter)
-                for (let verse_i = 0; verse_i < last_verse[book]![chapter_i]!; verse_i++){
+                for (let verse_i = 0; verse_i < last_verses_for_book[chapter_i]!; verse_i++){
                     const current_verse:[string, string][] = []
                     current_chapter.push(current_verse)
 

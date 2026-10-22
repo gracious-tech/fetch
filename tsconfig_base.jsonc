@@ -3,7 +3,7 @@
 
 {
     "$schema": "https://json.schemastore.org/tsconfig",
-    "exclude": ["**/*.test.ts"],
+    "exclude": ["**/*.test.ts", "**/test_utils.ts"],  // Test-only files
     "compilerOptions": {
 
         // May need overriding

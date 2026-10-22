@@ -16,7 +16,7 @@ export default defineConfig({
             provider: 'v8',
             include: ['*/src/**/*.ts', 'converters/*/src/**/*.ts'],
             // TODO Add test coverage for the Vue app (app/) and docs site (site/), skipped for now
-            exclude: ['**/*.test.ts', '**/*.d.ts', 'app/**', 'site/**'],
+            exclude: ['**/*.test.ts', '**/test_utils.ts', '**/*.d.ts', 'app/**', 'site/**'],
             reporter: ['text-summary', 'json-summary', 'json', 'html'],
             reportsDirectory: 'coverage',
         },

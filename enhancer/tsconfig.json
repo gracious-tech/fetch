@@ -1,7 +1,7 @@
 {
     "extends": "../tsconfig_base.jsonc",
     "include": ["src/**/*.ts"],
-    "exclude": ["**/node_modules"],
+    "exclude": ["**/node_modules", "**/*.test.ts", "**/test_utils.ts"],
     "compilerOptions": {
         "lib": ["DOM", "DOM.Iterable", "ESNext"],
     },

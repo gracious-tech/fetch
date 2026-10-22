@@ -161,6 +161,13 @@ export function build_native_extra(dist_dir:string):
 }
 
 
+export function book_has_text(json_txt:BibleJsonTxt):boolean{
+    // Whether any verse in the book has actual text (headings/notes alone don't count)
+    return json_txt.contents.some(chapter => chapter.some(verse =>
+        verse.some(part => typeof part === 'string' && part.trim())))
+}
+
+
 function _book_is_partial(json_txt:BibleJsonTxt):boolean{
     // A book is partial if any standard chapter has no verse content at all (a missing chapter)
     for (let ch = 1; ch < json_txt.contents.length; ch++){

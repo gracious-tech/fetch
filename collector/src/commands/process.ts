@@ -11,7 +11,7 @@ import {pre_convert, pre_reverse, post_reverse} from '../patches/generic.js'
 import {update_manifest} from '../parts/manifest.js'
 import {add_unpublished} from '../parts/unpublished.js'
 import {concurrent, read_json, write_json, list_files, list_dirs} from '../parts/utils.js'
-import {build_native_extra} from '../parts/sections.js'
+import {build_native_extra, book_has_text} from '../parts/sections.js'
 import {build_extra_overlay} from '../parts/extra_overlay.js'
 import {convert} from '../parts/usfmtc.js'
 
@@ -175,7 +175,12 @@ async function _update_dist_single(id:string, force:boolean){
             fs.writeFileSync(dst_usfm, usfm)
 
             // Convert the fully-patched USX (same text written to the usx/usfm formats) to JSON
-            write_json(dst_txt, usx_to_json_txt(usx, DOMParser, warn))
+            // NOTE Books with no verse text (e.g. empty placeholder uploads) are dropped
+            const json_txt = usx_to_json_txt(usx, DOMParser, warn)
+            if (!book_has_text(json_txt)){
+                throw new Error("Book has no verse text")
+            }
+            write_json(dst_txt, json_txt)
             write_json(dst_html, usx_to_json_html(usx, false, DOMParser, warn))
             write_json(dst_typst, usx_to_json_typst(usx, DOMParser, warn))
         } catch (error){

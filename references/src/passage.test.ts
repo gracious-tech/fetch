@@ -349,6 +349,7 @@ describe('from_string', () => {
 describe('toString', () => {
 
     it("Renders when coercing to a string", ({expect}) => {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- The point
         expect(`${new PassageReference('tit')}`).toBe('Titus')
     })
 

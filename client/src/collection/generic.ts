@@ -354,7 +354,7 @@ export class GenericCollection {
 
     // @internal Convert a language tag (e.g. 'zh-TW') to a 3 char language code
     _tag_to_language_code(tag:string):string{
-        const code = tag.toLowerCase().split('-')[0] ?? ''
+        const code = tag.toLowerCase().replace(/-.*$/, '')
         return this._language2to3[code] ?? code
     }
 

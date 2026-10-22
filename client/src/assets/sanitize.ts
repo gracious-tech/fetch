@@ -181,8 +181,8 @@ function sanitize_item(value:unknown, licenses:Record<string, MetaStandardLicens
     // Keep only licenses that are standard ones we know or fully specified custom ones
     const raw_copyright = value['copyright']
     const item_licenses:MetaCopyright['licenses'] = []
-    for (const license of Array.isArray(raw_copyright['licenses'])
-            ? raw_copyright['licenses'] : []){
+    const raw_licenses = Array.isArray(raw_copyright['licenses']) ? raw_copyright['licenses'] : []
+    for (const license of raw_licenses){
         if (!is_obj(license) || !is_str(license['url'])){
             continue
         }

@@ -1,0 +1,10 @@
+{
+    // Type check test files (excluded from each workspace's own tsconfig so they aren't built)
+    "extends": "./tsconfig_base.jsonc",
+    "include": ["*/src/**/*.test.ts", "converters/*/src/**/*.test.ts"],
+    "exclude": [],
+    "compilerOptions": {
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
+        "noEmit": true,
+    },
+}

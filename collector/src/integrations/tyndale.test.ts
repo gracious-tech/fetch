@@ -2,7 +2,7 @@
 import {describe, it} from 'vitest'
 
 import {
-    TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json, tyndale_to_usx_book,
+    TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json,
 } from './tyndale'
 
 

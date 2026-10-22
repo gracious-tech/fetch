@@ -1,8 +1,8 @@
 
 import path from 'path'
-import {closeSync, existsSync, mkdirSync, openSync, rmSync, statSync} from 'fs'
+import {statSync} from 'fs'
 
-import {afterEach, beforeEach, describe, it} from 'vitest'
+import {describe, it} from 'vitest'
 
 import {read_dir, get_dir_entries, DirectoryEntry} from './utils'
 

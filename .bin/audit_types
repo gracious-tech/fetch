@@ -10,6 +10,9 @@ npx tsc --noEmit --project collector
 npx tsc --noEmit --project client
 npx tsc --noEmit --project enhancer
 npx tsc --noEmit --project converters/usx-to-json
+npx tsc --noEmit --project converters/reverse-usx
+npx tsc --noEmit --project search
 npx tsc --noEmit --project references
+npx tsc --noEmit --project tsconfig_tests.json
 npx vue-tsc --noEmit --project app
 npx vue-tsc --noEmit --project site

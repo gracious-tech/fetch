@@ -34,7 +34,8 @@ function item(overrides:Record<string, unknown>={}){
 
 
 // A valid manifest containing the given resources
-function manifest(bibles:Record<string, unknown>={eng_test: item()}, extra:Record<string, unknown>={}){
+function manifest(bibles:Record<string, unknown>={eng_test: item()},
+        extra:Record<string, unknown>={}){
     return {
         bibles,
         glosses: {},
@@ -122,7 +123,8 @@ describe('sanitize_manifest', () => {
         vi.spyOn(console, 'warn').mockImplementation(() => undefined)
         const raw = manifest({}, {licenses: {
             ok: {name: 'Ok', restrictions},
-            same: {name: 'Same', restrictions: {...restrictions, forbid_derivatives: 'same-license'}},
+            same: {name: 'Same',
+                restrictions: {...restrictions, forbid_derivatives: 'same-license'}},
             no_name: {restrictions},
             bad_flag: {name: 'Bad', restrictions: {...restrictions, forbid_commercial: 'no'}},
             bad_derivatives: {name: 'Bad', restrictions: {...restrictions, forbid_derivatives: 1}},
@@ -163,7 +165,7 @@ describe('sanitize_manifest', () => {
         expect(message).not.toContain('xyz_10')
     })
 
-    it("Filters invalid books, licenses, tags and optional fields from a kept resource", ({expect}) => {
+    it("Filters invalid books, licenses, tags and optional fields of a resource", ({expect}) => {
         const custom = {...restrictions, forbid_commercial: true}
         const raw = manifest({eng_test: item({
             books_ot: ['gen', 'xyz', 5],

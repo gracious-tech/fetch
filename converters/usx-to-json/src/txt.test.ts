@@ -519,6 +519,15 @@ const note_first_usx = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 describe("usx_to_json_txt tables and pre-verse content", () => {
 
+    it("keeps verse 1 intact when a footnote precedes it (dropping the footnote)", ({expect}) => {
+        const warnings:string[] = []
+        const contents = usx_to_json_txt(note_first_usx, undefined, w => warnings.push(w))
+            .contents[1]!
+        expect(contents[1]).toEqual(['How lonely\n'])
+        expect(contents[2]).toEqual(['She weeps\n'])
+        expect(warnings).toEqual(['[txt] Ignoring content before verse 1:1'])
+    })
+
     it("converts table rows to lines, splitting verses within cells", ({expect}) => {
         const contents = usx_to_json_txt(table_usx).contents[1]!
         expect(contents[1]!.join('')).toContain('The singers:\nAsaph 128\n')

@@ -24,13 +24,13 @@ describe("usx_to_json_html", () => {
         expect(output.contents).toHaveLength(3)
         expect(output.contents[0]).toHaveLength(0)
         // Account for 0 verse
-        expect(output.contents[1]).toHaveLength((last_verse['hag'][0] as number) + 1)
-        expect(output.contents[2]).toHaveLength((last_verse['hag'][1] as number) + 1)
-        for (let i = 0; i <= last_verse['hag'][0]; i++) {
-            expect(output.contents[1][i]).toHaveLength(3)
+        expect(output.contents[1]).toHaveLength(last_verse['hag']![0]! + 1)
+        expect(output.contents[2]).toHaveLength(last_verse['hag']![1]! + 1)
+        for (let i = 0; i <= last_verse['hag']![0]!; i++) {
+            expect(output.contents[1]![i]).toHaveLength(3)
         }
-        for (let i = 1; i <= last_verse['hag'][1]; i++) {
-            expect(output.contents[2][i]).toHaveLength(3)
+        for (let i = 1; i <= last_verse['hag']![1]!; i++) {
+            expect(output.contents[2]![i]).toHaveLength(3)
         }
     })
 
@@ -66,26 +66,26 @@ describe("usx_to_json_html", () => {
     })
 
     it("should get a verse that completes a paragraph", ({expect}) => {
-        const verse = output.contents[1][7]
+        const verse = output.contents[1]![7]!
         expect(verse[0]).toEqual('')
         expect(verse[1]).toMatch(/^<p class.+<\/p>$/)
         expect(verse[2]).toEqual('')
     })
 
     it("Has no opening tags when verse is starting a new paragraph", async ({expect}) => {
-        expect(output.contents[1][1][0]).toEqual('')
-        expect(output.contents[1][4][0]).toEqual('')
-        expect(output.contents[1][5][0]).toEqual('')
+        expect(output.contents[1]![1]![0]).toEqual('')
+        expect(output.contents[1]![4]![0]).toEqual('')
+        expect(output.contents[1]![5]![0]).toEqual('')
     })
 
     it("Has no closing tags when verse ends a paragraph", async ({expect}) => {
-        expect(output.contents[1][2][2]).toEqual('')
-        expect(output.contents[1][4][2]).toEqual('')
-        expect(output.contents[1][5][2]).toEqual('')
+        expect(output.contents[1]![2]![2]).toEqual('')
+        expect(output.contents[1]![4]![2]).toEqual('')
+        expect(output.contents[1]![5]![2]).toEqual('')
     })
 
     it('should correctly handle a verse that ends mid-paragraph', ({expect}) => {
-        const verse  = output.contents[2][2]
+        const verse  = output.contents[2]![2]!
         expect(verse[0]).toEqual('<p class="fb-m">')
         expect(verse[1]).not.toMatch(/^<p/)
         expect(verse[1]).not.toMatch(/<\/p>$/)
@@ -93,21 +93,21 @@ describe("usx_to_json_html", () => {
     })
 
     it("Has closing tags when verse ends mid-paragraph", async ({expect}) => {
-        expect(output.contents[1][1][2]).toEqual('</p>')
-        expect(output.contents[2][1][2]).toEqual('</p>')
-        expect(output.contents[2][2][2]).toEqual('</p>')
+        expect(output.contents[1]![1]![2]).toEqual('</p>')
+        expect(output.contents[2]![1]![2]).toEqual('</p>')
+        expect(output.contents[2]![2]![2]).toEqual('</p>')
     })
 
     it("Has opening tags when verse is mid-paragraph", async ({expect}) => {
-        expect(output.contents[1][2][0]).toEqual('<p class="fb-m">')
-        expect(output.contents[2][2][0]).toEqual('<p class="fb-m">')
-        expect(output.contents[2][3][0]).toEqual('<p class="fb-m">')
+        expect(output.contents[1]![2]![0]).toEqual('<p class="fb-m">')
+        expect(output.contents[2]![2]![0]).toEqual('<p class="fb-m">')
+        expect(output.contents[2]![3]![0]).toEqual('<p class="fb-m">')
     })
 
     it("Includes missing verses as blank strings", async ({expect}) => {
         // The examples below don't, but some may need opening/closing tags if within a paragraph
-        expect(output.contents[1][3]).toEqual(['', '', ''])
-        expect(output.contents[1][15]).toEqual(['', '', ''])
+        expect(output.contents[1]![3]).toEqual(['', '', ''])
+        expect(output.contents[1]![15]).toEqual(['', '', ''])
     })
 
     it("Includes the expected number of verses", async ({expect}) => {
@@ -116,30 +116,30 @@ describe("usx_to_json_html", () => {
     })
 
     it("Includes chapter headings at start of first verses", async ({expect}) => {
-        expect(output.contents[1][1][1].startsWith('<h3 data-c="1">1</h3>')).toBe(true)
-        expect(output.contents[2][1][1].startsWith('<h3 data-c="2">2</h3>')).toBe(true)
+        expect(output.contents[1]![1]![1]!.startsWith('<h3 data-c="1">1</h3>')).toBe(true)
+        expect(output.contents[2]![1]![1]!.startsWith('<h3 data-c="2">2</h3>')).toBe(true)
     })
 
     it("Includes section headings at start of verse that follows", async ({expect}) => {
         // Only when not occuring within a verse that is
-        expect(output.contents[1][1][1])
+        expect(output.contents[1]![1]![1])
             .toContain('<h4 class="fb-s1">A Call to Rebuild the Temple</h4>')
-        expect(output.contents[1][12][1])
+        expect(output.contents[1]![12]![1])
             .toContain('<h4 class="fb-s1">The People Obey</h4>')
-        expect(output.contents[2][1][1])
+        expect(output.contents[2]![1]![1])
             .toContain('<h4 class="fb-s1">The Coming Glory of God’s House</h4>')
-        expect(output.contents[2][10][1])
+        expect(output.contents[2]![10]![1])
             .toContain('<h4 class="fb-s1">Blessings for a Defiled People</h4>')
-        expect(output.contents[2][20][1])
+        expect(output.contents[2]![20]![1])
             .toContain('<h4 class="fb-s1">Zerubbabel the LORD’s Signet Ring</h4>')
     })
 
     it("Includes verse markers as a <sup> element", async ({expect}) => {
-        expect(output.contents[1][1][1]).toContain('<sup data-v="1:1">1</sup>')
+        expect(output.contents[1]![1]![1]).toContain('<sup data-v="1:1">1</sup>')
     })
 
     it('should not repeat the header', ({expect}) => {
-        const verse = output.contents[1][12][1]
+        const verse = output.contents[1]![12]![1]!
         const count = (verse.match(/<h4 class="fb-s1">The People Obey<\/h4>/g) || []).length
         expect(count).toEqual(1)
     })
@@ -158,9 +158,9 @@ describe("usx_to_json_html", () => {
         </usx>`
         const result = usx_to_json_html(usx)
         // Chapter 1 and 3 have content, the skipped chapter 2 is left entirely empty
-        expect(result.contents[1][1][1]).toContain('Verse one.')
-        expect(result.contents[3][1][1]).toContain('Verse three.')
-        expect(result.contents[2].every(verse => verse.join('') === '')).toBe(true)
+        expect(result.contents[1]![1]![1]).toContain('Verse one.')
+        expect(result.contents[3]![1]![1]).toContain('Verse three.')
+        expect(result.contents[2]!.every(verse => verse.join('') === '')).toBe(true)
     })
 
     it("still throws when chapters go backwards", ({expect}) => {

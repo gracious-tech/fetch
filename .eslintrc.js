@@ -12,9 +12,12 @@ module.exports = {
             './client/tsconfig.json',
             './collector/tsconfig.json',
             './converters/usx-to-json/tsconfig.json',
+            './converters/reverse-usx/tsconfig.json',
             './enhancer/tsconfig.json',
             './references/tsconfig.json',
+            './search/tsconfig.json',
             './site/tsconfig.json',
+            './tsconfig_tests.json',
             './tsconfig_base.jsonc',  // Hack for still parsing non-matching (eg .js files)
         ],
         extraFileExtensions: ['.vue'],

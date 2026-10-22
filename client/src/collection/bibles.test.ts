@@ -1,6 +1,6 @@
 
 import {describe, it} from 'vitest'
-import {books_ordered} from '@gracious.tech/bible-references'
+import {books_ordered, PassageReference} from '@gracious.tech/bible-references'
 
 import {BibleCollection} from './bibles.js'
 import {RequestHandler} from '../assets/request.js'
@@ -177,31 +177,31 @@ describe('fetch_book', () => {
 describe('fetch_translation_extras', () => {
 
     it("Merges book names/headings/sections per testament and uses the NT half's wj_markup",
-            async ({expect}) => {
-        const {collection, ot_id, nt_id, composite} = make_collection()
+        async ({expect}) => {
+            const {collection, ot_id, nt_id, composite} = make_collection()
 
-        const make_extra = (book:string, wj_markup:boolean):DistTranslationExtra => ({
-            book_names: {[book]: {normal: book.toUpperCase(), long: book, abbrev: book}},
-            chapter_headings: {[book]: ['', 'Heading 1']},
-            sections: {[book]: []},
-            wj_markup,
-        })
+            const make_extra = (book:string, wj_markup:boolean):DistTranslationExtra => ({
+                book_names: {[book]: {normal: book.toUpperCase(), long: book, abbrev: book}},
+                chapter_headings: {[book]: ['', 'Heading 1']},
+                sections: {[book]: []},
+                wj_markup,
+            })
 
-        collection.requester.request = async (url:string) => {
-            if (url.includes(ot_id)){
-                return JSON.stringify(make_extra('gen', false))
+            collection.requester.request = async (url:string) => {
+                if (url.includes(ot_id)){
+                    return JSON.stringify(make_extra('gen', false))
+                }
+                return JSON.stringify(make_extra('mat', true))
             }
-            return JSON.stringify(make_extra('mat', true))
-        }
 
-        const extras = await collection.fetch_translation_extras(composite)
-        expect(extras.wj_markup).toBe(true)
-        expect(extras.get_book_name('gen').normal).toBe('GEN')
-        expect(extras.get_book_name('mat').normal).toBe('MAT')
-        expect(collection._local_book_names[ot_id]?.['gen']?.normal).toBe('GEN')
-        expect(collection._local_book_names[nt_id]?.['mat']?.normal).toBe('MAT')
-        expect(collection._local_book_names[composite]?.['gen']?.normal).toBe('GEN')
-    })
+            const extras = await collection.fetch_translation_extras(composite)
+            expect(extras.wj_markup).toBe(true)
+            expect(extras.get_book_name('gen').normal).toBe('GEN')
+            expect(extras.get_book_name('mat').normal).toBe('MAT')
+            expect(collection._local_book_names[ot_id]?.['gen']?.normal).toBe('GEN')
+            expect(collection._local_book_names[nt_id]?.['mat']?.normal).toBe('MAT')
+            expect(collection._local_book_names[composite]?.['gen']?.normal).toBe('GEN')
+        })
 
 })
 
@@ -306,4 +306,147 @@ describe('scripts', () => {
         expect(collection.get_preferred_resource(['zh']).id).toBe('cmn_hans')
     })
 
+})
+
+
+// Extras for a single book (Genesis) with local names, headings and a section
+const spanish_extra:DistTranslationExtra = {
+    book_names: {gen: {normal: 'Génesis', long: 'Libro de Génesis', abbrev: 'Gén'}},
+    chapter_headings: {gen: ['', 'La creación', 'El huerto']},
+    sections: {gen: [
+        {start_chapter: 1, start_verse: 1, end_chapter: 1, end_verse: 31, heading: null},
+        {start_chapter: 2, start_verse: 4, end_chapter: 2, end_verse: 25, heading: 'Adán y Eva'},
+    ]},
+    wj_markup: false,
+}
+
+
+describe('fetch_translation_extras (composite wj_markup)', () => {
+
+    it("Marks words of Jesus if only the OT half does", async ({expect}) => {
+        const {collection, ot_id, composite} = make_collection()
+        collection.requester.request = async (url:string) => JSON.stringify({...spanish_extra,
+            wj_markup: url.includes(ot_id)})
+        expect((await collection.fetch_translation_extras(composite)).wj_markup).toBe(true)
+    })
+})
+
+
+describe('fetch_book formats', () => {
+
+    it("Uses the right URL and class for each format", async ({expect}) => {
+        const {collection, full_id} = make_collection()
+        const urls:string[] = []
+        collection.requester.request = async (url:string) => {
+            urls.push(url)
+            return url.endsWith('.json') ? JSON.stringify({contents: []}) : 'raw'
+        }
+        expect((await collection.fetch_book(full_id, 'gen')).constructor.name).toBe('BibleBookHtml')
+        expect((await collection.fetch_book(full_id, 'gen', 'txt')).constructor.name)
+            .toBe('BibleBookTxt')
+        expect((await collection.fetch_book(full_id, 'gen', 'typst')).constructor.name)
+            .toBe('BibleBookTypst')
+        expect((await collection.fetch_book(full_id, 'gen', 'usfm')).get_whole()).toBe('raw')
+        expect(urls).toEqual([
+            'https://full.example/bibles/eng_bsb/html/gen.json',
+            'https://full.example/bibles/eng_bsb/txt/gen.json',
+            'https://full.example/bibles/eng_bsb/typst/gen.json',
+            'https://full.example/bibles/eng_bsb/usfm/gen.usfm',
+        ])
+    })
+
+    it("Throws for books the resource doesn't have", async ({expect}) => {
+        const {collection, ot_id} = make_collection()
+        await expect(collection.fetch_book(ot_id, 'mat')).rejects.toThrow('does not have book')
+    })
+})
+
+
+describe('fetch_translation_extras (single resource)', () => {
+
+    it("Provides names, chapters and sections, and remembers local names", async ({expect}) => {
+        const {collection, full_id} = make_collection()
+        collection.requester.request = async () => JSON.stringify(spanish_extra)
+        const extras = await collection.fetch_translation_extras(full_id)
+        expect(collection._local_book_names[full_id]).toEqual(spanish_extra.book_names)
+
+        // A copy is returned so internal data can't be modified
+        const name = extras.get_book_name('gen')
+        name.normal = 'changed'
+        expect(extras.get_book_name('gen').normal).toBe('Génesis')
+
+        expect(extras.get_chapters('gen')).toEqual([{number: 1, heading: 'La creación'},
+            {number: 2, heading: 'El huerto'}])
+        expect(extras.get_chapter_heading('gen', 2)).toBe('El huerto')
+        expect(extras.get_sections('gen').map(s => s.heading)).toEqual(['La creación',
+            'Adán y Eva'])
+    })
+
+    it("Throws for invalid or missing books", async ({expect}) => {
+        const {collection, full_id} = make_collection()
+        collection.requester.request = async () => JSON.stringify(spanish_extra)
+        const extras = await collection.fetch_translation_extras(full_id)
+        expect(() => extras.get_book_name('xyz')).toThrow('is not valid')
+        expect(() => extras.get_chapters('exo')).toThrow('does not have book "exo"')
+        await expect(collection.fetch_translation_extras('missing')).rejects.toThrow('not exist')
+    })
+})
+
+
+describe('references', () => {
+
+    // Collection with local Spanish names fetched for the full Bible resource
+    async function with_local_names(){
+        const {collection, full_id} = make_collection()
+        collection.requester.request = async () => JSON.stringify(spanish_extra)
+        await collection.fetch_translation_extras(full_id)
+        return {collection, full_id}
+    }
+
+    it("Parses references using a translation's local names (and English)", async ({expect}) => {
+        const {collection, full_id} = await with_local_names()
+        expect(collection.string_to_reference('Génesis 1:1', full_id)?.toString())
+            .toBe('Genesis 1:1')
+        expect(collection.string_to_reference('Gén 2:3', full_id)?.toString()).toBe('Genesis 2:3')
+        expect(collection.string_to_reference('John 3:16', full_id)?.toString()).toBe('John 3:16')
+        expect(collection.string_to_reference('John 3:16', full_id, false)).toBeNull()
+        expect(collection.string_to_reference('Génesis 1:1')).toBeNull()  // No local names
+    })
+
+    it("Detects references in text", async ({expect}) => {
+        const {collection, full_id} = await with_local_names()
+        const found = [...collection.detect_references('Ver Génesis 1:1 y John 3:16.', full_id)]
+            .map(match => match.ref.toString())
+        expect(found).toEqual(['Genesis 1:1', 'John 3:16'])
+    })
+
+    it("Formats references with local names, optionally abbreviated", async ({expect}) => {
+        const {collection, full_id} = await with_local_names()
+        const ref = new PassageReference('gen', 1, 1)
+        expect(collection.reference_to_string(ref)).toBe('Genesis 1:1')
+        expect(collection.reference_to_string(ref, full_id)).toBe('Génesis 1:1')
+        expect(collection.reference_to_string(ref, full_id, true)).toBe('Gén 1:1')
+        expect(collection.reference_to_string(new PassageReference('exo', 1, 1), full_id))
+            .toBe('Exodus 1:1')  // No local name so English
+    })
+
+    it("Uses Chinese-like settings based on the first resource's language", ({expect}) => {
+        const {collection} = make_collection()
+        const [, , min_chars, match_from_start] = collection._from_string_args('cmn_x')
+        expect(min_chars).toBe(1)
+        expect(match_from_start).toBe(false)
+        const [, exclude, eng_min_chars] = collection._from_string_args(['eng_bsb'])
+        expect(exclude.length).toBeGreaterThan(0)  // English excludes ambiguous abbreviations
+        expect(eng_min_chars).toBe(2)
+        expect(collection._from_string_args()[1].length).toBeGreaterThan(0)  // Defaults to eng
+    })
+
+    it("Skips empty local names and resources without local names", ({expect}) => {
+        const {collection, full_id, ot_id} = make_collection()
+        collection._local_book_names[full_id] = {gen: {normal: '', long: '', abbrev: ''}}
+        const ref = new PassageReference('gen', 1, 1)
+        expect(collection.reference_to_string(ref, full_id)).toBe('Genesis 1:1')
+        expect(collection.reference_to_string(ref, ot_id, true)).toBe('Gen 1:1')
+        expect(collection._from_string_args(full_id, false)[0]).toEqual([])
+    })
 })

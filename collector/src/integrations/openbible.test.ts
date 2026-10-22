@@ -1,7 +1,6 @@
 import {describe, it} from 'vitest'
 import {
     extract_reference, OBBibleReference, cross_references_to_json, openbible_to_usx_book,
-    calculate_relevance,
 } from './openbible.js'
 
 

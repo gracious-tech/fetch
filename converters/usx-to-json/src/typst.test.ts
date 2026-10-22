@@ -40,8 +40,8 @@ describe("usx_to_json_typst", () => {
         expect(output.contents).toHaveLength(3)
         expect(output.contents[0]).toHaveLength(0)
         // Account for verse 0
-        expect(output.contents[1]).toHaveLength((last_verse['hag'][0] as number) + 1)
-        expect(output.contents[2]).toHaveLength((last_verse['hag'][1] as number) + 1)
+        expect(output.contents[1]).toHaveLength(last_verse['hag']![0]! + 1)
+        expect(output.contents[2]).toHaveLength(last_verse['hag']![1]! + 1)
     })
 
     it("uses 3-tuple [open, content, close] per verse", ({expect}) => {
@@ -746,7 +746,7 @@ describe("usx_to_json_typst (WEB Psalms)", () => {
         //     then assert each has a #let definition. Native Typst built-ins are skipped.
         const native = new Set(['footnote', 'super', 'smallcaps'])
         const emitted = new Set<string>()
-        for (const match of all_chapters_joined.matchAll(/#([a-z]+)[\[(]/g)){
+        for (const match of all_chapters_joined.matchAll(/#([a-z]+)[[(]/g)){
             const name = match[1]!
             if (!native.has(name)){
                 emitted.add(name)
@@ -810,7 +810,7 @@ describe("usx_to_json_typst (WEB Psalms)", () => {
         const lets = [...default_typst_definitions.matchAll(/#let ([a-z]+)\(([^)]*)\)/g)]
         expect(lets.length).toBeGreaterThan(0)
         for (const [, name, args] of lets){
-            expect(args, `#let ${name} is missing a ..rest sink`).toContain('..rest')
+            expect(args, `#let ${String(name)} is missing a ..rest sink`).toContain('..rest')
         }
     })
 

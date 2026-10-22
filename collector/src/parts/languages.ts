@@ -139,9 +139,13 @@ export async function gen_language_data(){
             cldr_code = two
             lang_path = join(cldr_path, cldr_code, 'languages.json')
         }
+        // NOTE Some CLDR locales (e.g. tig) lack a name for their own language, so keep fallback
         if (existsSync(lang_path)){
-            data.languages[three]!.local = read_json<CLDRLanguages>(lang_path)
-                .main[cldr_code]!.localeDisplayNames.languages[cldr_code]!
+            const cldr_local = read_json<CLDRLanguages>(lang_path)
+                .main[cldr_code]!.localeDisplayNames.languages[cldr_code]
+            if (cldr_local){
+                data.languages[three]!.local = cldr_local
+            }
         }
 
         // Get script direction if available

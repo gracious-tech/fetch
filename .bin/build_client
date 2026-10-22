@@ -27,7 +27,7 @@ esbuild="npx esbuild --sourcemap --target=ES2019"
 # Build cross-platform ESM with typings (the main format recommended to be used)
 # NOTE Not bundling as apps should do themselves, and separate files easier for debugging and types
 npx tsc --emitDeclarationOnly --outDir dist/esm
-$esbuild src/*.ts src/**/*.ts --format=esm --platform=neutral --outdir=dist/esm
+$esbuild $(find src -name '*.ts' ! -name '*.test.ts') --format=esm --platform=neutral --outdir=dist/esm
 
 
 # Provide some other formats that may be useful for some people, but not recommended

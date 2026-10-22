@@ -43,8 +43,13 @@ const IGNORE:string[] = [
     '3ea0147e32eebe47',  // Older version of 3847624917e94649 (mal_irv)
     '8dcc89916a0bcd59',  // Included as second zip (OT) for ndj_wft
     '1c18e3bbb2704a35',  // Included as second zip (some OT) for sch_wft
+    'e6da7cdb23e18a0d',  // Included as second zip (OT) for ziw_wft
     '324f457845cb5d21',  // NT already contained in OT+NT ace2eca02cc539c3
     '355792a03079ccdd',  // NT already contained in OT+NT 4ae38a8d32ca9871
+    '857a0682a982b1a4',  // Spanish glosses for Hebrew OT (study material, not a translation)
+    '7739f4357a197e5b',  // kgj Gamal Kham: WBT display-only license (all rights reserved)
+    '1021d5b32c474ae5',  // rki Northern Rakhine Mark: zip's usx is empty (0 bytes)
+    '57d174d29b534364',  // rki Southern Rakhine Mark: zip's usx is empty (0 bytes)
     // African International NT (Word Biblical Ministries, 2026): dropped for poor source markup —
     // chapter-end footnote paras leak into verse text, verse markers missing/mislabelled, thousands
     // of stray '*' markers. Text itself is decent, so reconsider if a cleaner revision is uploaded.
@@ -153,6 +158,9 @@ export async function discover(existing:string[], discover_specific_id?:string):
     // Load language data
     const language_data = get_language_data()
 
+    // Track ids claimed during this run, as concurrent items may not have written their meta yet
+    const claimed_ids = new Set<string>()
+
     // Process each translation
     await concurrent(filtered.map(item => async () => {
 
@@ -194,9 +202,10 @@ export async function discover(existing:string[], discover_specific_id?:string):
         // Handle case when generated id already matches an existing translation
         let trans_dir = join('sources', 'bibles', trans_id)
         let meta_file = join(trans_dir, 'meta.json')
-        if (existsSync(meta_file)){
-            const existing_meta = read_json<TranslationSourceMeta>(meta_file)
-            if (!existing_meta.ids.dbl){
+        if (existsSync(meta_file) || claimed_ids.has(trans_id)){
+            const existing_meta = existsSync(meta_file)
+                ? read_json<TranslationSourceMeta>(meta_file) : null
+            if (existing_meta && !existing_meta.ids.dbl){
                 // Already added via another service so add dbl id to it
                 existing_meta.ids.dbl = item.uid
                 write_json(meta_file, existing_meta, true)
@@ -209,6 +218,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
                 meta_file = join(trans_dir, 'meta.json')
             }
         }
+        claimed_ids.add(trans_id)
 
         // Detect the license from the copyright statement
         const copyright_html = item.copyrightStatement ?? ''

@@ -105,6 +105,16 @@ export function reorder_verse(usx:string, book_ch:string, verse:number, fold_int
 }
 
 
+// Wrap a verse that sits directly under the root (right after a chapter marker or closing para) in
+// a new paragraph extending to the next para/chapter, as converters ignore root-level content.
+// Idempotent (no-op once wrapped, as the verse is then preceded by the new para's opening tag).
+export function wrap_root_verse(usx:string, sid:string):string{
+    const root_verse = new RegExp(`(<chapter [^>]*/>|</para>)(\\s*)`
+        + `(<verse [^>]*sid="${esc(sid)}"[^>]*/>[\\s\\S]*?)(?=<para\\b|<chapter\\b|</usx>)`)
+    return usx.replace(root_verse, '$1$2<para style="p">$3</para>')
+}
+
+
 // Relabel a mis-numbered verse (its start marker, end marker and any continuation-paragraph vids)
 // in converted USX3. Only the occurrence AFTER `after_sid` is touched, so an identically-numbered
 // real verse earlier in the chapter is left alone. Idempotent (no-op once relabelled/absent).

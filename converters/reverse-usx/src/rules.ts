@@ -316,6 +316,12 @@ const hand_rules:Record<string, BookRuleSet[]> = {
         rules_from('2CH 12:17', {
             '2CH 12:15-16': '2CH 12:16-17',
         }),
+        // arb_gna follows org for the 1/2 boundary (eng 2:1 = 1:18) but eng for 13/14
+        // NOTE org files have 1:18 too but are matched by the org rules first
+        rules_from('2CH 1:18', {
+            '2CH 2:1': '2CH 1:18',
+            '2CH 2:2-18': '2CH 2:1-17',
+        }),
     ],
     'GEN': [
         // Rifain translations (rif_tba etc) put 37:1 at the end of ch 36

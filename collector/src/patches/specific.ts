@@ -11,6 +11,7 @@ import {
     append_empty_verses,
     collapse_para_leading_ws,
     drop_chapter_tail,
+    drop_from_chapter,
     empty_chapter,
     fold_verse,
     insert_empty_verse,
@@ -19,6 +20,7 @@ import {
     remove_verse_span,
     renumber_chapter,
     renumber_chapter_range,
+    wrap_root_verse,
 } from './usx.js'
 import {
     usfm_displace_range,
@@ -91,6 +93,16 @@ function brenton_psalter(usfm:string):string{
 
 // Single-translation quirk fixes that must run BEFORE conversion/reversal (on the raw source)
 export function pre_convert_specific(translation:string, book:string, contents:string):string{
+
+    // swe_stb (USX2) puts some chapter markers at the paragraph break rather than the chapter break,
+    // after the next chapter's opening verse(s) (1CO 11:1, COL 4:1, JHN 8:1-2, ACT 8:1a) — move each
+    // such marker back before the para holding its verse 1. Only matches when nothing beyond verses
+    // 1-2 sits between that para and the marker, so correctly placed markers are never touched.
+    if (translation === 'swe_stb'){
+        contents = contents.replace(new RegExp('(<para style="[^"]*">\\s*<verse number="1" '
+            + 'style="v"\\s*/>(?:(?!<chapter|<verse number="(?:[3-9]|\\d\\d+)")[\\s\\S])*?)'
+            + '(<chapter number="\\d+" style="c"\\s*/>\\s*)', 'g'), '$2$1')
+    }
 
     // hil_bib's USX omits every book's chapter-1 START marker (only the "<chapter eid='BOOK 1' />"
     // end marker is present; ch2+ are fine), so the validity check sees ch2 as the first chapter and
@@ -429,6 +441,58 @@ export function pre_convert_specific(translation:string, book:string, contents:s
 // Single-translation quirk fixes that must run BEFORE reverse_usx
 export function pre_reverse_specific(translation:string, book:string, usx:string):string{
 
+    // hrv_hrsdc (Šarić, like hrv_iva) splits eng 9:1 into 8:23-24 — fold 8:24 into 8:23 so ISA 8
+    // has 23 verses and the org rule maps 8:23 to 9:1
+    if (translation === 'hrv_hrsdc' && book === 'isa'){
+        usx = fold_verse(usx, 'ISA 8:23', 'ISA 8:24')
+    }
+
+    // tig_mdw ACT numbers eng 21:40 + 22:1 as one verse "40-1" at the end of ch21 — relabel it 21:40
+    // (22:1 is then absent). Its 22:2 also sits outside any para, so wrap it to keep its text.
+    if (translation === 'tig_mdw' && book === 'act'){
+        usx = relabel_verse(usx, 'ACT 21', '40-1', '40', 'ACT 21:39')
+        usx = wrap_root_verse(usx, 'ACT 22:2')
+    }
+
+    // mra_mrk 9:1 sits outside any para (right after the chapter marker), so wrap it to keep its text
+    if (translation === 'mra_mrk' && book === 'mrk'){
+        usx = wrap_root_verse(usx, 'MRK 9:1')
+    }
+
+    // ach_abr / mro_seed ZEC 4 print the lampstand-vision tail (10b-14; mro_seed labels 10b as 10)
+    // after v5, like bis_obb — fold it into v5, relabel 10a to 10, and add placeholders 11-14.
+    // Gated on 10a so an upstream-corrected chapter is never touched.
+    if (['ach_abr', 'mro_seed'].includes(translation) && book === 'zec'
+            && /sid="ZEC 4:10a"/.test(usx)){
+        for (const v of ['10b', '10', '11', '12', '13', '14']){
+            usx = fold_verse(usx, 'ZEC 4:5', `ZEC 4:${v}`)
+        }
+        usx = relabel_verse(usx, 'ZEC 4', '10a', '10', 'ZEC 4:9')
+        usx = append_empty_verses(usx, 'ZEC 4:10',
+            [['11', 'ZEC 4:11'], ['12', 'ZEC 4:12'], ['13', 'ZEC 4:13'], ['14', 'ZEC 4:14']])
+    }
+
+    // mhr_mmu appends the deuterocanonical Prayer of Manasseh to 2CH as ch37 — drop it
+    if (translation === 'mhr_mmu' && book === '2ch'){
+        usx = drop_from_chapter(usx, '2CH', 37)
+    }
+
+    // ces_bible 2CH 28 splits eng 28:27 (Ahaz's burial / Hezekiah reigns) into 27-28 — fold 28 back
+    if (translation === 'ces_bible' && book === '2ch'){
+        usx = fold_verse(usx, '2CH 28:27', '2CH 28:28')
+    }
+
+    // nyn_bsu splits a verse in two near the end of GEN 18 (eng 18:32) and MAT 20 (eng 20:31) — fold
+    // the second half back and renumber the rest of the chapter down. Gated on the extra final verse.
+    if (translation === 'nyn_bsu' && book === 'gen' && /sid="GEN 18:34"/.test(usx)){
+        usx = fold_verse(usx, 'GEN 18:32', 'GEN 18:33')
+        usx = renumber_chapter_range(usx, 'GEN 18', 34, 34, -1)
+    }
+    if (translation === 'nyn_bsu' && book === 'mat' && /sid="MAT 20:35"/.test(usx)){
+        usx = fold_verse(usx, 'MAT 20:31', 'MAT 20:32')
+        usx = renumber_chapter_range(usx, 'MAT 20', 33, 35, -1)
+    }
+
     // nyy_wft ACT 23 is a verbatim duplicate of ACT 10 (the Cornelius narrative), giving the chapter
     // 48 verses against the canonical 35 — empty it so Acts publishes (the chapter is recorded as
     // partial; the real content remains in ACT 10).
@@ -451,9 +515,9 @@ export function pre_reverse_specific(translation:string, book:string, usx:string
         usx = renumber_chapter(usx, 'psa', 15, 16)
     }
 
-    // cmn_bib / cmn_bibs / cab_sblg print ISA 38:21-22 out of order between v6 and v7 — fold them
-    // back into v6 (no text moved), leaving the chapter ascending
-    if (['cmn_bib', 'cmn_bibs', 'cab_sblg'].includes(translation) && book === 'isa'){
+    // cmn_bib / cmn_bibs / cab_sblg / poh_pok print ISA 38:21-22 out of order between v6 and v7 —
+    // fold them back into v6 (no text moved), leaving the chapter ascending
+    if (['cmn_bib', 'cmn_bibs', 'cab_sblg', 'poh_pok'].includes(translation) && book === 'isa'){
         usx = fold_verse(usx, 'ISA 38:6', 'ISA 38:21')
         usx = fold_verse(usx, 'ISA 38:6', 'ISA 38:22')
     }

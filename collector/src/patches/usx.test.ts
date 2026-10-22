@@ -16,6 +16,7 @@ import {
     renumber_chapter,
     renumber_chapter_range,
     reorder_verse,
+    wrap_root_verse,
 } from './usx'
 
 
@@ -352,6 +353,29 @@ describe('psalm_superscriptions_to_d', () => {
             + '<para style="m">a margin note mid-psalm</para>'
             + '<chapter eid="PSA 3"/>'
         expect(psalm_superscriptions_to_d(usx)).toEqual(usx)
+    })
+
+})
+
+
+describe('wrap_root_verse', () => {
+
+    // tig_mdw ACT 22:2 sits after the chapter marker but outside any paragraph
+    it("Wraps a root-level verse up to the next para", ({expect}) => {
+        const usx = '<chapter number="22" style="c" sid="ACT 22" />\n  '
+            + '<verse number="2" style="v" sid="ACT 22:2" />Text<para style="p" vid="ACT 22:2">More'
+            + '<verse eid="ACT 22:2" /></para></usx>'
+        const expected = '<chapter number="22" style="c" sid="ACT 22" />\n  <para style="p">'
+            + '<verse number="2" style="v" sid="ACT 22:2" />Text</para><para style="p" '
+            + 'vid="ACT 22:2">More<verse eid="ACT 22:2" /></para></usx>'
+        expect(wrap_root_verse(usx, 'ACT 22:2')).toEqual(expected)
+        expect(wrap_root_verse(expected, 'ACT 22:2')).toEqual(expected)
+    })
+
+    it("Leaves a verse already inside a para untouched", ({expect}) => {
+        const usx = `<chapter number="1" style="c" sid="ACT 1" /><para style="p">${v('ACT 1:1', '1', 'A')}`
+            + '</para></usx>'
+        expect(wrap_root_verse(usx, 'ACT 1:1')).toEqual(usx)
     })
 
 })

@@ -28,11 +28,11 @@ const lxx_exo_translations = ['eng_bstj', 'eng_bstjb', 'grc_lxx']
 // Translations that carry the deuterocanonical additions to Daniel (Song of the Three at 3:24-90,
 // Susanna as ch13, Bel and the Dragon as ch14) which the 66-book structure can't hold
 const daniel_deuterocanon_translations =
-    ['eng_drae', 'fra_ncl', 'lat_clv', 'shr_mkb', 'hrv_iva']
+    ['eng_drae', 'fra_ncl', 'lat_clv', 'shr_mkb', 'hrv_iva', 'mhr_mmu']
 
 
 // Translations carrying the Greek additions to Esther (addition F at 10:4-13, then ch 11-16)
-const esther_deuterocanon_translations = ['eng_drae', 'fra_ncl', 'lat_clv']
+const esther_deuterocanon_translations = ['eng_drae', 'fra_ncl', 'lat_clv', 'hrv_hrsdc']
 
 
 // Translations that combine Ezra + Nehemiah into one 23-chapter book (LXX 2 Esdras). They also
@@ -42,7 +42,7 @@ const ezra_nehemiah_translations = ['eng_bst', 'eng_bstb', 'grc_bre']
 
 // Translations whose Psalter appends the deuterocanonical Psalm 151, which the standard 150-psalm
 // structure can't hold (so it is pruned, flagged via meta.json `partial`)
-const psalm_151_translations = ['eng_bst', 'eng_bstb', 'grc_bre', 'grc_lxx']
+const psalm_151_translations = ['eng_bst', 'eng_bstb', 'grc_bre', 'grc_lxx', 'mhr_mmu']
 
 
 // Strip the deuterocanonical additions from Daniel so the canonical text fits standard numbering:

@@ -197,6 +197,7 @@ describe("reverse_usx versification systems", () => {
         check('NUM', {12: 15, 13: 34}, {12: 16, 13: 33})  // ita_db boundary eng 12:16 as 13:1
         check('1CH', {19: 20}, {19: 19})  // bis_obb splits 19:19
         check('2CH', {12: 17}, {12: 16})  // cab_sblg splits 12:15
+        check('2CH', {1: 18, 2: 17}, {1: 17, 2: 18})  // arb_gna boundary eng 2:1 as 1:18
         check('2SA', {2: 33}, {2: 32})  // ukr splits 2:4
         check('ISA', {9: 22}, {9: 21})  // ukr splits 9:21
         check('NUM', {23: 31}, {23: 30})  // ukr splits 23:17

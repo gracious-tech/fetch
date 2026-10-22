@@ -54,6 +54,23 @@ describe('sort_references', () => {
 })
 
 
+describe('sort_references (same start)', () => {
+
+    it("Orders references starting at the same verse by where they end", ({expect}) => {
+        const refs = [
+            new PassageReference({book: 'gen', start_chapter: 2, start_verse: 2, end_chapter: 3,
+                end_verse: 1}),
+            new PassageReference({book: 'gen', start_chapter: 2, start_verse: 2, end_chapter: 2,
+                end_verse: 9}),
+            new PassageReference({book: 'gen', start_chapter: 2, start_verse: 2, end_chapter: 2,
+                end_verse: 5}),
+        ]
+        expect(sort_references(refs).map(ref => ref.toString()))
+            .toEqual(['Genesis 2:2-5', 'Genesis 2:2-9', 'Genesis 2:2-3:1'])
+    })
+})
+
+
 describe('simplify_references', () => {
 
     it("Leaves non-overlapping, non-adjacent refs unchanged", ({expect}) => {
@@ -182,5 +199,16 @@ describe('references_to_string', () => {
     it("Handles multi-chapter range followed by a verse", ({expect}) => {
         const refs = [ref('Gen 1:1-2:5'), ref('Gen 3:1')]
         expect(references_to_string(refs)).toBe('Genesis 1:1-2:5; 3:1')
+    })
+})
+
+
+describe('sort_references (non-canonical)', () => {
+
+    it("Keeps books in order of first appearance", ({expect}) => {
+        const refs = ['John 3:16', 'Genesis 1:1', 'John 1:1', 'Genesis 2:1']
+            .map(text => PassageReference.from_string(text)!)
+        expect(sort_references(refs, false).map(ref => ref.toString()))
+            .toEqual(['John 1:1', 'John 3:16', 'Genesis 1:1', 'Genesis 2:1'])
     })
 })

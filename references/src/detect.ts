@@ -124,10 +124,8 @@ export function* detect_references(text:string, book_names?:BookNamesArg,
                 prev_end_chapter = add_ref.end_chapter
 
                 // Move main regex up to where successful additional ranges regex is up to
-                // WARN Only if larger as lastIndex will reset to 0 at end of string
-                if (add_regex.lastIndex > regex.lastIndex){
-                    regex.lastIndex = add_regex.lastIndex
-                }
+                // NOTE A successful sticky match always advances, so this only ever moves forward
+                regex.lastIndex = add_regex.lastIndex
             }
 
         } else {

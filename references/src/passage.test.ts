@@ -715,3 +715,41 @@ const book_name_abbreviations = {
     "jud": ["Jude", "Jud.", "Jd."],
     "rev": ["Rev", "Re"],
 }
+
+
+describe('equals / edge cases', () => {
+
+    it("Compares every part of a reference", ({expect}) => {
+        const ref = PassageReference.from_string('John 3:16-18')!
+        expect(ref.equals(PassageReference.from_string('John 3:16-18')!)).toBe(true)
+        expect(ref.equals(PassageReference.from_string('John 3:16')!)).toBe(false)
+        expect(ref.equals(PassageReference.from_string('Acts 3:16-18')!)).toBe(false)
+        expect(ref.equals(PassageReference.from_string('John 4:16-18')!)).toBe(false)
+        expect(ref.equals(PassageReference.from_string('John 3:15-18')!)).toBe(false)
+        expect(ref.equals(PassageReference.from_string('John 3:16-4:18')!)).toBe(false)
+        expect(ref.equals(PassageReference.from_string('John 3:16-17')!)).toBe(false)
+        expect(new PassageReference('jhn', 3).equals(PassageReference.from_string('John 3:1-36')!))
+            .toBe(false)  // Same verses but a different type
+    })
+
+    it("Leaves unparsable chapters undefined", ({expect}) => {
+        expect(_verses_str_to_obj(':5').start_chapter).toBeUndefined()
+        expect(_verses_str_to_obj('1:2-x:3').end_chapter).toBeUndefined()
+    })
+
+    it("Ignores an unparsable end verse", ({expect}) => {
+        expect(_verses_str_to_obj('1:2-3:x')).toMatchObject({start_chapter: 1, start_verse: 2,
+            end_chapter: 3})
+        expect(_verses_str_to_obj('1:2-3:x').end_verse).toBeUndefined()
+    })
+
+    it("Doesn't detect a book from text without letters or digits", ({expect}) => {
+        expect(_detect_book('...', Object.entries(book_names_english))).toBeNull()
+    })
+
+    it("Can exclude default names while still using the defaults", ({expect}) => {
+        expect(PassageReference.from_string('Gen 1:1', undefined, ['gen'])).toBeNull()
+        expect(PassageReference.from_string('Genesis 1:1', undefined, ['gen'])?.toString())
+            .toBe('Genesis 1:1')
+    })
+})

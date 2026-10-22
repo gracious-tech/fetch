@@ -212,3 +212,22 @@ describe('detect_references', () => {
             .toMatchObject({book: 'job', start_chapter: 5, start_verse: 14})
     })
 })
+
+
+describe('detect_references (edge cases)', () => {
+
+    const detect = (text:string) => [...detect_references(text)].map(match => match.ref.toString())
+
+    it("Stops adding ranges at an invalid one", ({expect}) => {
+        expect(detect('John 3:16,99 and more')).toEqual(['John 3:16'])
+    })
+
+    it("Keeps scanning after additional ranges at the end of the text", ({expect}) => {
+        expect(detect('Romans 1:1,3')).toEqual(['Romans 1:1', 'Romans 1:3'])
+    })
+
+    it("Skips words that look like references but aren't", ({expect}) => {
+        expect(detect('Job 999 then John 1:1')).toEqual(['John 1:1'])
+        expect(detect('Ruth9 then John 1:1')).toEqual(['John 1:1'])
+    })
+})

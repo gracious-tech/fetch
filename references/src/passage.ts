@@ -62,7 +62,7 @@ export function _verses_str_to_obj(ref:string){
         const parts = ref.split('-')
         const start_parts = parts[0]!.split(':')
         start_chapter = parse_int(start_parts[0]!) ?? undefined
-        start_verse = parse_int(start_parts[1] ?? '') ?? undefined
+        start_verse = parse_int(start_parts[1]!) ?? undefined  // Has a ':' so has a 2nd part
         if (parts[1]){
             // Is a range
             const end_parts = parts[1].split(':')

@@ -38,7 +38,9 @@ export function parse_usx(xml:string, parser:typeof DOMParser){
     // Ensure normal at least has a value, others may be empty
     const name_normal = para_toc2 || para_h || para_toc1 || para_toc3 || ''
     const name_long = para_toc1 || ''
-    const name_abbrev = para_toc3 || ''
+
+    // Ignore toc3 that just repeats the book code (e.g. "Jhn"), as it's a placeholder not a name
+    const name_abbrev = para_toc3?.toLowerCase() === book_code ? '' : para_toc3 || ''
 
     // Return elements
     return {

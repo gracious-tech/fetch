@@ -315,19 +315,19 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         // Convert major headings to `= ...`
         // TODO Not currently supporting nested elements within heading contents (like <char>)
         if (headings_major.includes(style)){
-            add_typst(state, `= ${escape_text(child.textContent ?? '')}\n`, true)
+            add_typst(state, `= ${escape_text(child.textContent!)}\n`, true)
             continue
         }
 
         // Convert section headings to `== ...`
         if (headings_regular.includes(style)) {
-            add_typst(state, `== ${escape_text(child.textContent ?? '')}\n`, true)
+            add_typst(state, `== ${escape_text(child.textContent!)}\n`, true)
             continue
         }
 
         // Convert minor headings to `=== ...`
         if (headings_minor.includes(style)) {
-            add_typst(state, `=== ${escape_text(child.textContent ?? '')}\n`, true)
+            add_typst(state, `=== ${escape_text(child.textContent!)}\n`, true)
             continue
         }
 
@@ -366,11 +366,7 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         state.para_close = ''
     }
 
-    // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
-    if (state.contents[0]!.length){
-        state.contents[0] = []
-        on_warning('[typst] Ignoring content before chapter 1')
-    }
+    // Verify no content ended up in a verse 0 (chapter 0 is never written to, see above)
     for (let ch = 1; ch < state.contents.length; ch++){
         const dropped = state.contents[ch]![0]!.join('')
         if (dropped){
@@ -427,7 +423,7 @@ function process_contents(state:ParserState, nodes_raw:NodeListOf<ChildNode>,
 
         // Handle text nodes
         if (node.nodeType === 3){
-            add_typst(state, escape_text(node.textContent ?? ''))
+            add_typst(state, escape_text(node.textContent!))
             continue
         }
 

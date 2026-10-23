@@ -161,11 +161,7 @@ export function usx_to_json_html(xml:string, alignment=true, parser=DOMParser,
         state.para_open = ''
     }
 
-    // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
-    if (state.contents[0]!.length){
-        state.contents[0] = []
-        on_warning('[html] Ignoring content before chapter 1')
-    }
+    // Verify no content ended up in a verse 0 (chapter 0 is never written to, see above)
     for (let ch = 1; ch < state.contents.length; ch++){
         const dropped = state.contents[ch]![0]!.join('')
         if (dropped){

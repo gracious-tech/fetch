@@ -133,11 +133,7 @@ export function usx_to_json_txt(xml:string, parser=DOMParser,
         state.prev_para_type = non_para_para.includes(style) ? 'break' : 'para'
     }
 
-    // Verify no content ended up in chapter 0 or a verse 0, as they should never be used
-    if (state.contents[0]!.length){
-        state.contents[0] = []
-        on_warning('[txt] Ignoring content before chapter 1')
-    }
+    // Verify no content ended up in a verse 0 (chapter 0 is never written to, see above)
     for (let ch = 1; ch < state.contents.length; ch++){
         if (state.contents[ch]![0]!.length){
             state.contents[ch]![0] = []

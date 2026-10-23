@@ -574,3 +574,11 @@ metadata.
   custom transformations
 - **Typst output:** `converters/usx-to-json/src/typst.ts` suggests print/PDF output support
   is being explored
+- **Reprocess for `#mr`/`#sr` typst markers:** heading reference ranges (USFM `\mr`/`\sr`) now
+  emit as `#mr[...]`/`#sr[...]` instead of `=`/`==` headings, but only `vie_kt` has been
+  reprocessed and published. ~200 other official translations still have the old typst output
+  (find them with `grep -l 'fb-mr\|fb-sr' collection_official/dist/bibles/*/html/*.json`)
+- **Release client/app for heading CSS:** `client/src/css/stylish.sass` now centres major
+  headings and styles `.fb-mr`/`.fb-sr` as italic lines; not live until client and app publish
+- **`mr`/`sr` semantics in HTML (optional):** still emitted as `<h2>`/`<h4>`, so screen readers
+  announce them as headings. Emitting `<p>` instead would need a converter change + reprocess

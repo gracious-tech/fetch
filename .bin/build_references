@@ -8,5 +8,5 @@ rm -rf dist
 
 npx tsc --emitDeclarationOnly --outDir dist/esm
 esbuild="npx esbuild --sourcemap --target=es6"
-$esbuild src/*.ts --format=esm --platform=neutral --outdir=dist/esm
+$esbuild $(find src -name '*.ts' ! -name '*.test.ts') --format=esm --platform=neutral --outdir=dist/esm
 $esbuild src/index.ts --bundle --format=cjs  --platform=node --outfile=dist/bundled.cjs

@@ -6,7 +6,7 @@ cd "$(realpath -m "$0/../..")/collector"
 
 rm -rf dist
 
-npx esbuild src/*.ts src/**/*.ts --sourcemap --target=node18 --format=esm \
+npx esbuild $(find src -name '*.ts' ! -name '*.test.ts') --sourcemap --target=node18 --format=esm \
     --platform=node --outdir=dist "$@"
 
 # Copy static data as esbuild won't include (unless whole thing bundled)

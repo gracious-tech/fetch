@@ -215,7 +215,7 @@ describe("reverse_usx versification systems", () => {
         variant[50] = eng_psa_max[50]! + 2  // psalm 51
         const result = reverse_usx(make_usx('PSA', variant))
         expect(profile_usx(result)).toEqual([...eng_psa_max])
-    })
+    }, 30_000)  // Reverses a whole psalter, which takes 3-5s+ when tests run in parallel
 
 })
 

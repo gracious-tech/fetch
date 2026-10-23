@@ -17,7 +17,7 @@ export function validate_numbering(doc:XMLDocument, on_warning:(message:string)=
             const root_i = doc_elements.findIndex(n => n === block)
             const out_nodes = doc_elements.slice(Math.max(0, root_i - 3), root_i + 1)
             // NOTE rm <char>s as they make it really hard to read when every word has strongs
-            const context = out_nodes.map(e => e?.outerHTML ?? '').join('\n\n')
+            const context = out_nodes.map(e => e.outerHTML).join('\n\n')
                 .replace(/<\/?char.*?>/g, '')
             on_warning(`${boundary}\n${context}`)
             throw new Error(boundary)

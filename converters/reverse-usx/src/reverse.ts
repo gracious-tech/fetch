@@ -174,7 +174,7 @@ function reverse_usx_once(xml:string, parser:typeof DOMParser, serializer:typeof
 
         // Identify the verse
         const id_type = verse.hasAttribute('eid') ? 'eid' : 'sid'
-        const vid_orig = verse.getAttribute(id_type) ?? ''
+        const vid_orig = verse.getAttribute(id_type)!  // validate_numbering() ensured sid/eid
 
         // Normalise to single verse (in case was a range)
         const vid_single = new RegExp(`^${book_code} \\d+:\\d+`).exec(vid_orig)?.[0]

@@ -25,7 +25,7 @@ function individualise_range(range:string){
 
 
 // Convert a system's mapping data ('correct': 'incorrect' refs) into per-book rule sets
-function system_to_rules(system:Record<string, string>){
+export function system_to_rules(system:Record<string, string>){
 
     const system_rules:Record<string, BookRuleSet> = {}
 
@@ -642,7 +642,7 @@ const systems:Record<string, Record<string, string>> = {
 
 
 // Build rule sets for each system
-const rules_by_system:Record<string, Record<string, BookRuleSet>> = {}
+export const rules_by_system:Record<string, Record<string, BookRuleSet>> = {}
 for (const [name, system] of Object.entries(systems)){
     rules_by_system[name] = system_to_rules(system)
 }

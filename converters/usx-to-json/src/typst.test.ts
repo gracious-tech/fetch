@@ -514,6 +514,22 @@ describe("usx_to_json_typst", () => {
         expect(result.contents[2]!.every(verse => cat(verse) === '')).toBe(true)
     })
 
+    it("emits heading reference ranges as #mr/#sr beneath their headings", ({expect}) => {
+        const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <usx version="3.0">
+            <book code="JOL" style="id">Joel</book>
+            <chapter number="1" style="c" sid="JOL 1"/>
+            <para style="ms">Major</para>
+            <para style="mr">(Chapters 1-2)</para>
+            <para style="s">Section</para>
+            <para style="sr">1:1-4</para>
+            <para style="p"><verse number="1" style="v" sid="JOL 1:1"/>Verse one.</para>
+            <chapter eid="JOL 1"/>
+            </usx>`
+        expect(cat(usx_to_json_typst(xml).contents[1]![1]!)).toContain(
+            '= Major\n#mr[(Chapters 1\\-2)]\n== Section\n#sr[1:1\\-4]\n')
+    })
+
     it("still throws when chapters go backwards", ({expect}) => {
         const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <usx version="3.0">
@@ -537,6 +553,7 @@ describe("usx_to_json_typst", () => {
             'ch', 'vn', 'b',  // markers
             'q', 'qm', 'li', 'lim',  // leveled wrapped paras
             'qc', 'qr', 'qd', 'lh', 'lf', 'd',  // non-leveled wrapped paras
+            'mr', 'sr',  // heading reference ranges
             'wj', 'qac', 'qs', 'bk', 'tl', 'add', 'sig',  // consumer-defined char styles
         ]
         for (const name of expected_names){

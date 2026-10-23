@@ -1,4 +1,7 @@
 
+@use 'utils'
+
+
 // Default styles that most users will benefit from, with option to stick to basics only
 .fetch-bible:not(.fb-plain)
 
@@ -31,6 +34,17 @@
         opacity: 0.6
         margin-top: 1.3em
         margin-bottom: 0.5em
+
+    // Centre major headings, as in print
+    h2
+        text-align: center
+
+    // Make heading reference ranges a subtle italic line tucked under their heading
+    .fb-mr, .fb-sr
+        font-size: 1em
+        font-weight: normal
+        margin-top: -0.5em
+        @include utils.italic
 
     // Make verse number subtle
     sup[data-v]

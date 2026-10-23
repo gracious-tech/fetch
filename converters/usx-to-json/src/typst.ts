@@ -24,6 +24,11 @@ const wrapped_para_styles = [
 ]
 
 
+// Heading reference ranges (e.g. "(Chapters 1-2)") emitted as #<style>[...] beneath their heading
+// rather than as headings themselves, so they don't enter the heading hierarchy/outline
+const heading_range_styles = ['mr', 'sr']
+
+
 // Wrapped families that take a level argument (q1/q2/... → #q(2)[…]). Plain `q` defaults
 // to level 1. Other wrapped families (qc, qr, qd, lh, lf) have no level variants and emit
 // #<style>[…] with no argument.
@@ -65,6 +70,7 @@ const kept_char_styles = [
 export const emittable_typst_markers = [
     'ch', 'vn', 'b',
     ...wrapped_para_styles,
+    ...heading_range_styles,
     ...kept_char_styles,
 ]
 
@@ -139,6 +145,15 @@ export const default_typst_definitions = `
 // as ordinary body text rather than a heading: it is original wording, not a modern section
 // title, so it should read as prose that happens to be set apart, not jump the heading hierarchy
 #let d(c, ..rest) = emph(c)
+
+// Major headings centred, section headings left as is (common modern print layout)
+#show heading.where(level: 1): set align(center)
+
+// Heading reference ranges — Italic, SpaceAfter 4pt, aligned like their heading (sr is italic
+// rather than usfm.sty's bold so it doesn't read as a second heading). Sticky so it stays on the
+// page of what follows
+#let mr(c, ..rest) = block(width: 100%, sticky: true, below: 4pt, align(center, emph(c)))
+#let sr(c, ..rest) = block(sticky: true, below: 4pt, emph(c))
 
 // Character styles (no native Typst equivalent)
 #let wj(c, ..rest) = text(fill: red, c)  // Words of Jesus
@@ -311,6 +326,13 @@ export function usx_to_json_typst(xml:string, parser=DOMParser,
         }
         state.pending_b = false
         state.last_content_category = category
+
+        // Convert heading reference ranges to #mr[...] / #sr[...] (before the heading checks below,
+        // as both lists include them for html/txt's sake)
+        if (heading_range_styles.includes(style)){
+            add_typst(state, `#${style}[${escape_text(child.textContent!)}]\n`, true)
+            continue
+        }
 
         // Convert major headings to `= ...`
         // TODO Not currently supporting nested elements within heading contents (like <char>)

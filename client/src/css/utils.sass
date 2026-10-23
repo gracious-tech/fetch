@@ -1,8 +1,10 @@
 
+@use 'sass:selector'
+
 @mixin italic
     font-style: italic
 
-    @at-root .fb-alt-italic#{&}
+    @at-root #{selector.append('.fb-alt-italic', &)}
         font-style: normal
         filter: var(--fb-alt-italic-filter)
 
@@ -10,7 +12,7 @@
 @mixin bold
     font-weight: bold
 
-    @at-root .fb-alt-bold#{&}
+    @at-root #{selector.append('.fb-alt-bold', &)}
         font-weight: normal
         filter: var(--fb-alt-bold-filter)
 
@@ -19,15 +21,15 @@
     font-weight: bold
     font-style: italic
 
-    @at-root .fb-alt-bold:not(.fb-alt-italic)#{&}
+    @at-root #{selector.append('.fb-alt-bold:not(.fb-alt-italic)', &)}
         font-weight: normal
         filter: var(--fb-alt-bold-filter)
 
-    @at-root .fb-alt-italic:not(.fb-alt-bold)#{&}
+    @at-root #{selector.append('.fb-alt-italic:not(.fb-alt-bold)', &)}
         font-style: normal
         filter: var(--fb-alt-italic-filter)
 
-    @at-root .fb-alt-bold.fb-alt-italic#{&}
+    @at-root #{selector.append('.fb-alt-bold.fb-alt-italic', &)}
         font-weight: normal
         font-style: normal
         filter: var(--fb-alt-bold-italic-filter)

@@ -255,6 +255,22 @@ describe("usx_to_json_txt", () => {
                 {type: 'heading', contents: 'A Section', level: 2})
         })
 
+        // Reference ranges under headings (mr, sr) are dropped rather than treated as headings
+        it("drops heading reference ranges", ({expect}) => {
+            const {output} = convert('jol', `
+                <chapter number="1" style="c" sid="JOL 1"/>
+                <para style="ms">BOOK ONE</para>
+                <para style="mr">(Chapters 1-2)</para>
+                <para style="s1">A Section</para>
+                <para style="sr">1:1-4</para>
+                <para style="p"><verse number="1" style="v" sid="JOL 1:1"/>Hi.<verse eid="JOL 1:1"/></para>
+                <chapter eid="JOL 1"/>`)
+            expect(output.contents[1]![1]!.filter(item => item.type === 'heading')).toEqual([
+                {type: 'heading', contents: 'BOOK ONE', level: 1},
+                {type: 'heading', contents: 'A Section', level: 2},
+            ])
+        })
+
         // Minor headings (sp, qa) become level 3
         it("classifies minor headings as level 3", ({expect}) => {
             const {output} = convert('jol', `

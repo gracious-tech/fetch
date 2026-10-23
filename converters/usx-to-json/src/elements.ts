@@ -42,13 +42,12 @@ export const ignored_para_styles:readonly string[] = [
     'ie',
 
     /* <para> Headings [exclude some] - Exclude book & chapter headings but keep section headings
-        Not excluded: ms# | s# | d | sp | sd#
+        Not excluded: ms# | mr | s# | sr | d | sp | sd#
     */
     'mt', 'mt1', 'mt2', 'mt3', 'mt4',
     'mte', 'mte1', 'mte2', 'mte3', 'mte4',
     'cl',
     'cd',  // Non-biblical chapter summary, more than heading
-    'mr', 'sr',  // Reference range a heading covers, e.g. "(Chapters 1-2)", redundant with text
     'r',  // Parallels to be provided by external data
 ]
 
@@ -63,8 +62,8 @@ export const ignored_note_styles = [
 ]
 
 
-export const headings_major = ['ms', 'ms1', 'ms2', 'ms3', 'ms4']
-export const headings_regular = ['s', 's1', 's2', 's3', 's4']
+export const headings_major = ['ms', 'ms1', 'ms2', 'ms3', 'ms4', 'mr']
+export const headings_regular = ['s', 's1', 's2', 's3', 's4', 'sr']
 export const headings_minor = ['sp', 'qa']
 
 

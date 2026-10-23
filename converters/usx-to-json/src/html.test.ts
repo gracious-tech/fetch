@@ -281,24 +281,3 @@ describe("usx_to_json_html references within footnotes", () => {
         expect(html).toContain('Text <span class="fb-bd"></span> end')
     })
 })
-
-
-describe("usx_to_json_html heading reference ranges", () => {
-
-    // Ranges like "(Chapters 1-2)" under a heading are dropped, like parallel refs (r)
-    it("drops mr and sr paras but keeps the headings they belong to", ({expect}) => {
-        const html = usx_to_json_html(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<usx version="3.0">
-    <book code="HAG" style="id">Test</book>
-    <chapter number="1" style="c" sid="HAG 1"/>
-    <para style="ms">Major</para>
-    <para style="mr">(Chapters 1-2)</para>
-    <para style="s">Section</para>
-    <para style="sr">1:1-4</para>
-    <para style="r">(Ezra 5:1)</para>
-    <para style="p"><verse number="1" style="v" sid="HAG 1:1"/>Text<verse eid="HAG 1:1"/></para>
-</usx>`).contents[1]![1]![1]!
-        expect(html).toContain('<h2 class="fb-ms">Major</h2><h4 class="fb-s">Section</h4>')
-        expect(html).not.toMatch(/Chapters|1:1-4|Ezra/)
-    })
-})

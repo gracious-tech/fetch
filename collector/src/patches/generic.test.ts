@@ -26,6 +26,11 @@ describe('pre_convert', () => {
         expect(pre_convert('grc_lxx', 'exo', once)).toEqual(once)
     })
 
+    it("Leaves an LXX Exodus without the tabernacle recension untouched", ({expect}) => {
+        const usfm = '\\c 34\n\\p\n\\v 1 kept\n'
+        expect(pre_convert('grc_lxx', 'exo', usfm)).toEqual(usfm)
+    })
+
     it("Swaps LXX 1 Kings chapters 20 and 21 back to English order", ({expect}) => {
         const usfm = '\\c 20\n\\p\n\\v 1 a1\n'
             + '\\c 21\n\\p\n\\v 1 b1\n\\v 2 b2\n\\v 3 b3\n'
@@ -109,6 +114,28 @@ describe('pre_reverse', () => {
         expect(pre_reverse('xyz_abc', 'gen', usx)).toEqual(usx)
     })
 
+    it("Folds grc_lxx's trailing Jeremiah 23:7-8 into 23:40", ({expect}) => {
+        const usx = `<usx version="3.0"><chapter number="23" style="c" sid="JER 23" />`
+            + `<para style="p">${v('JER 23:40', '40', 'forty ')}${v('JER 23:7', '7', 'seven ')}`
+            + `${v('JER 23:8', '8', 'eight ')}</para><chapter eid="JER 23" /></usx>`
+        expect(pre_reverse('grc_lxx', 'jer', usx)).toContain('<verse number="40" style="v" '
+            + 'sid="JER 23:40" />forty seven eight <verse eid="JER 23:40" />')
+    })
+
+    it("Leaves books already free of the targeted content untouched", ({expect}) => {
+        // Each patch targets content that may already be gone (e.g. when re-processing)
+        const book = (code:string, ch:number) => `<usx version="3.0">`
+            + `<chapter number="${ch}" style="c" sid="${code} ${ch}" />`
+            + `<para style="p">${v(`${code} ${ch}:1`, '1', 'one ')}</para>`
+            + `<chapter eid="${code} ${ch}" /></usx>`
+        const targets = [['eng_bst', 'JER'], ['eng_drae', 'DAN'], ['eng_drae', 'EST'],
+            ['eng_bst', 'EZR'], ['eng_bst', 'PSA']] as const
+        for (const [translation, code] of targets){
+            const usx = book(code, 1)
+            expect(pre_reverse(translation, code.toLowerCase(), usx), code).toEqual(usx)
+        }
+    })
+
 })
 
 
@@ -129,6 +156,14 @@ describe('post_reverse', () => {
             + `<para style="p">${v('MRK 16:20', '20', 'long ending ')}</para>`
             + `<chapter eid="MRK 16" /></usx>`
         expect(post_reverse('xyz_abc', 'mrk', usx)).toEqual(usx)
+    })
+
+    it("Restyles mis-styled psalm superscriptions as `d` titles", ({expect}) => {
+        const usx = `<usx version="3.0"><chapter number="3" style="c" sid="PSA 3" />`
+            + '<para style="m">A psalm of David.</para>'
+            + `<para style="q1">${v('PSA 3:1', '1', 'O LORD')}</para><chapter eid="PSA 3" /></usx>`
+        expect(post_reverse('xyz_abc', 'psa', usx))
+            .toContain('<para style="d">A psalm of David.</para>')
     })
 
     it("Removes trailing empty chapter markers", ({expect}) => {

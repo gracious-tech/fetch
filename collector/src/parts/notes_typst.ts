@@ -72,7 +72,7 @@ function process_node(state:State, node:ChildNode):void{
 
     // Text nodes are the only leaf content
     if (node.nodeType === 3){
-        add(state, escape_text(node.textContent ?? ''))
+        add(state, escape_text((node as Text).data))
         return
     }
 

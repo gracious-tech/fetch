@@ -11,6 +11,10 @@ describe('html_note_to_typst', () => {
             .toEqual('uses \\#hash and \\[bracket\\]')
     })
 
+    it('ignores comments', ({expect}) => {
+        expect(html_note_to_typst('a<!-- hidden -->b')).toEqual('ab')
+    })
+
     it('converts <strong> to native #strong[…]', ({expect}) => {
         expect(html_note_to_typst('The <strong>title</strong> of')).toEqual('The #strong[title] of')
     })

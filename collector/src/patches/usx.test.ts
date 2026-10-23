@@ -379,3 +379,26 @@ describe('wrap_root_verse', () => {
     })
 
 })
+
+
+describe('usx patch guards', () => {
+
+    const usx = '<usx version="3.0"><chapter number="1" style="c" sid="GEN 1" />'
+        + `<para style="p">${v('GEN 1:1', '1', 'one ')}${v('GEN 1:2', '2', 'two ')}</para>`
+        + '<chapter eid="GEN 1" /></usx>'
+
+    it("Leave the USX unchanged when the targeted chapter, verse or anchor is missing",
+        ({expect}) => {
+            const no_chapter_end = usx.replace('<chapter eid="GEN 1" />', '')
+            expect(relabel_verse(usx, 'GEN 1', '2', '3', 'GEN 1:9')).toEqual(usx)
+            expect(remove_verse_span(usx, 'GEN 1:2', 'GEN 1:9')).toEqual(usx)
+            expect(drop_chapter_tail(no_chapter_end, 'GEN 1', 1)).toEqual(no_chapter_end)
+            expect(empty_chapter(usx, 'GEN 5')).toEqual(usx)
+            expect(empty_chapter(no_chapter_end, 'GEN 1')).toEqual(no_chapter_end)
+        })
+
+    it("Converts a superscription in a psalm chapter that has no verses", ({expect}) => {
+        const psalm = '<chapter number="3" style="c" sid="PSA 3"/><para style="p">Title</para>'
+        expect(psalm_superscriptions_to_d(psalm)).toContain('<para style="d">Title</para>')
+    })
+})

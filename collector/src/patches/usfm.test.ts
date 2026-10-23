@@ -266,3 +266,39 @@ describe('usfm_strip_empty_marker', () => {
     })
 
 })
+
+
+describe('usfm patch guards', () => {
+
+    // A chapter 1 with two verses
+    const usfm = '\\c 1\n\\p\n\\v 1 one\n\\v 2 two\n'
+
+    it("Leave the USFM unchanged when the targeted chapter or verse is missing", ({expect}) => {
+        const unchanged:[string, string][] = [
+            ['fold_verse', usfm_fold_verse(usfm, 5, 1)],
+            ['insert_empty_verse (no chapter)', usfm_insert_empty_verse(usfm, 5, 3, 2)],
+            ['insert_empty_verse (no anchor)', usfm_insert_empty_verse(usfm, 1, 3, 9)],
+            ['reorder_verse', usfm_reorder_verse(usfm, 5, 1, 0)],
+            ['swap_chapters', usfm_swap_chapters(usfm, 5, 6)],
+            ['super_to_title', usfm_super_to_title(usfm, 5)],
+            ['drop_chapter_tail', usfm_drop_chapter_tail(usfm, 5, 1)],
+            ['empty_chapter (one-line chapter)', usfm_empty_chapter('\\c 1 \\v 1 one', 1)],
+        ]
+        for (const [name, out] of unchanged){
+            expect(out, name).toEqual(name.includes('one-line') ? '\\c 1 \\v 1 one' : usfm)
+        }
+    })
+
+    it("Drops a reordered verse's marker even when there's nowhere to place it", ({expect}) => {
+        // The \c line has no newline to insert after / the place_after verse doesn't exist
+        expect(usfm_reorder_verse('\\c 1 \\v 1 one \\v 2 two', 1, 2, 0))
+            .toEqual('\\c 1 \\v 1 one two')
+        expect(usfm_reorder_verse(usfm, 1, 2, 9)).toEqual('\\c 1\n\\p\n\\v 1 one\ntwo\n')
+    })
+
+    it("Folds sub-verse entries of a displaced range without adding placeholders", ({expect}) => {
+        const out = usfm_displace_range('\\c 1\n\\p\n\\v 1 one\n\\v 2a two\n\\v 2 later\n', 1,
+            ['2a'], 1)
+        expect(out).toEqual('\\c 1\n\\p\n\\v 1 one\ntwo\n\\v 2 later\n')
+    })
+})

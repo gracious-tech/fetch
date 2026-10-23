@@ -292,14 +292,15 @@ export function psalm_superscriptions_to_d(usx:string):string{
             const cut = verse ? verse.index : body.length
             const head = body.slice(0, cut).replace(
                 /<para style="([^"]+)"([^>]*?)(\/>|>([\s\S]*?)<\/para>)/g,
-                (para, style:string, attrs:string, closer:string, inner:string|undefined) => {
+                (para, style:string, attrs:string, _closer:string, inner:string|undefined) => {
                     // Only convert a known superscription style with actual text (leave
                     // self-closing/empty paras, existing `d` titles, and rarer styles as-is)
-                    if (closer === '/>' || !['p', 'm'].includes(style)
-                            || !(inner ?? '').replace(/<[^>]*>/g, '').trim()){
+                    // NOTE `inner` is only undefined for a self-closing para
+                    if (inner === undefined || !['p', 'm'].includes(style)
+                            || !inner.replace(/<[^>]*>/g, '').trim()){
                         return para
                     }
-                    return `<para style="d"${attrs}>${inner ?? ''}</para>`
+                    return `<para style="d"${attrs}>${inner}</para>`
                 })
             return marker + head + body.slice(cut)
         })

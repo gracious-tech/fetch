@@ -2,7 +2,7 @@
 import {describe, it} from 'vitest'
 
 import {LICENSES} from './license.js'
-import {validate_manifest} from './schemas.js'
+import {translation_source_meta, validate_manifest} from './schemas.js'
 
 import type {DistManifest, DistManifestItem} from './shared_types'
 
@@ -90,5 +90,50 @@ describe('validate_manifest', () => {
             'bibles/eng_license: unknown license "cc-unknown"',
             "glosses/eng_gloss: no books",
         ])
+    })
+})
+
+
+describe('translation_source_meta', () => {
+
+    // A valid source meta with the given extra props
+    function source_meta(extra:Record<string, unknown>):Record<string, unknown>{
+        return {
+            name: {local: "Local", local_abbrev: "LOC", english: "English", english_abbrev: "ENG"},
+            year: 2000,
+            direction: 'ltr',
+            copyright: {attribution: "Someone", attribution_url: '', licenses: []},
+            tags: [],
+            ids: {},
+            source: {service: 'manual', format: 'usx', url: null, updated: '2000-01-01',
+                revision: 0},
+            ...extra,
+        }
+    }
+
+    it('accepts provenance and a description of up to 100 chars', ({expect}) => {
+        const meta = source_meta({provenance: "ASV", description: 'x'.repeat(100)})
+        expect(translation_source_meta.safeParse(meta).success).toBe(true)
+    })
+
+    it('accepts one literal tag but not several', ({expect}) => {
+        expect(translation_source_meta.safeParse(source_meta({tags: ['niche', 'literal3']}))
+            .success).toBe(true)
+        expect(translation_source_meta.safeParse(source_meta({tags: ['literal1', 'literal2']}))
+            .success).toBe(false)
+    })
+
+    it('accepts one NT source tag but not both byz and alex', ({expect}) => {
+        expect(translation_source_meta.safeParse(source_meta({tags: ['byz', 'literal2']})).success)
+            .toBe(true)
+        expect(translation_source_meta.safeParse(source_meta({tags: ['byz', 'alex']})).success)
+            .toBe(false)
+    })
+
+    it('rejects an empty or over-long description', ({expect}) => {
+        expect(translation_source_meta.safeParse(source_meta({description: ''})).success)
+            .toBe(false)
+        expect(translation_source_meta.safeParse(source_meta({description: 'x'.repeat(101)}))
+            .success).toBe(false)
     })
 })

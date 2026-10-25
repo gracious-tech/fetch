@@ -47,6 +47,9 @@ export interface CommonSourceMeta
 
 
 export interface TranslationSourceMeta extends CommonSourceMeta<TransServiceId, TransFormat> {
+    provenance?:string  // Short UI label of what it derives from, e.g. "ASV" (omit if original)
+    description?:string  // English one-liner (max 100 chars, ideally <80) to help users choose
+    description_local?:string  // Same but in the translation's own language (written by hand)
 }
 
 export interface GlossesSourceMeta extends CommonSourceMeta<GlossesServiceId, null> {

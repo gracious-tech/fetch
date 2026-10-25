@@ -6,6 +6,7 @@ import {book_names_english, books_ordered} from './bible.js'
 import {languages_by_total_speakers} from '../data/languages.js'
 import {get_language_data} from './languages.js'
 import {LICENSES} from './license.js'
+import {update_descriptions} from './descriptions.js'
 import {check_bible_scripts} from './scripts.js'
 import {read_json, write_json, list_dirs, list_files, list_dirs_if} from './utils.js'
 import {glosses_source_meta, notes_source_meta, translation_source_meta, validate_manifest}
@@ -165,4 +166,7 @@ export async function update_manifest(){
     // Verify the manifest is something clients can rely on, then save it to dist dir
     write_json(join('dist', 'manifest.json'), validate_manifest(manifest, 'generated manifest'),
         true)
+
+    // Generate the description files for the translations included
+    update_descriptions(Object.keys(manifest.bibles))
 }

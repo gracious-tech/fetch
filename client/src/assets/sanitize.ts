@@ -8,8 +8,8 @@
 
 import {books_ordered} from '@gracious.tech/bible-references'
 
-import type {DistManifest, DistManifestItem, MetaCopyright, MetaLanguage, MetaRestrictions,
-    MetaStandardLicense, MetaTag, MetaTranslationName} from './shared_types.js'
+import type {DistDescription, DistManifest, DistManifestItem, MetaCopyright, MetaLanguage,
+    MetaRestrictions, MetaStandardLicense, MetaTag, MetaTranslationName} from './shared_types.js'
 
 
 // Small type guards for parsed JSON
@@ -20,7 +20,7 @@ const is_str = (value:unknown):value is string => typeof value === 'string'
 const str_or = (value:unknown, fallback:string):string => is_str(value) ? value : fallback
 const book_set = new Set(books_ordered)
 const known_tags:readonly string[] = ['recommended', 'archaic', 'questionable', 'niche',
-    'literal1', 'literal2', 'literal3', 'literal4', 'literal5'] satisfies MetaTag[]
+    'byz', 'alex', 'literal1', 'literal2', 'literal3', 'literal4', 'literal5'] satisfies MetaTag[]
 const is_tag = (value:string):value is MetaTag => known_tags.includes(value)
 
 
@@ -86,6 +86,30 @@ export function sanitize_manifest(raw:unknown, source:string):DistManifest{
             .filter((entry):entry is [string, string] => is_str(entry[1]))),
         licenses,
     }
+}
+
+
+// @internal Return only the usable descriptions from a fetched descriptions file
+export function sanitize_descriptions(raw:unknown):Record<string, DistDescription>{
+    const result:Record<string, DistDescription> = {}
+    for (const [id, value] of entries(raw)){
+        if (!is_obj(value)){
+            continue
+        }
+
+        // Keep only the parts that are non-empty strings
+        const entry:DistDescription = {}
+        for (const key of ['english', 'local', 'provenance'] as const){
+            const part = value[key]
+            if (is_str(part) && part){
+                entry[key] = part
+            }
+        }
+        if (Object.keys(entry).length){
+            result[id] = entry
+        }
+    }
+    return result
 }
 
 

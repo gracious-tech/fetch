@@ -8,11 +8,11 @@ import {SectionData} from './other/sections.js'
 import {SearchWords} from './other/search.js'
 import {BibleBook, BibleBookHtml, BibleBookTxt, BibleBookUsfm, BibleBookUsx} from './book/bible.js'
 import {RequestHandler} from './assets/request.js'
-import {sanitize_manifest} from './assets/sanitize.js'
+import {sanitize_descriptions, sanitize_manifest} from './assets/sanitize.js'
 
 import type {UsageOptions, UsageConfig} from './assets/types'
-import type {CrossrefData, DistManifest, DistTranslationExtra, DistSectionData, OneOrMore}
-    from './assets/shared_types'
+import type {CrossrefData, DistDescription, DistManifest, DistTranslationExtra, DistSectionData,
+    OneOrMore} from './assets/shared_types'
 
 
 // The options available for configuring a FetchClient
@@ -139,6 +139,17 @@ export class FetchClient {
             const data = JSON.parse(contents) as DistTranslationExtra
             return new TranslationExtra(data)
         })
+    }
+
+    // Fetch short descriptions of a language's Bibles (to help users choose between them)
+    // Returns an object keyed by translation id which only has entries for those with something
+    // to show (`english` and `local` descriptions and/or a `provenance` label)
+    async fetch_bible_descriptions(language:string):Promise<Record<string, DistDescription>>{
+        if (!/^[a-z]{3}$/.test(language)){
+            throw new Error(`Language "${language}" is not valid (should be 3 letters lowercase)`)
+        }
+        const url = `${this._data_endpoint}descriptions/bibles/${language}.json`
+        return this.requester.request(url).then(data => sanitize_descriptions(JSON.parse(data)))
     }
 
     // Manually fetch glosses for book without needing to request FetchCollection

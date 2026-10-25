@@ -73,4 +73,5 @@ export type {
     SearchData,
     SectionStat,
     DistSectionData,
+    DistDescription,
 } from './assets/shared_types.js'

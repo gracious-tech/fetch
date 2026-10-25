@@ -71,6 +71,11 @@ references  ──────────────────────�
   by ID, chapters as individual files
 - **Shared types:** Defined in `collector/src/parts/shared_types.ts` and symlinked into
   `client/src/assets/shared_types.ts`
+- **Descriptions:** Short text to help users choose a translation lives in each translation's
+  `meta.json` (`description` in English, `description_local` hand-written in its own language,
+  `provenance` label such as "ASV") but is kept out of the manifest. The collector writes it to
+  `dist/descriptions/bibles/<lang>.json` (keyed by translation id) and the client reads it with
+  `fetch_bible_descriptions(lang)`. Layout leaves room for glosses/notes later (not implemented)
 
 
 ## Tech Stack

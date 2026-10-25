@@ -106,14 +106,18 @@ export interface DistNotes extends DistManifestItem {
     questionable: Substantial criticism or concerning origins
     niche: Only useful for academic study or for people with a certain ideology
 
-    Literalness score from 1 (high) to 5 (low)
+    New Testament source text (mutually exclusive, omit if mixed or not clearly either)
+    byz: NT mostly based on the Byzantine/Majority text tradition (e.g. KJV, MSB)
+    alex: NT mostly based on the Alexandrian/critical text tradition (e.g. BSB, ESV)
+
+    Literalness score from 1 (high) to 5 (low) (mutually exclusive)
     1: So literal that it is not gramatically correct at times (e.g. LSV)
     2: Readable English but awkward and hard to understand at times (e.g. ESV/NASB)
     3: Easily readable with rephrasing only when necessary (e.g. BSB/NIV)
     4: Frequent rephrasing to help modern readers (e.g. NLT)
     5: Constant rephrasing that is highly interpretive (e.g. MSG)
 */
-export type MetaTag = 'recommended'|'archaic'|'questionable'|'niche'
+export type MetaTag = 'recommended'|'archaic'|'questionable'|'niche'|'byz'|'alex'
     |'literal1'|'literal2'|'literal3'|'literal4'|'literal5'
 
 
@@ -144,6 +148,14 @@ export interface DistTranslationExtra {
     chapter_headings:Record<string, string[]>
     sections:Record<string, BookSection[]>
     wj_markup:boolean  // True if any book marks the words of Jesus (char style "wj")
+}
+
+
+// Text to help users choose between translations in a list (every part optional)
+export interface DistDescription {
+    english?:string  // Short English description (max 100 chars, ideally <80)
+    local?:string  // Same but in the translation's own language (omitted if that is English)
+    provenance?:string  // Short label for what it derives from, e.g. "ASV" (omit if original)
 }
 
 

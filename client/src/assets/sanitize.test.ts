@@ -1,7 +1,7 @@
 
 import {describe, it, vi, afterEach} from 'vitest'
 
-import {sanitize_manifest} from './sanitize.js'
+import {sanitize_descriptions, sanitize_manifest} from './sanitize.js'
 
 
 // Permissive restrictions (all conditions present)
@@ -230,4 +230,27 @@ describe('sanitize_manifest', () => {
         expect(Object.keys(result.glosses)).toEqual(['eng_g'])
         expect(Object.keys(result.notes)).toEqual(['eng_n'])
     })
+})
+
+
+describe('sanitize_descriptions', () => {
+
+    it("Keeps only non-empty string parts of object entries", ({expect}) => {
+        const result = sanitize_descriptions({
+            eng_a: {english: "A", local: "", provenance: 5, extra: "ignored"},
+            eng_b: {local: "B local", provenance: "ASV"},
+            eng_c: {english: 5},  // Nothing usable
+            eng_d: "not an object",
+        })
+        expect(result).toEqual({
+            eng_a: {english: "A"},
+            eng_b: {local: "B local", provenance: "ASV"},
+        })
+    })
+
+    it("Returns nothing if not an object", ({expect}) => {
+        expect(sanitize_descriptions(['eng_a'])).toEqual({})
+        expect(sanitize_descriptions(null)).toEqual({})
+    })
+
 })

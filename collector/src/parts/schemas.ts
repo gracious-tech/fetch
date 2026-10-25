@@ -11,9 +11,10 @@ import {z} from 'zod'
 
 import {validate, write_json} from './utils.js'
 
-import type {BibleJsonTxt, BookNames, BookSection, DistManifest, DistManifestItem,
-    DistSectionData, DistTranslationExtra, MetaCopyright, MetaLanguage, MetaRestrictions,
-    MetaStandardLicense, MetaTag, MetaTranslationName, SectionStat} from './shared_types'
+import type {BibleJsonTxt, BookNames, BookSection, DistDescription, DistManifest,
+    DistManifestItem, DistSectionData, DistTranslationExtra, MetaCopyright, MetaLanguage,
+    MetaRestrictions, MetaStandardLicense, MetaTag, MetaTranslationName, SectionStat}
+    from './shared_types'
 import type {CollectionConfig, GlossesSourceMeta, NotesSourceMeta, TranslationSourceMeta}
     from './types'
 
@@ -36,9 +37,20 @@ export const direction = z.enum(['ltr', 'rtl'])
 const positive_int = z.number().int().positive()
 
 
-export const meta_tag = z.enum(['recommended', 'archaic', 'questionable', 'niche', 'literal1',
-    'literal2', 'literal3', 'literal4', 'literal5'])
+export const meta_tag = z.enum(['recommended', 'archaic', 'questionable', 'niche', 'byz', 'alex',
+    'literal1', 'literal2', 'literal3', 'literal4', 'literal5'])
 assert_type<Equals<z.infer<typeof meta_tag>, MetaTag>>()
+
+// Tags that can't be combined with others in the same group
+const exclusive_tag_groups:MetaTag[][] = [
+    ['byz', 'alex'],
+    ['literal1', 'literal2', 'literal3', 'literal4', 'literal5'],
+]
+
+// A translation's tags (at most one from each exclusive group)
+export const meta_tags = z.array(meta_tag).refine(
+    tags => exclusive_tag_groups.every(group => tags.filter(tag => group.includes(tag)).length < 2),
+    "Tags byz/alex are mutually exclusive, as are literal1-5")
 
 
 export const meta_translation_name = z.strictObject({
@@ -93,7 +105,7 @@ const common_meta_fields = {
     year: z.number().int().nullable(),
     direction,
     copyright: meta_copyright,
-    tags: z.array(meta_tag),
+    tags: meta_tags,
     notes: z.exactOptional(z.string()),
     partial: z.exactOptional(z.array(book_code)),
     script: z.exactOptional(script_code),
@@ -109,6 +121,9 @@ const common_source_fields = {
 // sources/bibles/*/meta.json
 export const translation_source_meta = z.strictObject({
     ...common_meta_fields,
+    provenance: z.exactOptional(non_empty),
+    description: z.exactOptional(non_empty.max(100)),
+    description_local: z.exactOptional(non_empty.max(100)),
     ids: z.strictObject({
         ebible: z.exactOptional(non_empty),
         dbl: z.exactOptional(non_empty),
@@ -154,6 +169,15 @@ assert_type<Equals<Omit<z.infer<typeof notes_source_meta>, 'ids'>, Omit<NotesSou
 export function write_translation_meta(path:string, meta:TranslationSourceMeta){
     write_json(path, validate(meta, translation_source_meta, path), true)
 }
+
+
+// dist/descriptions/bibles/<lang>.json (keyed by translation id)
+export const dist_descriptions = z.record(non_empty, z.strictObject({
+    english: z.exactOptional(non_empty.max(100)),
+    local: z.exactOptional(non_empty.max(100)),
+    provenance: z.exactOptional(non_empty),
+}))
+assert_type<Equals<z.infer<typeof dist_descriptions>[string], DistDescription>>()
 
 
 // config.yaml
@@ -253,7 +277,7 @@ export const dist_manifest_item = z.strictObject({
     books_nt: z.union([z.literal(true), z.array(book_code)]),
     copyright: meta_copyright,
     direction,
-    tags: z.array(meta_tag),
+    tags: meta_tags,
     partial: z.exactOptional(z.array(book_code)),
     script: z.exactOptional(script_code),
     region: z.exactOptional(region_code),

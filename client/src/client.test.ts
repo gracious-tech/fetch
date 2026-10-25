@@ -170,6 +170,20 @@ describe('FetchClient direct fetches', () => {
         expect((await client.fetch_search('nt', 'strongs')).id).toBe('nt')
     })
 
+    it("Fetches Bible descriptions for a language", async ({expect}) => {
+        const urls = serve({'https://a/descriptions/bibles/eng.json': JSON.stringify({
+            eng_a: {english: "A", provenance: "ASV"}, eng_b: 5})})
+        const client = new FetchClient({endpoints: ['https://a/']})
+        expect(await client.fetch_bible_descriptions('eng')).toEqual(
+            {eng_a: {english: "A", provenance: "ASV"}})
+        expect(urls).toEqual(['https://a/descriptions/bibles/eng.json'])
+    })
+
+    it("Rejects an invalid language when fetching descriptions", async ({expect}) => {
+        const client = new FetchClient({endpoints: ['https://a/']})
+        await expect(client.fetch_bible_descriptions('../x')).rejects.toThrow('not valid')
+    })
+
     it("Uses the first endpoint for data by default", async ({expect}) => {
         const urls = serve({'https://a/sections/sections.json': JSON.stringify({model: 'm',
             generated: 'g', sections: {}})})

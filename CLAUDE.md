@@ -71,6 +71,11 @@ references  ──────────────────────�
   by ID, chapters as individual files
 - **Shared types:** Defined in `collector/src/parts/shared_types.ts` and symlinked into
   `client/src/assets/shared_types.ts`
+- **Year:** `year` in a translation's `meta.json` (and the manifest) is the year the translation was
+  **first publicly released** (including an earlier name, a partial release such as a NT, or a
+  beta/draft), never the year of the latest revision or edition. Source-reported dates (DBL
+  submitted/updated, Door43 `issued`, eBible update) are often revision dates, so verify before
+  trusting them. The client uses it to sort and to decide what counts as "modern"
 - **Descriptions:** Short text to help users choose a translation lives in each translation's
   `meta.json` (`description` in English, `description_local` hand-written in its own language,
   `provenance` label such as "ASV") but is kept out of the manifest. The collector writes it to

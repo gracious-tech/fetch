@@ -79,7 +79,7 @@ export interface MetaCopyright {
 // Common to bibles/glosses/notes/etc
 export interface DistManifestItem {
     name:MetaTranslationName
-    year:number  // Year of FIRST publication of the translation (not of the latest revision)
+    year:number  // Year of first FULL publication (all its testaments), not of a later revision
     books_ot:true|string[]
     books_nt:true|string[]
     copyright:MetaCopyright

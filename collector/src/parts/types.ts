@@ -33,7 +33,7 @@ export interface SourceProps<ServiceIds=GeneralServiceId, PossibleFormats=null> 
 export interface CommonSourceMeta
         <ServiceIds extends string=GeneralServiceId, PossibleFormats=null> {
     name:MetaTranslationName
-    year:number|null  // Year of FIRST publication of the translation (not of the latest revision)
+    year:number|null  // Year of first FULL publication (all its testaments), not of a later revision
     direction:'ltr'|'rtl'
     copyright:MetaCopyright
     tags:MetaTag[]

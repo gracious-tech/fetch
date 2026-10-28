@@ -9,17 +9,21 @@ const collection_dirs = ['collection/**', 'collection_official/**']
 
 export default defineConfig({
     test: {
-        // NOTE Built copies of tests in dist dirs must not run (older vitest excluded them by default)
+        // NOTE Built copies of tests in dist dirs must not run (older vitest excluded them)
         exclude: [...configDefaults.exclude, '**/dist/**', ...collection_dirs],
         // Run with `.bin/audit_test run --coverage`
         coverage: {
             provider: 'v8',
             include: ['*/src/**/*.ts', 'converters/*/src/**/*.ts'],
-            // TODO Add test coverage for the Vue app (app/) and docs site (site/), skipped for now
-            exclude: ['**/*.test.ts', '**/test_utils.ts', '**/*.d.ts', 'app/**', 'site/**'],
+            // TODO Add test coverage for the app's Vue components and init (needs @vue/test-utils)
+            exclude: ['**/*.test.ts', '**/test_utils.ts', '**/*.d.ts', 'app/src/init.ts'],
             reporter: ['text-summary', 'json-summary', 'json', 'html'],
             reportsDirectory: 'coverage',
         },
+    },
+    resolve: {
+        // Mirror the app's `@` alias for its src dir
+        alias: [{find: /^@\//, replacement: `${import.meta.dirname}/app/src/`}],
     },
     server: {
         watch: {

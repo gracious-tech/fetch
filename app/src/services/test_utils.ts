@@ -2,12 +2,41 @@
 // WARN Import before state.ts, as it stubs matchMedia which jsdom lacks but state needs on import
 
 import {vi} from 'vitest'
+import {mount} from '@vue/test-utils'
+import {createVuetify} from 'vuetify'
+import {md3} from 'vuetify/blueprints'
 import {PassageReference} from '@gracious.tech/fetch-client'
+
+import AppIcon from '@/comp/AppIcon.vue'
 
 import type {FetchCollection} from '@gracious.tech/fetch-client'
 
 
-vi.stubGlobal('matchMedia', () => ({matches: true, addEventListener: () => undefined}))
+vi.stubGlobal('matchMedia', () => ({matches: true, addEventListener: () => undefined,
+    removeEventListener: () => undefined}))
+
+// Browser APIs Vuetify relies on that jsdom lacks
+vi.stubGlobal('ResizeObserver', class {
+    observe(){ /* noop */ }
+    unobserve(){ /* noop */ }
+    disconnect(){ /* noop */ }
+})
+vi.stubGlobal('visualViewport', Object.assign(new EventTarget(), {width: 1024, height: 768,
+    offsetLeft: 0, offsetTop: 0, scale: 1}))
+
+
+// Mount a component with Vuetify and the app's global components (as init.ts does)
+export function mount_app<C>(component:C, options:Parameters<typeof mount<C>>[1] = {}){
+    return mount(component, {
+        attachTo: document.body,
+        ...options,
+        global: {
+            plugins: [createVuetify({blueprint: md3})],
+            components: {AppIcon},
+            ...options?.global,
+        },
+    })
+}
 
 
 // A fake book with distinct content per translation

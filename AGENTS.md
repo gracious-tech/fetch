@@ -400,9 +400,17 @@ Deployment config is stored in `<workspace>/.deployments/<domain>.yaml`.
 
 ### Test framework
 
-- **vitest** for unit and integration tests
+- **vitest** for unit and integration tests, aiming for 100% coverage of every package
 - Tests live alongside source files as `*.test.ts` (e.g., `passage.test.ts`, `detect.test.ts`)
-- The `references/` package has the most comprehensive test coverage
+- Two vitest projects (`vitest.config.ts`): `node` for libraries/collector, and `vue` (jsdom,
+  plugin-vue + pug, Vuetify, svg loader) for `app/` and `site/` tests. Select one with
+  `--project vue`
+- **Collector:** paths are CWD-relative, so filesystem tests call `use_temp_cwd()` from
+  `collector/src/parts/test_utils.ts` (before any fixture-writing hook, or fixtures land in the
+  real `collection/`). Network, AWS and usfmtc are stubbed; real-binary tests use `it.skipIf`
+- **App components:** mount with `mount_app()` from `app/src/services/test_utils.ts` (import it
+  first, it stubs browser APIs jsdom lacks)
+- Measure with `.bin/audit_test run --coverage` (report in `coverage/`)
 
 ### Running tests
 

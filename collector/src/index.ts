@@ -35,8 +35,9 @@ await yargs(process.argv.slice(2))
         argv => Promise.all([init_config(), gen_language_data(), update_usfmtc()]).then(x => {}))
     .command('setup-data', "Update data on world's languages", {},
         argv => gen_language_data())
-    .command('setup-usfmtc [version]', "Install usfmtc (USFM/USX converter) into a local venv", {},
-        argv => update_usfmtc(argv['version'] as string))
+    // NOTE Positional can't be named `version` as yargs' own --version flag would override it
+    .command('setup-usfmtc [usfmtc_version]', "Install usfmtc (USFM/USX converter) into a venv", {},
+        argv => update_usfmtc(argv['usfmtc_version'] as string))
 
     // Bibles
     .command('discover [service] [id]', "Discover what translations are available", {},

@@ -38,7 +38,12 @@ export async function clean_collection(){
             .map(b => b.slice(0, 3))
         let removed = false
         for (const format of ['usx', 'usfm', 'html', 'txt']){
-            for (const file of list_files(join('dist', 'bibles', id, format))){
+            // Translation may not have been processed yet
+            const dist_format_dir = join('dist', 'bibles', id, format)
+            if (!existsSync(dist_format_dir)){
+                continue
+            }
+            for (const file of list_files(dist_format_dir)){
                 if (!books.includes(file.slice(0, 3))){
                     unlinkSync(join('dist', 'bibles', id, format, file))
                     removed = true

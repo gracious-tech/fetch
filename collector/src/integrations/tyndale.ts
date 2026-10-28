@@ -213,10 +213,8 @@ export interface TyndaleBibleReference {
  */
 // Select nodes by XPath, keeping only elements (results are otherwise untyped)
 function select_elements(expression:string, node:Node):Element[]{
-    const result = select(expression, node)
-    if (!Array.isArray(result)){
-        throw new Error(`Expected nodes from XPath ${expression}`)
-    }
+    // NOTE Only given node-set expressions, which always return an array
+    const result = select(expression, node) as Node[]
     return result.filter((item):item is Element =>
         typeof item === 'object' && item.nodeType === 1)
 }
@@ -226,16 +224,13 @@ export function extract_reference(reference: string): TyndaleBibleReference|null
 
     const regex = /\b\w+\b/g
     const parts = reference.split('-')
-    if (parts.length === 0) {
-        return null
-    }
 
     // Handle the starting parts (before -)
     const matches = parts[0]!.match(regex) || []
     if (matches.length < 3) {
         return null
     }
-    let book = matches[0] || ''
+    let book = matches[0]!  // Length checked above
     let usx = tyndale_to_usx_book[book] || ''
     if (usx === '') {
         // Check the alternatives

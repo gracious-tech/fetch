@@ -1,9 +1,13 @@
 
-import {describe, it} from 'vitest'
+import {existsSync, readFileSync} from 'node:fs'
+
+import {afterEach, describe, it, vi} from 'vitest'
 
 import {
-    TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json,
+    TyndaleBibleReference, clean_note, extract_reference, study_notes_to_json, download_notes,
+    sources_to_dist,
 } from './tyndale'
+import {make_zip, stub_fetch, use_temp_cwd, write_files} from '../parts/test_utils.js'
 
 
 /* eslint-disable no-irregular-whitespace*/
@@ -138,6 +142,88 @@ describe('study_notes_to_json', () => {
             .toContain('<span data-ref="1th,5,2,5,4">1 Thes 5:2-4</span>')
     })
 
+    it("Skips items without a valid reference and reports nonexistent verses", ({expect}) => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+        const result = study_notes_to_json(`<items>
+            <item><body><p>No name</p></body></item>
+            <item name="Xyz.1.1"><body><p>Unknown book</p></body></item>
+            <item name="Gen.99.1"><body><p>No such chapter</p></body></item>
+            <item name="Gen.1.1"></item>
+        </items>`, 'test')
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('Skipped 1 Tyndale note'))
+        expect(result).toEqual({gen: {notes_id: 'test', book: 'gen', ranges: [],
+            verses: {1: {1: ''}}}})
+        warn.mockRestore()
+    })
+
+    it("Sorts ranges in the same chapter by verse", ({expect}) => {
+        const result = study_notes_to_json(`<items>
+            <item name="Gen.1.5-6"><body><p>B</p></body></item>
+            <item name="Gen.1.1-2"><body><p>A</p></body></item>
+        </items>`, 'test')
+        expect(result['gen']!.ranges.map(r => r.contents)).toEqual(['A', 'B'])
+    })
+
+})
+
+
+describe('download_notes', () => {
+
+    use_temp_cwd()
+    afterEach(() => {
+        vi.unstubAllGlobals()
+    })
+
+    const url = 'https://tyndaleopenresources.com/wp-content/themes/tyndale-openresources/files/'
+        + 'tyndale_open-studynotes.zip'
+    const meta_path = 'sources/notes/tyndale/eng_tyndale/meta.json'
+
+    // Serve a zip containing the given study notes XML
+    function serve(xml:string){
+        stub_fetch({[url]: make_zip({'Tyndale Open Study Notes/StudyNotes.xml': xml})})
+    }
+
+    it("Extracts the notes and creates meta with the release as revision", async ({expect}) => {
+        serve(test_xml)
+        await download_notes()
+        expect(readFileSync('sources/notes/tyndale/eng_tyndale/StudyNotes.xml', 'utf8'))
+            .toBe(test_xml)
+        const meta = JSON.parse(readFileSync(meta_path, 'utf8')) as Record<string, unknown>
+        expect(meta['source']).toMatchObject({service: 'manual', revision: 1.25, url})
+    })
+
+    it("Keeps existing meta", async ({expect}) => {
+        write_files({[meta_path]: 'existing'})
+        serve('<items release="bad">')
+        await download_notes()
+        expect(readFileSync(meta_path, 'utf8')).toBe('existing')
+    })
+
+    it("Throws if the release number can't be read", async ({expect}) => {
+        serve('<items>')
+        await expect(download_notes()).rejects.toThrow('Could not read release number')
+        expect(existsSync(meta_path)).toBe(false)
+    })
+
+})
+
+
+describe('sources_to_dist', () => {
+
+    use_temp_cwd()
+
+    it("Applies source fixes and warns about those that no longer match", ({expect}) => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+        write_files({'sources/notes/tyndale/eng_tyndale/StudyNotes.xml': `<items>
+            <item name="IISam.22.34"><body><p><span class="sn-excerpt">deer</span>during</p>
+            </body></item></items>`})
+        const result = sources_to_dist()
+        expect(result['2sa']!.verses[22]![34])
+            .toBe('<span class="fbn-excerpt">deer</span> during')
+        expect(warn).toHaveBeenCalledTimes(2)
+        warn.mockRestore()
+    })
+
 })
 
 
@@ -189,6 +275,18 @@ describe('extract_reference', () => {
         expect(reference!.end_chapter).toEqual(3)
         expect(reference!.end_verse).toEqual(15)
         expect(reference!.is_range).toBe(true)
+    })
+
+    it("Returns null when the reference is incomplete", ({expect}) => {
+        expect(extract_reference('Gen.1')).toBeNull()
+        expect(extract_reference('')).toBeNull()
+    })
+
+    it("Falls back to empty/zero values for unknown or non-numeric parts", ({expect}) => {
+        expect(extract_reference('Xyz.a.b-c.d')).toEqual({book: '', usx: '', start_chapter: 0,
+            start_verse: 0, end_chapter: 0, end_verse: 0, is_range: false})
+        expect(extract_reference('Gen.1.1-x')).toMatchObject({end_chapter: 1, end_verse: 0})
+        expect(extract_reference('Gen.1.1-')).toMatchObject({end_chapter: 1, end_verse: 0})
     })
 
 })
@@ -276,6 +374,10 @@ describe('clean_note', () => {
         // Make sure bref stay intact
         result = clean_note(`<a href="?item=Dan.5.31_StudyNote">study note on 5:31</a> and <a href="?bref=Dan.4.27">4:27</a>.`)
         expect(result).toEqual('study note on 5:31 and <span data-ref="dan,4,27">4:27</span>.')
+    })
+
+    it('should drop scripture links that are not full references', ({expect}) => {
+        expect(clean_note('See <a href="?bref=Dan.4">Dan 4</a>.')).toEqual('See .')
     })
 
 })

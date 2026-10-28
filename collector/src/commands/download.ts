@@ -102,7 +102,7 @@ export async function download_source(recheck:boolean, trans_id?:string){
             door43_sourced[id] = entry
         } else if (meta.source.service === 'ebible'){
             ebible_sourced[id] = entry
-        } else if (meta.source.service === 'dbl'){
+        } else {
             dbl_sourced[id] = entry
         }
     }
@@ -290,7 +290,8 @@ async function _extract_source_zip(zip_path:string, format_dir:string,
         let ch2_index = contents_str.length
         let result = chapter_regex.exec(contents_str)
         while (result){
-            if (parseInt(result[1] ?? '') >= 2){
+            // NOTE Group 1 always matches (it's required by the regex)
+            if (parseInt(result[1]!) >= 2){
                 ch2_index = result.index
                 break
             }

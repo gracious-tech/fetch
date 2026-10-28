@@ -248,7 +248,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
             name: {
                 local: item.nameLocal ?? '',
                 local_abbrev: item.nameAbbreviationLocal ?? '',
-                english: item.name ?? '',
+                english: item.name,
                 english_abbrev: eng_abbrev.toUpperCase(),
             },
             year: Math.min(date_submitted, date_finished),

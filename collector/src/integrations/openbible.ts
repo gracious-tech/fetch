@@ -167,12 +167,10 @@ export function cross_references_to_json(content:string): Record<string, BookCro
                     return a_index - b_index
                 })
 
+        // NOTE Table is keyed by verse, so each verse is only ever assigned once
         const from = item.from
         if (!(from.start_chapter in output[from.usx]!)) {
             output[from.usx]![from.start_chapter] = {}
-        }
-        if (!(from.start_verse in output[from.usx]![from.start_chapter]!)) {
-            output[from.usx]![from.start_chapter]![from.start_verse] = []
         }
         output[from.usx]![from.start_chapter]![from.start_verse] = item.cross_references
     })
@@ -210,14 +208,11 @@ function is_valid_ref(ref:OBBibleReference):boolean{
 export function extract_reference(reference: string): OBBibleReference|null {
     const pattern = /\b\w+\b/g
     const parts = reference.split('-')
-    if (parts.length === 0) {
-        return null
-    }
     const matches = parts[0]!.match(pattern) || []
     if (matches.length < 3) {
         return null
     }
-    const book = matches[0] || ''
+    const book = matches[0]!  // Length checked above
     const usx = openbible_to_usx_book[book] || ''
     const start_chapter = parseInt(matches[1]!, 10) || 0
     const start_verse = parseInt(matches[2]!, 10) || 0

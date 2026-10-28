@@ -6,7 +6,7 @@ import {books_ordered} from '@gracious.tech/bible-references'
 
 import {read_json, list_dirs, list_files} from '../parts/utils.js'
 import {translation_source_meta} from '../parts/schemas.js'
-import {_missing_meta, _missing_meta_fields} from '../parts/manifest.js'
+import {_missing_meta_fields} from '../parts/manifest.js'
 
 
 

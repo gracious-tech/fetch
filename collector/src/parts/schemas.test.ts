@@ -1,10 +1,14 @@
 
+import {readFileSync} from 'node:fs'
+
 import {describe, it} from 'vitest'
 
 import {LICENSES} from './license.js'
-import {translation_source_meta, validate_manifest} from './schemas.js'
+import {translation_source_meta, validate_manifest, write_translation_meta} from './schemas.js'
+import {use_temp_cwd} from './test_utils.js'
 
 import type {DistManifest, DistManifestItem} from './shared_types'
+import type {TranslationSourceMeta} from './types'
 
 
 // A valid manifest item for the given books (true = all books of that testament)
@@ -137,3 +141,30 @@ describe('translation_source_meta', () => {
             .success).toBe(false)
     })
 })
+
+
+describe('write_translation_meta', () => {
+
+    use_temp_cwd()
+
+    const meta:TranslationSourceMeta = {
+        name: {local: "Local", local_abbrev: "LOC", english: "English", english_abbrev: "ENG"},
+        year: 2000,
+        direction: 'ltr',
+        copyright: {attribution: "Someone", attribution_url: '', licenses: []},
+        tags: [],
+        ids: {},
+        source: {service: 'manual', format: 'usx', url: null, updated: '2000-01-01', revision: 0},
+    }
+
+    it("Writes valid meta indented", ({expect}) => {
+        write_translation_meta('meta.json', meta)
+        expect(readFileSync('meta.json', 'utf8')).toBe(JSON.stringify(meta, undefined, 4))
+    })
+
+    it("Refuses to write invalid meta", ({expect}) => {
+        expect(() => write_translation_meta('meta.json', {...meta, year: 1.5}))
+            .toThrow("Invalid data from meta.json")
+    })
+})
+

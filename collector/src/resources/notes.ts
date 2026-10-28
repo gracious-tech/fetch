@@ -42,27 +42,25 @@ export async function notes_process(){
     // NOTE So far hardcoded to just check for tyndale notes
     for (const id of list_dirs(join('sources', 'notes', 'tyndale'))){
         const notes = tyndale.sources_to_dist()
-        if (notes){
 
-            // Convert to Typst first and confirm every note compiles before writing anything
-            const typst_books = Object.fromEntries(Object.keys(notes).map(
-                book => [book, notes_to_typst(notes[book]!)]))
-            check_typst_snippets(Object.values(typst_books).flatMap(notes_typst_snippets),
-                default_notes_typst_definitions)
+        // Convert to Typst first and confirm every note compiles before writing anything
+        const typst_books = Object.fromEntries(Object.keys(notes).map(
+            book => [book, notes_to_typst(notes[book]!)]))
+        check_typst_snippets(Object.values(typst_books).flatMap(notes_typst_snippets),
+            default_notes_typst_definitions)
 
-            // Separate into individual books
-            const html_dir = join('dist', 'notes', id, 'html')
-            const txt_dir = join('dist', 'notes', id, 'txt')
-            const typst_dir = join('dist', 'notes', id, 'typst')
-            mkdir_exist(html_dir)
-            mkdir_exist(txt_dir)
-            mkdir_exist(typst_dir)
-            for (const book of Object.keys(notes)){
-                write_json(join(html_dir, `${book}.json`), notes[book])
-                // Also write plain text and Typst (for print/PDF) versions
-                write_json(join(txt_dir, `${book}.json`), notes_to_txt(notes[book]!))
-                write_json(join(typst_dir, `${book}.json`), typst_books[book])
-            }
+        // Separate into individual books
+        const html_dir = join('dist', 'notes', id, 'html')
+        const txt_dir = join('dist', 'notes', id, 'txt')
+        const typst_dir = join('dist', 'notes', id, 'typst')
+        mkdir_exist(html_dir)
+        mkdir_exist(txt_dir)
+        mkdir_exist(typst_dir)
+        for (const book of Object.keys(notes)){
+            write_json(join(html_dir, `${book}.json`), notes[book])
+            // Also write plain text and Typst (for print/PDF) versions
+            write_json(join(txt_dir, `${book}.json`), notes_to_txt(notes[book]!))
+            write_json(join(typst_dir, `${book}.json`), typst_books[book])
         }
     }
 

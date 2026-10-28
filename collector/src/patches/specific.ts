@@ -48,8 +48,9 @@ function brenton_psalter(usfm:string):string{
     // Split into preamble + per-chapter bodies, keyed by the LXX chapter number
     const parts = usfm.split(/(\\c \d+[^\n]*\n)/)
     const body_by:Record<number, string> = {}
+    // NOTE A capturing split always yields a (possibly empty) body after each marker
     for (let i = 1; i < parts.length; i += 2){
-        body_by[parseInt(/\\c (\d+)/.exec(parts[i]!)![1]!)] = parts[i + 1] ?? ''
+        body_by[parseInt(/\\c (\d+)/.exec(parts[i]!)![1]!)] = parts[i + 1]!
     }
     // Only the un-fixed LXX-numbered psalter has Ps 151; once dropped this is a no-op
     if (!(151 in body_by)){
@@ -535,8 +536,9 @@ export function pre_reverse_specific(translation:string, book:string, usx:string
             /<verse number="53" style="v" sid="JHN 8:53" \/>([\s\S]*?)<verse eid="JHN 8:53" \/>(?=<verse number="1" style="v" sid="JHN 8:1" \/>)/
         const m = span.exec(usx)
         if (m){
+            // NOTE The span's (non-optional) group always captures, even if empty
             usx = usx.replace(span, '').replace('<verse eid="JHN 7:52" />',
-                `<verse eid="JHN 7:52" /><verse number="53" style="v" sid="JHN 7:53" />${m[1] ?? ''}`
+                `<verse eid="JHN 7:52" /><verse number="53" style="v" sid="JHN 7:53" />${m[1]!}`
                 + '<verse eid="JHN 7:53" />')
         }
     }

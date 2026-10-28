@@ -102,11 +102,14 @@ export function generate_chapter_headings(json_txt:BibleJsonTxt, sections:BookSe
         if (!chapters[ch]){
             // Get text of verse 1
             const v1 = json_txt.contents[ch]![1]!
-            const v1_str = v1.filter(part => typeof part === 'string').join('')
-            // Trim to less than 50 chars without ending within a word
-            const v1_trimmed = v1_str.slice(0, 50)  // Slightly too long as will cut last word
-            const last_space = v1_trimmed.lastIndexOf(' ')  // else -1
-            chapters[ch] = v1_trimmed.slice(0, last_space) + '…'
+            const v1_str = v1.filter(part => typeof part === 'string').join('').trim()
+            // Use whole verse if short enough, else cut at last word break within 50 chars
+            if (v1_str.length <= 50){
+                chapters[ch] = v1_str
+            } else {
+                const last_space = v1_str.lastIndexOf(' ', 50)
+                chapters[ch] = v1_str.slice(0, last_space > 0 ? last_space : 50) + '…'
+            }
         }
     }
 

@@ -70,6 +70,19 @@ describe('notes_process', () => {
             .toEqual(['notes/old_notes', 'notes/eng_tyndale', ''])
     })
 
+    it("Processes each notes dir from its own source", async ({expect}) => {
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+        write_files({
+            'sources/notes/tyndale/eng_tyndale/StudyNotes.xml': xml,
+            'sources/notes/tyndale/eng_other/StudyNotes.xml': xml.replace('beginning', 'start'),
+        })
+        await notes_process()
+        const verse = (id:string) =>
+            (read(`dist/notes/${id}/html/gen.json`) as {verses:{1:{1:string}}}).verses[1][1]
+        expect(verse('eng_tyndale')).toContain('beginning')
+        expect(verse('eng_other')).toContain('start')
+    })
+
 })
 
 

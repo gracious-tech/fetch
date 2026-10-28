@@ -92,8 +92,7 @@ export async function download_notes(){
 
 
 // Read study notes from disk and convert to standard HTML/JSON
-export function sources_to_dist():Record<string, NotesData> {
-    const notes_id = 'eng_tyndale'
+export function sources_to_dist(notes_id:string):Record<string, NotesData> {
     const notes_path = join(tyndale_source_dir, notes_id, 'StudyNotes.xml')
     let xml = readFileSync(notes_path, {encoding: 'utf8'})
 

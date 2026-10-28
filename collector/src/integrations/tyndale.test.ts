@@ -214,12 +214,14 @@ describe('sources_to_dist', () => {
 
     it("Applies source fixes and warns about those that no longer match", ({expect}) => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-        write_files({'sources/notes/tyndale/eng_tyndale/StudyNotes.xml': `<items>
+        write_files({'sources/notes/tyndale/other_id/StudyNotes.xml': `<items>
             <item name="IISam.22.34"><body><p><span class="sn-excerpt">deer</span>during</p>
             </body></item></items>`})
-        const result = sources_to_dist()
+        const result = sources_to_dist('other_id')
         expect(result['2sa']!.verses[22]![34])
             .toBe('<span class="fbn-excerpt">deer</span> during')
+        // Notes are labelled with the given id
+        expect(result['2sa']!.notes_id).toBe('other_id')
         expect(warn).toHaveBeenCalledTimes(2)
         warn.mockRestore()
     })

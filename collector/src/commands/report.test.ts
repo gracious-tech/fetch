@@ -106,6 +106,13 @@ describe('report commands', () => {
             expect(out.error).toEqual(['WRONG ATTRIBUTION: eng_a', 'WRONG ID IN SOURCE URL: eng_a'])
         })
 
+        it("Reports a missing source url", ({expect}) => {
+            write_files({'sources/bibles/eng_a/meta.json': meta({
+                source: {...meta().source, url: null}})})
+            report_invalid_meta()
+            expect(out.error).toEqual(['MISSING SOURCE URL: eng_a'])
+        })
+
         it("Ignores attribution urls not from the service", ({expect}) => {
             write_files({'sources/bibles/eng_a/meta.json': meta({
                 copyright: {...meta().copyright, attribution_url: 'https://example.com'}})})

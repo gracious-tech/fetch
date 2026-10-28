@@ -41,7 +41,7 @@ export async function notes_process(){
     // Loop through available notes
     // NOTE So far hardcoded to just check for tyndale notes
     for (const id of list_dirs(join('sources', 'notes', 'tyndale'))){
-        const notes = tyndale.sources_to_dist()
+        const notes = tyndale.sources_to_dist(id)
 
         // Convert to Typst first and confirm every note compiles before writing anything
         const typst_books = Object.fromEntries(Object.keys(notes).map(

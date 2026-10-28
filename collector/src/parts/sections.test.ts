@@ -75,13 +75,18 @@ describe('generate_chapter_headings', () => {
         expect(sections.map(s => s.heading)).toEqual([null, "Second", "Third", null])
     })
 
-    it("Falls back to the start of verse 1 without ending mid-word", ({expect}) => {
+    it("Falls back to verse 1, cut at a word break only when too long", ({expect}) => {
         expect(generate_chapter_headings(ruth(), [])).toEqual([
             '',
             "In the days when the judges ruled there was a…",
-            "Naomi had a…",
-            "…",
+            "Naomi had a relative",
+            "w",
         ])
+    })
+
+    it("Cuts a long single word at 50 chars", ({expect}) => {
+        expect(generate_chapter_headings(book([[["x".repeat(60)]]]), [])[1])
+            .toBe("x".repeat(50) + "…")
     })
 })
 

@@ -35,13 +35,13 @@ onMounted(() => {
     self.fetch_enhancer = enhancer  // Expose so can use in /access/enhancer/
 
     useRouter().onAfterRouteChanged = to => {
-        const doc = document.querySelector('.vp-doc')
+        const doc = document.querySelector<HTMLElement>('.vp-doc')
         if (doc){
             enhancer.discover_bible_references(doc)
         }
     }
 
-    const doc = document.querySelector('.vp-doc')
+    const doc = document.querySelector<HTMLElement>('.vp-doc')
     if (doc){
         enhancer.discover_bible_references(doc)
     }

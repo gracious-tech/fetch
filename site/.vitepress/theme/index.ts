@@ -1,7 +1,7 @@
 
-import DefaultTheme from 'vitepress/theme'
-import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
-import {Theme} from 'vitepress'
+import DefaultTheme, {VPButton} from 'vitepress/theme'
+
+import type {Theme} from 'vitepress'
 
 import CustomLayout from './CustomLayout.vue'
 

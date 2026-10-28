@@ -1,7 +1,7 @@
 {
     "extends": "../tsconfig_base.jsonc",
-    "include": ["**/*.ts", "**/*.vue"],
-    "exclude": ["**/node_modules"],
+    "include": ["**/*.ts", "**/*.vue", ".vitepress/**/*.ts", ".vitepress/**/*.vue"],
+    "exclude": ["**/node_modules", ".vitepress/cache"],
     "compilerOptions": {
         "lib": ["DOM", "DOM.Iterable", "ESNext"],
         "types": ["vite/client"],

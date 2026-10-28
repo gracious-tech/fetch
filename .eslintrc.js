@@ -1,6 +1,8 @@
 
 module.exports = {
     root: true,
+    // Built bundles copied into the site (tracked in git, so can't rely on .gitignore)
+    ignorePatterns: ['/site/src/_public/'],
     parser: 'vue-eslint-parser',
     parserOptions: {
         parser: '@typescript-eslint/parser',

@@ -9,7 +9,7 @@ table
     tr
         th Testaments
         th Translations
-    tr(v-for='item of Object.values(testaments)')
+    tr(v-for='item of Object.values(testaments)' :key='item.name')
         td {{ item.name }}
         td {{ per(item.count) }}
 
@@ -19,7 +19,7 @@ table
     tr
         th License
         th Translations
-    tr(v-for='license of licenses')
+    tr(v-for='license of licenses' :key='license.display')
         td {{ license.display }}
         td {{ per(license.count) }}
 
@@ -29,7 +29,7 @@ table
     tr
         th Allows
         th Translations
-    tr(v-for='usage of usages')
+    tr(v-for='usage of usages' :key='usage.name')
         td {{ usage.name }}
         td {{ usage.count }}
 
@@ -39,7 +39,7 @@ table
     tr
         th Period
         th Translations
-    tr(v-for='period of periods')
+    tr(v-for='period of periods' :key='period.display')
         td {{ period.display }}
         td {{ per(period.count) }}
 
@@ -49,7 +49,7 @@ table
     tr
         th Owner
         th Translations
-    tr(v-for='owner of owners')
+    tr(v-for='owner of owners' :key='owner.name')
         td {{ owner.name }}
         td {{ owner.count }}
 p
@@ -75,7 +75,7 @@ const per = (count:number) => String(Math.floor(count / translations.length * 10
 // Generate list of periods
 const epoch = 1950
 const this_year = new Date().getFullYear()
-let periods = [...Array(Math.ceil((this_year - epoch) / 10)).keys()].map(n => {
+const decades = [...Array(Math.ceil((this_year - epoch) / 10)).keys()].map(n => {
     const start = n*10 + epoch
     return {
         start,
@@ -83,9 +83,9 @@ let periods = [...Array(Math.ceil((this_year - epoch) / 10)).keys()].map(n => {
         display: `${start}s`,
     }
 })
-periods.reverse()
-periods.push({start: 0, end: epoch-1, display: `Pre-${epoch}`})
-periods = periods.map(period => {
+decades.reverse()
+decades.push({start: 0, end: epoch-1, display: `Pre-${epoch}`})
+const periods = decades.map(period => {
     return {
         ...period,
         count: translations.filter(t => t.year >= period.start && t.year <= period.end).length,
@@ -107,7 +107,7 @@ licenses.push({
 
 
 // Generate list of owners
-let all_owners = {}
+const owners_by_key:Record<string, {name:string, count:number}> = {}
 for (const trans of translations){
     // Normalise name as much as possible (as will use for key)
     const name = trans.attribution.replaceAll(/copyright/gi, '').replaceAll(/\(c\)/gi, '')
@@ -115,12 +115,10 @@ for (const trans of translations){
         .replaceAll(/the /gi, '').trim()
     // Produce key from name
     const key = name.toLowerCase()
-    if (! (key in all_owners)){
-        all_owners[key] = {name, count: 0}
-    }
-    all_owners[key].count += 1
+    owners_by_key[key] ??= {name, count: 0}
+    owners_by_key[key].count += 1
 }
-all_owners = Object.values(all_owners)
+const all_owners = Object.values(owners_by_key)
 
 // Group owners with only one translation and say couldn't detect properly
 // As too many to list, not statistically interesting, and may not have been detected properly...

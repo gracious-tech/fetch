@@ -66,10 +66,6 @@ const COVERED_BY_UNRESTRICTED_ALT = ['cjy']
 const COVERED_BY_SHAREABLE_ALT = [...COVERED_BY_UNRESTRICTED_ALT]
 
 
-// Get translations
-const translations = collection.bibles.get_resources()
-
-
 // Detect modern years
 const modern_years = new Date().getFullYear() - collection.bibles._modern_year
 

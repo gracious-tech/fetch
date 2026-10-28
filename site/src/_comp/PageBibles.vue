@@ -12,7 +12,7 @@ p
 p
     select(v-model='language')
         option(value='' label="All languages")
-        option(v-for='lang of languages' :value='lang.value' :label='lang.label')
+        option(v-for='lang of languages' :key='lang.value' :value='lang.value' :label='lang.label')
 p
     input(v-model='exclude_obsolete' id='exclude_obsolete' type='checkbox')
     label(for='exclude_obsolete') Hide obsolete (very old + better available)
@@ -40,7 +40,7 @@ table
         th Year
         th Books
         th Licenses
-    tr(v-for='bible of bibles')
+    tr(v-for='bible of bibles' :key='bible.id')
         td
             a(:href='`${app}#trans=${bible.id}`' target='_blank')
                 | {{ bible.name_english || bible.name_local }}
@@ -50,7 +50,7 @@ table
         td {{ bible.year }}
         td.completion(v-html='bible.completion')
         td
-            template(v-for='license of bible.licenses')
+            template(v-for='license of bible.licenses' :key='license.url')
                 a(:href='license.url' target='_blank') {{ license.id ?? 'Custom' }}
                 br
 
@@ -90,7 +90,7 @@ const language = ref(languages.map(l => l.value).includes(hash) ? hash : '')
 const usage_commercial = ref(false)
 const usage_limitless = ref(false)
 const usage_attributionless = ref(false)
-const usage_derivatives = ref('')
+const usage_derivatives = ref<''|'same-license'|'yes'>('')
 const exclude_obsolete = ref(false)
 
 
@@ -103,7 +103,7 @@ const bibles = computed(() => {
             commercial: usage_commercial.value,
             limitless: usage_limitless.value,
             attributionless: usage_attributionless.value,
-            derivatives: usage_derivatives.value,
+            derivatives: usage_derivatives.value === 'yes' || usage_derivatives.value || false,
         },
         exclude_obsolete: exclude_obsolete.value,
     }).map(trans => {

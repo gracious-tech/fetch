@@ -53,12 +53,6 @@ const research_url = computed(() => {
 })
 
 
-const can_search = computed(() => {
-    // A symbol for whether can search or not
-    return props.strongs ? "🔍" : "❌"  // A unicode red X
-})
-
-
 const search_original = () => {
 
     // Can't search if no strongs code and in strongs mode

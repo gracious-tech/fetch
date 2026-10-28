@@ -25,7 +25,7 @@ div(v-if='variants_url')
     v-btn(:href='variants_url' target='variants' color='' size='small' variant='tonal' rounded)
         | Variants &amp; Manuscripts
         app-icon(name='arrow_outward' small class='ml-1')
-template(v-if='notes && state.study_notes && has_english_translation')
+template(v-if='notes.length && state.study_notes && has_english_translation')
     h5 Tyndale Open Study Notes
     div.notes(ref='notes_div' class='text-body-2 fetch-bible')
         template(v-for='(note, i) of notes' :key='i')
@@ -121,7 +121,7 @@ watch(() => state.study, () => {
                 const book = parts[0]
                 if (book){
                     const [start_chapter, start_verse, end_chapter, end_verse] = parts.slice(1)
-                        .map(part => part === undefined ? undefined : parseInt(part))
+                        .map(part => parseInt(part))
                     const note_ref = new PassageReference(
                         {book, start_chapter, start_verse, end_chapter, end_verse})
                     add_to_read_history(state.study!)  // First save study verse leaving from

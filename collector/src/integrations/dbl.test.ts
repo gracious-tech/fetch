@@ -202,7 +202,7 @@ describe('discover', () => {
         })])
         await discover([])
         const meta = read_meta('cnq_a')
-        expect(meta.year).toBe(9999)
+        expect(meta.year).toBeNull()
         expect(meta.direction).toBe('ltr')
         expect(meta.name.local).toBe('')
         expect(meta.copyright.attribution).toBe('')

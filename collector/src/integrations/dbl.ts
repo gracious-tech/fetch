@@ -239,9 +239,10 @@ export async function discover(existing:string[], discover_specific_id?:string):
             }
         }
 
-        // Work out earliest year of publication
-        const date_submitted = parseInt((item.dateFirstSubmitted ?? '').slice(0, 4)) || 9999
-        const date_finished = parseInt((item.dateTranslationFinished ?? '').slice(0, 4)) || 9999
+        // Work out earliest year of publication (null if unknown, so it gets flagged as missing)
+        const years = [item.dateFirstSubmitted, item.dateTranslationFinished]
+            .map(date => parseInt((date ?? '').slice(0, 4)))
+            .filter(year => year > 0)  // Also drops NaN
 
         // Prepare the meta data
         const meta:TranslationSourceMeta = {
@@ -251,7 +252,7 @@ export async function discover(existing:string[], discover_specific_id?:string):
                 english: item.name,
                 english_abbrev: eng_abbrev.toUpperCase(),
             },
-            year: Math.min(date_submitted, date_finished),
+            year: years.length ? Math.min(...years) : null,
             direction: item.language?.scriptDirection?.toLowerCase() === 'rtl' ? 'rtl' : 'ltr',
             copyright: {
                 licenses: license ? [{license, url: license_url}] : [],

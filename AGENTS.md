@@ -599,7 +599,15 @@ metadata.
   emit as `#mr[...]`/`#sr[...]` instead of `=`/`==` headings, but only `vie_kt` has been
   reprocessed and published. ~200 other official translations still have the old typst output
   (find them with `grep -l 'fb-mr\|fb-sr' collection_official/dist/bibles/*/html/*.json`)
-- **Release client/app for heading CSS:** `client/src/css/stylish.sass` now centres major
-  headings and styles `.fb-mr`/`.fb-sr` as italic lines; not live until client and app publish
+- **Reprocess for short chapter headings:** fallback chapter headings (from verse 1) no longer
+  cut short verses (was "Naomi had a…"), but the official collection's `extra.json` files still
+  have the old ones until a full reprocess + collection publish
+- **Publish the app:** app.fetch.bible was last deployed 2026-10-20 (npm 1.1.0). Since then:
+  search fix (HTML indexing broken since 2026-06, `7be8bc9`), empty study notes heading fix,
+  client 2.6.0 changes (manifest sanitizing, heading CSS for `.fb-mr`/`.fb-sr`, byz/alex tags).
+  Bump to 1.1.1 then `.bin/publish_app`
+- **Stale npm packages (only affect external users):** `fetch-enhancer` 1.1.0 (2025-06),
+  `fetch-collector` 1.0.1 (2025-03), `usx-to-json` 1.0.0 (2025-02) and `reverse-usx` 1.0.1
+  (2026-04) all have unpublished source changes; `fetch-client` and `bible-references` are current
 - **`mr`/`sr` semantics in HTML (optional):** still emitted as `<h2>`/`<h4>`, so screen readers
   announce them as headings. Emitting `<p>` instead would need a converter change + reprocess

@@ -81,20 +81,25 @@ published, as `relevant` (~2k pairs that read like borderline relevant links).
 The campaign completed 2026-11-06 with all 306,272 pairs judged. How the record is interpreted
 lives in `../judged.ts` / `../index.ts` and needs no re-judging:
 
-- **Two published sizes.** Each category publishes a full set (`{category}/`, salience 3+) and a
-  small set (`{category}_small/`, salience 4+). There is no per-verse cap — apps choose a size
-  instead.
+- **Six whole-Bible files.** Salience stays internal; it is published as a strength — 5
+  `very_high`, 4 `high`, 3 `medium`. `crossref/categorised/very_high.json`, `high_plus.json`
+  and `medium_plus.json` hold every link of at least that strength, and `…_no_relevant.json`
+  the same without the
+  `relevant` category (some apps never want it, however strong). Links are grouped by category
+  then strength, so both are available to apps without being repeated per link, and each link
+  is stored once (earlier passage first) — clients index both directions. No per-verse cap.
 - **Our own detectors' links are judged too.** The pool also includes every link the
   algorithmic detectors find (BSB footnotes, Greek wording matches, retellings), so they get the
-  same salience thresholds; their category still comes from the detector. Any not yet judged
-  (e.g. after re-tuning a detector) publish in both sizes, ranked just below salience 5, until a
+  same salience thresholds and the judge's category (the Greek wording detector in particular
+  often mistakes stock phrases for quotations). Any not yet judged
+  (e.g. after re-tuning a detector) publish with salience 4 until a
   campaign session judges them — `run.js status` shows them as pending.
-- **Best first.** Within each verse, links are ordered by salience (highest first), so apps can
-  show the top few without the score itself being published.
 - **Near-duplicate variants.** OpenBible often carries both a verse-level and a range row for
   one connection (`gen 2:1-2 > heb 4:3-4` vs `… > heb 4:4`). Where one side is identical and the
   other contains the other, the variant with higher salience is kept, then the stronger
-  category, then the narrower span. Algorithmic links are checked against judged variants too
-  (the stronger category wins; on a tie the judged link, since the judge saw both texts).
-- **Wide spans** need no special handling in the data: a range is stored once per book file as
-  a single entry (`gen 19:1-38 → luk 17:32`), so how it is displayed is up to each app.
+  category, then the narrower span — except that a wider variant tying with two or more
+  narrower pieces of itself is kept instead, since the pieces only split it up
+  (`psa 91:11-12 > mat 4:6` over `psa 91:11` and `psa 91:12`). Detector and judged links are
+  combined before this, so it runs once over everything.
+- **Wide spans** need no special handling in the data: a range is stored once as a single entry
+  (`gen 19:1-38 → luk 17:32`), so how it is displayed is up to each app.

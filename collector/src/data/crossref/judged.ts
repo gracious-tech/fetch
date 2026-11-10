@@ -9,7 +9,8 @@ import {join} from 'node:path'
 
 import {PKG_PATH, read_json} from '../../parts/utils.js'
 
-import type {Span, MasterLink, MasterList, CrossrefCategory} from './types'
+import type {Span, MasterLink, MasterList} from './types'
+import type {CrossrefCategory} from '../../parts/shared_types'
 
 
 // The permanent record of judgments, read from the repo's source tree
@@ -21,11 +22,10 @@ export const RESULTS_SRC = join(PKG_PATH, 'src', 'data', 'crossref', 'judge', 'r
 export const CATEGORIES:CrossrefCategory[] =
     ['quotation', 'parallel', 'allusion', 'mention', 'relevant']
 
-// Minimum salience per published size — the 1k-pair pilot showed the judge parks weak thematic
-// pairs at salience 2 rather than rejecting them, and 3+ is where quality holds up; the small
-// size keeps only the strongest (4+). Adjustable without re-judging since salience is recorded.
-export const SIZE_MIN_SALIENCE = {full: 3, small: 4} as const
-export type CrossrefSize = keyof typeof SIZE_MIN_SALIENCE
+// Minimum salience to publish at all — the 1k-pair pilot showed the judge parks weak thematic
+// pairs at salience 2 rather than rejecting them, and 3+ is where quality holds up. Adjustable
+// without re-judging since salience is recorded.
+export const MIN_SALIENCE = 3
 
 // Priority of categories when choosing between near-duplicate variants (strongest kind first)
 const CATEGORY_PRIORITY:CrossrefCategory[] =
@@ -45,8 +45,13 @@ export interface Judgment {
 export type Judged = Record<string, Judgment>
 
 
-// A publishable judged link (category already resolved from the judgment)
-interface JudgedLink {
+// Salience given to a detector link not yet judged (e.g. after re-tuning a detector) — it is a
+// verified textual match or translator footnote, so is treated as strong until judged
+const UNJUDGED_SALIENCE = 4
+
+
+// A publishable link with its resolved category and salience
+export interface ScoredLink {
     key:string
     pair:MasterLink
     category:CrossrefCategory
@@ -54,84 +59,47 @@ interface JudgedLink {
 }
 
 
-// The interpreted judgments: per-size category lists, plus every recorded pair's salience
-// (keyed like the record; 'none' counts as 0 so it never passes a size threshold)
-export interface JudgedInterpretation {
-    sizes:Record<CrossrefSize, Record<CrossrefCategory, MasterList>>
-    scores:Map<string, number>
-}
+// Interpret the recorded judgments plus our own detectors' links into one list of publishable
+// links, ordered best-first and free of duplicates
+// NOTE A judged link always takes the judge's category and salience (it read both passages,
+//      whereas e.g. the Greek wording detector often mistakes stock phrases for quotations);
+//      only detector links not yet judged keep the detector's category.
+export function interpret_links(detected:Partial<Record<CrossrefCategory, MasterList>>)
+        :ScoredLink[]{
 
-
-// Interpret the recorded judgments into per-category master lists for each published size
-// NOTE Pair spans are encoded in the record's keys, so no other data source is needed
-export function judged_categories():JudgedInterpretation{
-    const empty = ():Record<CrossrefCategory, MasterList> =>
-        ({quotation: [], parallel: [], allusion: [], mention: [], relevant: []})
-    const sizes = {full: empty(), small: empty()}
-    const scores = new Map<string, number>()
-    if (!existsSync(RESULTS_SRC)){
+    // Collect every judgment strong enough to publish, publishing 'theme' as relevant
+    const judged = existsSync(RESULTS_SRC) ? read_json<Judged>(RESULTS_SRC) : {}
+    if (!Object.keys(judged).length){
         console.warn('crossref: no judge results recorded yet (judge/results.json missing)')
-        return {sizes, scores}
     }
-
-    // Collect every judgment strong enough for the full size, publishing 'theme' as relevant
-    const judged = read_json<Judged>(RESULTS_SRC)
-    const links:JudgedLink[] = []
+    const links = new Map<string, ScoredLink>()
     for (const [key, judgment] of Object.entries(judged)){
-        scores.set(key, judgment.category === 'none' ? 0 : judgment.salience)
-        if (judgment.category === 'none' || judgment.salience < SIZE_MIN_SALIENCE.full){
+        if (judgment.category === 'none' || judgment.salience < MIN_SALIENCE){
             continue
         }
         const category = judgment.category === 'theme' ? 'relevant' : judgment.category
-        links.push({key, pair: key_to_pair(key), category, salience: judgment.salience})
+        links.set(key, {key, pair: key_to_pair(key), category, salience: judgment.salience})
     }
 
-    // Drop near-duplicate variants, then split by size (small is a subset of full)
-    for (const link of drop_near_duplicates(links)){
-        for (const size of Object.keys(SIZE_MIN_SALIENCE) as CrossrefSize[]){
-            if (link.salience >= SIZE_MIN_SALIENCE[size]){
-                sizes[size][link.category].push(link.pair)
+    // Add detector links not yet judged (judged ones are already handled above, including any
+    // the judge rejected); a pair found by several detectors keeps the strongest category
+    for (const category of CATEGORY_PRIORITY){
+        for (const pair of detected[category] ?? []){
+            const key = pair_key(pair)
+            if (!(key in judged) && !links.has(key)){
+                links.set(key, {key, pair, category, salience: UNJUDGED_SALIENCE})
             }
         }
     }
-    return {sizes, scores}
+
+    // Drop near-duplicate variants, best first
+    return drop_near_duplicates([...links.values()]).sort((a, b) => b.salience - a.salience)
 }
 
 
-// Whether a link from our own detectors belongs in a size — judged ones follow the same salience
-// thresholds as OpenBible pairs, while any not yet judged are kept (they are verified textual
-// matches or translator footnotes)
-export function algorithmic_in_size(link:MasterLink, size:CrossrefSize,
-        scores:Map<string, number>):boolean{
-    const score = scores.get(link.map(span => span.join(',')).join('>'))
-    return score === undefined || score >= SIZE_MIN_SALIENCE[size]
-}
-
-
-// Score used to order a published link (higher first) — the judge's salience where recorded
-// NOTE A range merged from judged single-verse pairs takes the best of its parts; a link only our
-//      own detectors found and not yet judged ranks just below 5 (a verified textual match)
-export function link_score(link:MasterLink, scores:Map<string, number>):number{
-    const exact = scores.get(link.map(span => span.join(',')).join('>'))
-    if (exact !== undefined){
-        return exact
-    }
-
-    // Look up the single-verse pairs a merged range could have been built from
-    const [a, b] = link
-    let best:number|undefined
-    if (a[1] === a[3] && b[1] === b[3]){
-        for (let av = a[2]; av <= a[4]; av++){
-            for (let bv = b[2]; bv <= b[4]; bv++){
-                const key = `${a[0]},${a[1]},${av},${a[1]},${av}>${b[0]},${b[1]},${bv},${b[1]},${bv}`
-                const score = scores.get(key)
-                if (score !== undefined){
-                    best = Math.max(best ?? 0, score)
-                }
-            }
-        }
-    }
-    return best ?? 4.5
+// A pair's key, matching the record's keys ("book,sc,sv,ec,ev>book,sc,sv,ec,ev")
+function pair_key(pair:MasterLink):string{
+    return `${pair[0].join(',')}>${pair[1].join(',')}`
 }
 
 
@@ -140,10 +108,10 @@ export function link_score(link:MasterLink, scores:Map<string, number>):number{
 // NOTE Variants share one side exactly while the other side contains the other. Each link is
 //      compared pairwise (not clustered) so two distinct links inside one wide variant both
 //      survive when they each beat it.
-function drop_near_duplicates(links:JudgedLink[]):JudgedLink[]{
+export function drop_near_duplicates(links:ScoredLink[]):ScoredLink[]{
 
     // Index links by each side's exact span, so variants are found by the shared side
-    const by_side = [new Map<string, JudgedLink[]>(), new Map<string, JudgedLink[]>()]
+    const by_side = [new Map<string, ScoredLink[]>(), new Map<string, ScoredLink[]>()]
     for (const link of links){
         for (const side of [0, 1] as const){
             const span_key = link.pair[side].join(',')
@@ -153,15 +121,41 @@ function drop_near_duplicates(links:JudgedLink[]):JudgedLink[]{
         }
     }
 
-    // A link is dropped if any variant whose other side contains or is contained by its own wins
+    // A wider link that ties with several narrower pieces inside it is kept over the pieces, since
+    // together they only split it up (psa 91:11-12 > mat 4:6 vs psa 91:11 and psa 91:12)
     const dropped = new Set<string>()
+    const kept = new Set<string>()
+    for (const side of [0, 1] as const){
+        const other = side === 0 ? 1 : 0
+        for (const group of by_side[side]!.values()){
+            for (const wide of group){
+                const pieces = group.filter(piece => piece !== wide
+                    && related_spans(wide.pair[other], piece.pair[other])
+                    && contains(wide.pair[other], piece.pair[other])
+                    && ties(wide, piece))
+                if (pieces.length >= 2){
+                    kept.add(wide.key)
+                    for (const piece of pieces){
+                        dropped.add(piece.key)
+                    }
+                }
+            }
+        }
+    }
+
+    // Otherwise a link is dropped if any variant whose other side contains or is contained by its
+    // own wins — a wider link kept above wins (and cannot lose) every tie, as it represents the
+    // connection, but still loses to a stronger variant
+    const wins = (y:ScoredLink, x:ScoredLink) => ties(y, x)
+        ? kept.has(y.key) || (!kept.has(x.key) && beats(y, x))
+        : beats(y, x)
     for (const side of [0, 1] as const){
         const other = side === 0 ? 1 : 0
         for (const group of by_side[side]!.values()){
             for (const x of group){
                 for (const y of group){
-                    if (x !== y && related_spans(x.pair[other], y.pair[other])
-                            && beats(y, x)){
+                    if (x !== y && !dropped.has(y.key)
+                            && related_spans(x.pair[other], y.pair[other]) && wins(y, x)){
                         dropped.add(x.key)
                     }
                 }
@@ -172,51 +166,9 @@ function drop_near_duplicates(links:JudgedLink[]):JudgedLink[]{
 }
 
 
-// Resolve near-duplicate variants between algorithmic and judged links (one size's lists)
-// NOTE A variant pair shares one side exactly while the other side contains the other. The
-//      stronger category wins; on a tie the judged link wins since the judge saw both texts.
-export function drop_algorithmic_variants(algo:Record<CrossrefCategory, MasterList>,
-        judged:Record<CrossrefCategory, MasterList>):
-        {algo:Record<CrossrefCategory, MasterList>, judged:Record<CrossrefCategory, MasterList>}{
-
-    // Index judged links by each side's exact span
-    interface Entry {pair:MasterLink, category:CrossrefCategory}
-    const by_side = [new Map<string, Entry[]>(), new Map<string, Entry[]>()]
-    for (const category of CATEGORY_PRIORITY){
-        for (const pair of judged[category]){
-            for (const side of [0, 1] as const){
-                const span_key = pair[side].join(',')
-                const group = by_side[side]!.get(span_key) ?? []
-                group.push({pair, category})
-                by_side[side]!.set(span_key, group)
-            }
-        }
-    }
-
-    // Compare each algorithmic link against the judged links sharing one of its sides
-    const dropped = new Set<MasterLink>()
-    for (const category of CATEGORY_PRIORITY){
-        for (const pair of algo[category]){
-            for (const side of [0, 1] as const){
-                const other = side === 0 ? 1 : 0
-                for (const variant of by_side[side]!.get(pair[side].join(',')) ?? []){
-                    if (!related_spans(pair[other], variant.pair[other])){
-                        continue
-                    }
-                    const stronger = CATEGORY_PRIORITY.indexOf(category)
-                        < CATEGORY_PRIORITY.indexOf(variant.category)
-                    dropped.add(stronger ? variant.pair : pair)
-                }
-            }
-        }
-    }
-
-    // Filter both sides' lists by what was dropped
-    const filter = (lists:Record<CrossrefCategory, MasterList>) =>
-        Object.fromEntries(CATEGORY_PRIORITY.map(category =>
-            [category, lists[category].filter(pair => !dropped.has(pair))]),
-        ) as Record<CrossrefCategory, MasterList>
-    return {algo: filter(algo), judged: filter(judged)}
+// Whether two variants are equally strong (same salience and category), differing only in width
+function ties(a:ScoredLink, b:ScoredLink):boolean{
+    return a.salience === b.salience && a.category === b.category
 }
 
 
@@ -236,7 +188,7 @@ function contains(outer:Span, inner:Span):boolean{
 
 // Whether variant `a` should be kept over `b`: higher salience, then stronger category, then the
 // narrower (more specific) pair, then key order so the choice is always deterministic
-function beats(a:JudgedLink, b:JudgedLink):boolean{
+function beats(a:ScoredLink, b:ScoredLink):boolean{
     if (a.salience !== b.salience){
         return a.salience > b.salience
     }

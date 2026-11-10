@@ -2,10 +2,14 @@
 import {describe, it} from 'vitest'
 
 import {best_common_run, count_content} from './textual.js'
-import {compact_source, compact_target} from './distribute.js'
+import {compact_span, crossref_file_name, group_links} from './distribute.js'
 import {merge_ranges, canonical_pair, fold_shared_side} from './merge.js'
 import {classify_note} from './bsb.js'
 import {passage_text} from './judge/campaign.js'
+import {drop_near_duplicates, key_to_pair} from './judged.js'
+
+import type {ScoredLink} from './judged.js'
+import type {CrossrefCategory} from '../../parts/shared_types.js'
 
 
 describe('best_common_run', () => {
@@ -178,29 +182,108 @@ describe('passage_text (judge)', () => {
 })
 
 
-describe('compact_source', () => {
+describe('compact_span', () => {
 
-    it("Collapses a single verse to [chapter, verse]", ({expect}) => {
-        expect(compact_source(['rom', 1, 17, 1, 17])).toEqual([1, 17])
+    it("Collapses a single verse to [book, ch, v]", ({expect}) => {
+        expect(compact_span(['rom', 1, 17, 1, 17])).toEqual(['rom', 1, 17])
     })
 
     it("Keeps the end pair for a range", ({expect}) => {
-        expect(compact_source(['rom', 3, 10, 3, 18])).toEqual([3, 10, 3, 18])
+        expect(compact_span(['psa', 95, 7, 95, 11])).toEqual(['psa', 95, 7, 95, 11])
     })
 })
 
 
-describe('compact_target', () => {
+describe('crossref_file_name', () => {
 
-    it("Drops the book id when the target is in the file's own book", ({expect}) => {
-        expect(compact_target(['psa', 2, 7, 2, 7], 'psa')).toEqual([2, 7])
+    it("Marks files that include stronger links with _plus", ({expect}) => {
+        expect(crossref_file_name('very_high', true)).toBe('very_high')
+        expect(crossref_file_name('high', true)).toBe('high_plus')
+        expect(crossref_file_name('medium', false)).toBe('medium_plus_no_relevant')
+    })
+})
+
+
+describe('group_links', () => {
+
+    it("Groups links by category then strength, keeping their order", ({expect}) => {
+        const scored = (key:string, category:CrossrefCategory, salience:number):ScoredLink =>
+            ({key, pair: key_to_pair(key), category, salience})
+        expect(group_links([
+            scored('psa,91,11,91,12>mat,4,6,4,6', 'quotation', 5),
+            scored('deu,8,3,8,3>mat,4,4,4,4', 'quotation', 5),
+            scored('mat,4,6,4,6>mat,27,40,27,40', 'allusion', 4),
+            scored('isa,40,3,40,3>jhn,1,23,1,23', 'quotation', 3),
+        ])).toEqual({
+            quotation: {
+                very_high: [[['psa', 91, 11, 91, 12], ['mat', 4, 6]], [['deu', 8, 3], ['mat', 4, 4]]],
+                medium: [[['isa', 40, 3], ['jhn', 1, 23]]],
+            },
+            allusion: {high: [[['mat', 4, 6], ['mat', 27, 40]]]},
+        })
     })
 
-    it("Includes the book id for a different book (single verse)", ({expect}) => {
-        expect(compact_target(['isa', 7, 14, 7, 14], 'mat')).toEqual(['isa', 7, 14])
+    it("Lists strengths strongest first", ({expect}) => {
+        const scored = (salience:number):ScoredLink =>
+            ({key: 'a', pair: key_to_pair('gen,1,1,1,1>jhn,1,1,1,1'), category: 'allusion', salience})
+        expect(Object.keys(group_links([scored(3), scored(5), scored(4)]).allusion ?? {}))
+            .toEqual(['very_high', 'high', 'medium'])
+    })
+})
+
+
+describe('drop_near_duplicates', () => {
+
+    // Build a scored link from a record key (quotation unless given)
+    const link = (key:string, salience:number, category:CrossrefCategory = 'quotation'):ScoredLink =>
+        ({key, pair: key_to_pair(key), category, salience})
+
+    // Keys of the links that survive
+    const survivors = (links:ScoredLink[]) => drop_near_duplicates(links).map(l => l.key).sort()
+
+    it("Keeps the higher-scored variant", ({expect}) => {
+        expect(survivors([
+            link('deu,5,16,5,21>luk,18,20,18,20', 5),
+            link('deu,5,16,5,20>luk,18,20,18,20', 4),
+            link('deu,5,16,5,16>luk,18,20,18,20', 4),
+        ])).toEqual(['deu,5,16,5,21>luk,18,20,18,20'])
     })
 
-    it("Includes the book id and end pair for a different-book range", ({expect}) => {
-        expect(compact_target(['psa', 95, 7, 95, 11], 'heb')).toEqual(['psa', 95, 7, 95, 11])
+    it("Keeps the narrower variant when one ties with a wider one", ({expect}) => {
+        expect(survivors([
+            link('gen,2,1,2,2>heb,4,3,4,4', 4),
+            link('gen,2,1,2,2>heb,4,4,4,4', 4),
+        ])).toEqual(['gen,2,1,2,2>heb,4,4,4,4'])
+    })
+
+    it("Keeps a wider variant over several tied pieces of it", ({expect}) => {
+        expect(survivors([
+            link('psa,91,11,91,12>mat,4,6,4,6', 5),
+            link('psa,91,11,91,11>mat,4,6,4,6', 5),
+            link('psa,91,12,91,12>mat,4,6,4,6', 5),
+        ])).toEqual(['psa,91,11,91,12>mat,4,6,4,6'])
+    })
+
+    it("Lets a wider variant kept over pieces win ties on its other side too", ({expect}) => {
+        expect(survivors([
+            link('psa,16,8,16,11>act,2,25,2,28', 5),
+            link('psa,16,8,16,8>act,2,25,2,28', 5),
+            link('psa,16,11,16,11>act,2,25,2,28', 5),
+            link('psa,16,8,16,11>act,2,25,2,25', 5),
+        ])).toEqual(['psa,16,8,16,11>act,2,25,2,28'])
+    })
+
+    it("Prefers the stronger category on equal scores", ({expect}) => {
+        expect(survivors([
+            link('isa,53,7,53,8>act,8,32,8,33', 5, 'quotation'),
+            link('isa,53,7,53,7>act,8,32,8,33', 5, 'allusion'),
+        ])).toEqual(['isa,53,7,53,8>act,8,32,8,33'])
+    })
+
+    it("Leaves links that share no side untouched", ({expect}) => {
+        expect(survivors([
+            link('mat,4,15,4,15>isa,9,1,9,1', 5),
+            link('mat,4,15,4,16>isa,9,1,9,2', 5),
+        ])).toHaveLength(2)
     })
 })

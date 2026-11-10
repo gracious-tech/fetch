@@ -1,8 +1,7 @@
 
 import {detect_quotations, detect_parallels} from './textual.js'
 import {detect_bsb} from './bsb.js'
-import {judged_categories, drop_algorithmic_variants, link_score, algorithmic_in_size}
-    from './judged.js'
+import {interpret_links} from './judged.js'
 import {merge_ranges} from './merge.js'
 import {distribute} from './distribute.js'
 
@@ -15,59 +14,25 @@ const PARALLEL_MIN_VERSES = 3
 
 
 // Generate cross-reference data (categories: quotation, parallel, allusion, mention, relevant)
-// NOTE Stage A detectors build canonical master lists; Stage B distributes them to per-book files
+// NOTE Stage A detectors build canonical master lists; Stage B writes the whole-Bible files
 // NOTE Two sources feed the categories: our own text analysis + BSB footnotes, plus the OpenBible
 // pairs; the recorded LLM judgments (see judge/README.md) score both and decide the OpenBible
 // pairs' categories — only those recorded results are interpreted here, no LLM is run
 export function crossref_process():void{
 
-    // The algorithmic links plus the recorded LLM judgments, interpreted into categories
+    // Combine our own links with the recorded judgments into one best-first, duplicate-free list
     const {algo_quotation, algo_parallel, algo_allusion} = algorithmic_links()
-    const {sizes: judged_sizes, scores} = judged_categories()
+    const links = interpret_links(
+        {quotation: algo_quotation, parallel: algo_parallel, allusion: algo_allusion})
 
-    // Publish each size separately: "full" to {category}/, "small" to {category}_small/
-    for (const size of ['full', 'small'] as const){
-        const suffix = size === 'full' ? '' : `_${size}`
-
-        // Our own links that belong in this size (by their judged salience, if judged yet)
-        const in_size = (links:MasterList) =>
-            links.filter(link => algorithmic_in_size(link, size, scores))
-
-        // Resolve near-duplicate variants between our own links and this size's judged links
-        const {algo, judged} = drop_algorithmic_variants({
-            quotation: in_size(algo_quotation),
-            parallel: in_size(algo_parallel),
-            allusion: in_size(algo_allusion),
-            mention: [],
-            relevant: [],
-        }, judged_sizes[size])
-
-        // Merge algorithmic and judged links per category, deduping across categories in
-        // priority order so each pair is published once, under its strongest category
-        // NOTE Links are ordered by score (best first), which distribution preserves per verse
-        const seen = new Set<string>()
-        const emit = (category:string, links:MasterList):MasterList => {
-            const unique = finalize(links).filter(link => !seen.has(link_key(link)))
-            for (const link of unique){
-                seen.add(link_key(link))
-            }
-            const ranked = unique
-                .map(link => ({link, score: link_score(link, scores)}))
-                .sort((x, y) => y.score - x.score)
-                .map(({link}) => link)
-            distribute(category + suffix, ranked)
-            return ranked
-        }
-        const quotation = emit('quotation', [...algo.quotation, ...judged.quotation])
-        const parallel = emit('parallel', [...algo.parallel, ...judged.parallel])
-        const allusion = emit('allusion', [...algo.allusion, ...judged.allusion])
-        const mention = emit('mention', judged.mention)
-        const relevant = emit('relevant', judged.relevant)
-
-        console.info(`crossref (${size}): ${quotation.length} quotation, `
-            + `${parallel.length} parallel, ${allusion.length} allusion, `
-            + `${mention.length} mention, ${relevant.length} relevant links`)
+    // Write the published whole-Bible files
+    distribute(links)
+    const counts = new Map<string, number>()
+    for (const link of links){
+        counts.set(link.category, (counts.get(link.category) ?? 0) + 1)
     }
+    console.info(`crossref: ${links.length} links (`
+        + [...counts].map(([category, count]) => `${count} ${category}`).join(', ') + ')')
 }
 
 
@@ -98,12 +63,6 @@ function span_verses(span:Span):number{
 // Deduplicate then merge multi-verse runs into ranges
 function finalize(links:MasterList):MasterList{
     return merge_ranges(dedupe_links(links))
-}
-
-
-// A stable key identifying a link's two spans (for de-duplication within and across categories)
-function link_key(link:MasterList[number]):string{
-    return `${link[0].join(',')}>${link[1].join(',')}`
 }
 
 

@@ -49,6 +49,16 @@ describe('pre_convert_specific', () => {
         expect(pre_convert_specific('aai_wbt', 'act', usfm)).toEqual(usfm)
     })
 
+    it("Drops leftover headings, references and speaker labels for cmn_cut/cmn_cus",
+            ({expect}) => {
+        const usfm = '\\ms1 book one\n\\c 1\n\\s2 heading\n\\r (ref)\n\\sp speaker\n'
+            + '\\q1\n\\v 1 text\n'
+        const expected = '\\c 1\n\\q1\n\\v 1 text\n'
+        expect(pre_convert_specific('cmn_cut', 'amo', usfm)).toEqual(expected)
+        expect(pre_convert_specific('cmn_cus', 'amo', usfm)).toEqual(expected)
+        expect(pre_convert_specific('cmn_cus', 'amo', expected)).toEqual(expected)
+    })
+
     it("Folds agn_wps ROM 1's out-of-order v7 into v1 with a placeholder after v6", ({expect}) => {
         const usfm = '\\c 1\n\\p\n\\v 1 paul\n\\v 7 to all in rome\n\\v 2 gospel\n\\v 6 you also\n'
             + '\\s1 heading\n\\v 8 first\n'

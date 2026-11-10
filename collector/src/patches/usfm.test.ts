@@ -3,6 +3,7 @@ import {describe, it} from 'vitest'
 
 import {
     usfm_displace_range,
+    usfm_drop_marker_lines,
     usfm_drop_chapter_tail,
     usfm_drop_from_chapter,
     usfm_empty_chapter,
@@ -263,6 +264,23 @@ describe('usfm_strip_empty_marker', () => {
     it("Is idempotent", ({expect}) => {
         const once = usfm_strip_empty_marker(usfm, 's5')
         expect(usfm_strip_empty_marker(once, 's5')).toEqual(once)
+    })
+
+})
+
+
+describe('usfm_drop_marker_lines', () => {
+
+    const usfm = '\\c 1\n\\s2 heading\n\\r (ref)\n\\sp\n\\q1\n\\v 1 text\n\\sr kept\n'
+
+    it("Removes lines for the given markers, with or without text", ({expect}) => {
+        expect(usfm_drop_marker_lines(usfm, ['s\\d?', 'r', 'sp']))
+            .toEqual('\\c 1\n\\q1\n\\v 1 text\n\\sr kept\n')
+    })
+
+    it("Is idempotent", ({expect}) => {
+        const once = usfm_drop_marker_lines(usfm, ['r'])
+        expect(usfm_drop_marker_lines(once, ['r'])).toEqual(once)
     })
 
 })

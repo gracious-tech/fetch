@@ -220,6 +220,14 @@ export function usfm_strip_empty_marker(usfm:string, marker:string):string{
 }
 
 
+// USFM: remove whole lines for the given markers, text included (e.g. `\\s2 heading`), for
+// editorial additions that shouldn't be distributed. Verse text is never touched. Idempotent.
+export function usfm_drop_marker_lines(usfm:string, markers:string[]):string{
+    const re = new RegExp(`^\\\\(?:${markers.join('|')})(?:[ \\t][^\\n]*)?\\n`, 'gm')
+    return usfm.replace(re, '')
+}
+
+
 // USFM: drop a chapter and everything after it (e.g. an appended alternate recension). No-op if
 // the chapter marker is absent.
 export function usfm_drop_from_chapter(usfm:string, chapter:number):string{

@@ -25,6 +25,7 @@ import {
 import {
     usfm_displace_range,
     usfm_drop_chapter_tail,
+    usfm_drop_marker_lines,
     usfm_fold_verse,
     usfm_insert_empty_verse,
     usfm_empty_chapter,
@@ -162,6 +163,13 @@ export function pre_convert_specific(translation:string, book:string, contents:s
     // `<ms x-bare="true">` containers, producing malformed USX that fails to parse. Strip them.
     if (translation === 'bsj_d43' && book === 'mrk'){
         contents = usfm_strip_empty_marker(contents, 's5')
+    }
+
+    // cmn_cut / cmn_cus are distributed by eBible as the public domain Union Version with later
+    // editorial additions removed, but some remain: section headings (AMO), parallel passage
+    // references (\\r), speaker labels (SNG \\sp) and psalter book divisions (\\ms1). Drop them.
+    if (translation === 'cmn_cut' || translation === 'cmn_cus'){
+        contents = usfm_drop_marker_lines(contents, ['m?s\\d?', 'r', 'sp'])
     }
 
     // agn_wps ROM 1 keeps the salutation together, printing v7 ("To all who are in Rome…")

@@ -85,35 +85,30 @@ Judged text is the BSB (English) only, up to 15 verses per span. Known implicati
 that only surface in the original languages are invisible to the judge — allusion coverage
 relies primarily on the algorithmic passes and BSB footnotes.
 
-The `theme` category exists only in the record: it distinguishes "loosely related by topic"
-from "no connection at all" so that information is not lost (the campaign is one-time), and it
-gives the judge a legitimate home for below-the-bar pairs, sharpening the `relevant` boundary.
-It is never published; if a use emerges later, handle it in `../judged.ts` (e.g. review
-"theme, salience 3+" as promotion candidates).
+The `theme` category distinguishes "loosely related by topic" from "no connection at all" so
+that information is not lost (the campaign is one-time), and it gives the judge a legitimate
+home for below-the-bar pairs, sharpening the `relevant` boundary. Only "theme, salience 3+" is
+published, as `relevant` (~2k pairs that read like borderline relevant links).
 
-## Post-campaign TODOs (interpretation layer)
+## Interpretation (post-campaign)
 
-Decisions deliberately deferred until the full record exists — all live in `../judged.ts` /
-`../distribute.ts` and need no re-judging. **Not part of the campaign: judging sessions must
-never act on these.** Pool measurements are from 2026-07-05 (306,272 pairs).
+The campaign completed 2026-11-06 with all 306,272 pairs judged. How the record is interpreted
+lives in `../judged.ts` / `../index.ts` and needs no re-judging:
 
-- **Overlap-aware dedupe of near-duplicate pairs.** ~9.3k containment pairings share an
-  identical side A and ~9.5k share side B (~6% of the pool on each axis) — OpenBible carries
-  both a verse-level and a range row that folding can't unify (e.g. `gen 2:1-2 > heb 4:3-4`
-  vs `… > heb 4:4`). Both variants are judged on purpose (the judge's per-variant category +
-  salience is the evidence for picking the right one); the exact-key dedupe in `../index.ts`
-  will NOT catch them, so without this they publish as visible near-duplicates. Rule sketch:
-  cluster pairs where one side is identical and the other side is contained, keep one per
-  cluster — highest salience, tie-broken by category priority (quotation > parallel > …), then
-  by the narrower (more specific) span. Validate against real judgments first (how often do
-  variants actually score differently?).
-- **Wide-span policy.** 2,361 pairs (0.77%) have a side longer than 15 verses (the judge only
-  saw the first 15, with a trailing ellipsis); mostly legitimate whole-account `mention` links
-  (Psa 78:12 ↔ Exo 7-12). Two separate concerns: (a) forward specificity — check whether wide
-  spans cluster at high salience or the ≥3 threshold already prunes the vague ones; (b) reverse
-  fan-out — a wide span back-links from every verse in its range, so consider direction-aware
-  emission in `../distribute.ts`: always emit the narrow→wide direction, but skip (or anchor at
-  the range's start verse) the reverse direction when the source span exceeds ~15 verses. Note
-  a blunt verse cap would delete legitimate mentions — Luke 17:32 → Gen 19 spans 38 verses.
-- **`theme` promotion review.** As above: once tallies exist, review "theme, salience 3+" as
-  candidates for `relevant` promotion, or drop the category for good.
+- **Two published sizes.** Each category publishes a full set (`{category}/`, salience 3+) and a
+  small set (`{category}_small/`, salience 4+). There is no per-verse cap — apps choose a size
+  instead.
+- **Our own detectors' links are judged too.** The pool also includes every link the
+  algorithmic detectors find (BSB footnotes, Greek wording matches, retellings), so they get the
+  same salience thresholds; their category still comes from the detector. Any not yet judged
+  (e.g. after re-tuning a detector) publish in both sizes, ranked just below salience 5, until a
+  campaign session judges them — `run.js status` shows them as pending.
+- **Best first.** Within each verse, links are ordered by salience (highest first), so apps can
+  show the top few without the score itself being published.
+- **Near-duplicate variants.** OpenBible often carries both a verse-level and a range row for
+  one connection (`gen 2:1-2 > heb 4:3-4` vs `… > heb 4:4`). Where one side is identical and the
+  other contains the other, the variant with higher salience is kept, then the stronger
+  category, then the narrower span. Algorithmic links are checked against judged variants too
+  (the stronger category wins; on a tie the judged link, since the judge saw both texts).
+- **Wide spans** need no special handling in the data: a range is stored once per book file as
+  a single entry (`gen 19:1-38 → luk 17:32`), so how it is displayed is up to each app.

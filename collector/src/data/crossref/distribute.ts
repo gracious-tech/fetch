@@ -27,6 +27,7 @@ export function distribute(category:string, links:MasterList):void{
     }
 
     // Write each book file, sorting entries within each chapter by source start verse
+    // NOTE The sort is stable, so links keep their given order (best first) within each verse
     const dir = join('dist', 'crossref', category)
     mkdir_exist(dir)
     for (const [book, data] of Object.entries(per_book)){

@@ -1,7 +1,6 @@
 
 import {books_ordered} from '../../parts/bible.js'
 import {load_tokens} from './sources.js'
-import {load_gloss_tokens} from './glosses.js'
 import {canonical_pair} from './merge.js'
 
 import type {BookTokens} from './sources'
@@ -12,11 +11,6 @@ import type {MasterList} from './types'
 const QUOTE_MIN_RUN = 5
 // A parallel needs a strong shared run (higher than a quotation, to curb formulaic noise)
 const PARALLEL_MIN_RUN = 6
-// MT pass: accept only if at least this many glosses align in the same order between the two verses
-const MT_MIN_ORDERED = 3
-// MT pass: the ordered match must also cover at least this fraction of the shorter verse's glosses,
-// so a few glosses shared incidentally between two long verses are not mistaken for a quotation
-const MT_MIN_COVERAGE = 0.5
 // A matched run must contain at least this many distinct content (non-stopword) tokens, so that
 // formulaic function-word runs ("and it came to pass in the") are not mistaken for quotations
 const QUOTE_MIN_CONTENT = 2
@@ -87,71 +81,6 @@ export function detect_quotations():MasterList{
         }
     }
     return links
-}
-
-
-// Detect quotations where the NT follows the Hebrew (MT) rather than the LXX (e.g. Matt 2:15 ←
-// Hos 11:1). Greek and Hebrew can't be matched directly, so bridge via English glosses: an NT and
-// OT verse that share several distinctive glosses are quoting the same text.
-export function detect_quotations_mt():MasterList{
-
-    // English glosses exist per word for both testaments (Global Bible Tools)
-    const split = books_ordered.indexOf('mat')
-    const ot_books = books_ordered.slice(0, split)
-    const nt_books = books_ordered.slice(split)
-    const ot = load_gloss_tokens(ot_books)
-    const nt = load_gloss_tokens(nt_books)
-
-    // Gather candidates by shared gloss bigrams (discriminative and bounded), reusing the surface
-    // index; a single common gloss like "son" is too vague to gather on, but "egypt|called" is not
-    const index = build_bigram_index(ot)
-
-    // For each NT verse, accept OT verses whose glosses align in order and cover much of the clause
-    const links:MasterList = []
-    const seen = new Set<string>()
-    for (const bt of Object.values(nt)){
-        for (let ch = 1; ch < bt.verses.length; ch++){
-            const chapter = bt.verses[ch]!
-            for (let v = 1; v < chapter.length; v++){
-                const nt_seq = chapter[v]!  // full content-gloss sequence for this NT verse
-                if (nt_seq.length < MT_MIN_ORDERED){
-                    continue
-                }
-                for (const cand of gather_candidates(nt_seq, index)){
-                    const ot_seq = ot[cand.book]!.verses[cand.ch]![cand.v]!
-                    const ordered = lcs_length(nt_seq, ot_seq)
-                    const coverage = ordered / Math.min(nt_seq.length, ot_seq.length)
-                    if (ordered < MT_MIN_ORDERED || coverage < MT_MIN_COVERAGE){
-                        continue
-                    }
-                    const key = `${cand.book}${cand.ch}:${cand.v}>${bt.book}${ch}:${v}`
-                    if (seen.has(key)){
-                        continue
-                    }
-                    seen.add(key)
-                    links.push([
-                        [cand.book, cand.ch, cand.v, cand.ch, cand.v],
-                        [bt.book, ch, v, ch, v],
-                    ])
-                }
-            }
-        }
-    }
-    return links
-}
-
-
-// Length of the longest common subsequence of two token sequences (order preserved, gaps allowed)
-export function lcs_length(a:string[], b:string[]):number{
-    let prev = new Array<number>(b.length + 1).fill(0)
-    for (let i = 1; i <= a.length; i++){
-        const cur = new Array<number>(b.length + 1).fill(0)
-        for (let j = 1; j <= b.length; j++){
-            cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1]! + 1 : Math.max(prev[j]!, cur[j - 1]!)
-        }
-        prev = cur
-    }
-    return prev[b.length]!
 }
 
 

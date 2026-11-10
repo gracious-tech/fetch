@@ -13,6 +13,7 @@ import {PKG_PATH, read_json, write_json} from '../../../parts/utils.js'
 import {extract_reference} from '../../../integrations/openbible.js'
 import {canonical_pair, merge_ranges, fold_shared_side} from '../merge.js'
 import {CATEGORIES, RESULTS_SRC} from '../judged.js'
+import {algorithmic_links} from '../index.js'
 
 import type {Judged, Judgment} from '../judged'
 import type {Span, MasterLink} from '../types'
@@ -106,12 +107,29 @@ export function save_results(judged:Judged):void{
 
 
 // Build the full candidate pool: every canonical OpenBible pair, per-verse rows folded into
-// range→range links. Pairs the algorithmic detectors also find are deliberately INCLUDED (only
-// ~0.3% of the pool) so the record is complete and the detectors stay freely re-tunable forever;
-// exact duplicates are deduped at publish time in ../index.ts
+// range→range links, plus the links our own detectors find (BSB footnotes, Greek wording
+// matches, retellings) so every published link carries a salience for ranking and sizing.
+// Exact duplicates are deduped at publish time in ../index.ts
 // NOTE Votes are deliberately ignored entirely — the judge decides everything (pilot confirmed
 // votes are too weak to filter on: 59% of good references sit in the 1-4 vote band)
+// NOTE Re-tuning the detectors may add new unjudged links; those still publish (ranked by a
+//      fallback score) until judged
 export async function build_pool():Promise<Map<string, MasterLink>>{
+    const links = [...await build_openbible_pool(), ...algorithmic_pool()]
+    return new Map(links.map(link => [pair_key(link), link]))
+}
+
+
+// Every link our own detectors find, as one list (already canonical and range-merged)
+function algorithmic_pool():MasterLink[]{
+    const {algo_quotation, algo_parallel, algo_allusion} = algorithmic_links()
+    return [...algo_quotation, ...algo_parallel, ...algo_allusion]
+        .filter(([a, b]) => passage_text(a) && passage_text(b))
+}
+
+
+// Every canonical OpenBible pair, per-verse rows folded into range→range links
+async function build_openbible_pool():Promise<MasterLink[]>{
 
     // Parse the raw OpenBible data
     const zip = new StreamZip.async({file: CROSSREF_ZIP})
@@ -139,8 +157,7 @@ export async function build_pool():Promise<Map<string, MasterLink>>{
 
     // Exclude anything without BSB text on both sides — it can never be judged, and keeping it
     // would leave the campaign permanently short of 100%
-    links = links.filter(([a, b]) => passage_text(a) && passage_text(b))
-    return new Map(links.map(link => [pair_key(link), link]))
+    return links.filter(([a, b]) => passage_text(a) && passage_text(b))
 }
 
 

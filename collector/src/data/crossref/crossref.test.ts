@@ -1,7 +1,7 @@
 
 import {describe, it} from 'vitest'
 
-import {best_common_run, count_content, lcs_length} from './textual.js'
+import {best_common_run, count_content} from './textual.js'
 import {compact_source, compact_target} from './distribute.js'
 import {merge_ranges, canonical_pair, fold_shared_side} from './merge.js'
 import {classify_note} from './bsb.js'
@@ -22,21 +22,6 @@ describe('best_common_run', () => {
     it("Requires the run to be contiguous (gaps don't count)", ({expect}) => {
         // Shared tokens A and C are not adjacent in the second sequence, so the run is length 1
         expect(best_common_run(['A', 'B', 'C'], ['A', 'X', 'C']).length).toBe(1)
-    })
-})
-
-
-describe('lcs_length', () => {
-
-    it("Counts in-order matches with gaps (the MT-pass ordered-overlap signal)", ({expect}) => {
-        // egypt, called, son align in order in both verses' glosses despite other words between
-        const nt = ['death', 'egypt', 'called', 'son']
-        const ot = ['child', 'egypt', 'loved', 'called', 'son']
-        expect(lcs_length(nt, ot)).toBe(3)
-    })
-
-    it("Does not count out-of-order matches as a longer run", ({expect}) => {
-        expect(lcs_length(['a', 'b', 'c'], ['c', 'b', 'a'])).toBe(1)
     })
 })
 

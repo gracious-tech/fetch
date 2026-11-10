@@ -16,3 +16,6 @@ dist/
 /site/src/access/client/api/
 /site/.deployments/
 /site/.vitepress/cache/
+
+# Local Claude Code settings
+/.claude/settings.local.json

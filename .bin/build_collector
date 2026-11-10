@@ -14,8 +14,3 @@ npx esbuild src/**/*.ts --sourcemap --target=node18 --format=esm \
 # Copy static data as esbuild won't include (unless whole thing bundled)
 mkdir -p dist/data
 cp src/data/population.json dist/data/population.json
-
-# Copy the recorded crossref judgments once the one-time campaign has produced them
-if [ -f src/data/crossref/judge/results.json ]; then
-    cp src/data/crossref/judge/results.json dist/data/crossref/judge/results.json
-fi

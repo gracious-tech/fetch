@@ -1,23 +1,24 @@
 
-# LLM judging campaign (one-time)
+# LLM judging campaign
 
-This folder holds the **one-time** campaign that classified every OpenBible cross-reference pair
-into our categories using an LLM judge. Its permanent output is `results.json` — the full record
-of every judgment (category, one-line point, salience 0-5), committed to the repo.
+This folder holds the campaign that classified every candidate cross-reference pair into our
+categories using an LLM judge. Its permanent output is `results.json` — the full record of every
+judgment (category, one-line point, salience 0-5), committed to the repo.
 
-**Future users never run this.** The crossref pipeline (`collector crossref`) only *interprets*
-the recorded results via `../judged.ts` — thresholds, caps, and cross-checks against our own
-original-language analysis can all be iterated there without re-running any LLM.
+**The main campaign is complete; normal builds never run this.** The crossref pipeline
+(`collector crossref`) only *interprets* the recorded results via `../judged.ts` — thresholds,
+sizes, and cross-checks against our own original-language analysis can all be iterated there
+without re-running any LLM. A short top-up session is only needed when new candidate pairs
+appear (a re-tuned detector, or a new OpenBible release) — `run.js status` shows them as pending.
 
 ## Structure
 
 - `results.json` — the permanent judgment record, keyed by pair
   (`book,sc,sv,ec,ev>book,sc,sv,ec,ev`). Spans are encoded in the keys, so interpretation needs
-  no other data source.
-- `campaign.ts` — pool building (raw OpenBible zip → canonical, range-folded), the judge prompt
-  (the single source of truth), and the slice/merge/status tooling. The pool is EVERY OpenBible
-  pair with BSB text on both sides — pairs the algorithmic detectors also find are included
-  (~0.3% of the pool) so the record is complete and detector thresholds stay freely tunable;
+  no other data source. Read from the source tree only (not shipped in the npm package).
+- `campaign.ts` — pool building, the judge prompt (the single source of truth), and the
+  slice/merge/status tooling. The pool is every OpenBible pair (raw zip → canonical,
+  range-folded) plus every link our own detectors find, each with BSB text on both sides;
   exact duplicates are deduped at publish time in `../index.ts`.
 - `run.ts` — campaign CLI: `node collector/dist/data/crossref/judge/run.js <action>`.
 - `state/` — transient campaign state (slices, wave outputs). Gitignored.
@@ -30,8 +31,7 @@ a key present means that pair is done; pending is always recomputed as pool minu
 so every step is idempotent and any session can resume cold.
 
 Waves run strictly serially — ONE subagent at a time, never in parallel. Time is not the
-constraint (nightly windows have hours to burn through the session limit); losing work is.
-Agents append judgments incrementally, so when the limit kills the session only the single
+constraint; losing work is. Agents append judgments incrementally, so when the limit kills the session only the single
 in-flight agent is interrupted, and even it keeps everything appended so far.
 
 Per session, repeat waves until stopping:
@@ -49,20 +49,6 @@ Per session, repeat waves until stopping:
    files are rejected likewise.
 5. Next wave (back to 2), or stop — nothing in flight is ever lost beyond the last unwritten
    batch of judgments.
-
-### Unattended overnight runs
-
-`night.sh` automates the above: it sleeps until its nightly window (22:30-08:00 by default),
-then repeatedly launches headless Claude Code sessions
-(`claude -p … --dangerously-skip-permissions`) that run waves until the cutoff. When a session
-hits the subscription limit, it parses the reset time from the CLI's output and sleeps straight
-through to it — but only resumes if the reset falls by 03:30, because a 5hr block begun any
-later would still be partly used come morning. Starting at 22:30 is safe for the same reason
-in reverse: even if that first prompt begins a fresh block, it resets by 03:30. Together these
-guarantee a completely unused block by 08:30 when daytime work starts, while burning
-otherwise-idle overnight capacity. The script exits for good once everything is judged. Run it
-detached: `tmux new -d -s judging collector/src/data/crossref/judge/night.sh` — progress and
-session output land in `state/night.log`.
 
 ### Subagent prompt
 
@@ -86,7 +72,7 @@ that only surface in the original languages are invisible to the judge — allus
 relies primarily on the algorithmic passes and BSB footnotes.
 
 The `theme` category distinguishes "loosely related by topic" from "no connection at all" so
-that information is not lost (the campaign is one-time), and it gives the judge a legitimate
+that information is not lost (pairs are never re-judged), and it gives the judge a legitimate
 home for below-the-bar pairs, sharpening the `relevant` boundary. Only "theme, salience 3+" is
 published, as `relevant` (~2k pairs that read like borderline relevant links).
 

@@ -1,7 +1,7 @@
 
-// ONE-TIME LLM judging campaign (see README.md) — everything here exists to produce
-// results.json, the permanent record of judgments. Future users of the codebase consume that
-// record via ../judged.ts and never run this module.
+// LLM judging campaign (see README.md) — everything here exists to produce results.json, the
+// permanent record of judgments. Normal builds consume that record via ../judged.ts and never run
+// this module; it is only run to judge newly pending pairs.
 
 import {readFileSync, writeFileSync, existsSync, rmSync, readdirSync, mkdirSync} from 'node:fs'
 import {join} from 'node:path'

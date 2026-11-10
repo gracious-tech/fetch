@@ -1,5 +1,5 @@
 
-// CLI for the one-time judging campaign (see README.md). Run via node after building:
+// CLI for the judging campaign (see README.md). Run via node after building:
 //   node collector/dist/data/crossref/judge/run.js <status|slices [n] [size]|merge>
 
 import {make_slices, merge_outputs, print_status, SLICE_SIZE} from './campaign.js'

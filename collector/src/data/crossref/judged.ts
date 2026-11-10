@@ -1,7 +1,7 @@
 
 // Interpretation of the recorded LLM judgments (judge/results.json) into categories.
 // The record itself is permanent — produced once by the judge/ campaign and committed — while
-// everything in this file is freely iterable: thresholds, caps, and future cross-checks against
+// everything in this file is freely iterable: thresholds, sizes, and future cross-checks against
 // our own original-language analysis can change without ever re-running the LLM.
 
 import {existsSync} from 'node:fs'
@@ -12,15 +12,10 @@ import {PKG_PATH, read_json} from '../../parts/utils.js'
 import type {Span, MasterLink, MasterList, CrossrefCategory} from './types'
 
 
-// The permanent record of judgments — the src copy is canonical and is where the campaign
-// writes; the dist copy (created by the build) only serves npm installs without src
+// The permanent record of judgments, read from the repo's source tree
+// NOTE Not shipped in the npm package: generating crossrefs also needs the repo's
+//      collection_official data alongside the collector, so it only runs from a repo checkout
 export const RESULTS_SRC = join(PKG_PATH, 'src', 'data', 'crossref', 'judge', 'results.json')
-const RESULTS_DIST = join(PKG_PATH, 'dist', 'data', 'crossref', 'judge', 'results.json')
-
-// The record to read (resolved at call time so a record created mid-session is picked up)
-export function results_path():string{
-    return existsSync(RESULTS_SRC) ? RESULTS_SRC : RESULTS_DIST
-}
 
 // The categories the judge may assign (matching CrossrefCategory; 'none' marks rejection)
 export const CATEGORIES:CrossrefCategory[] =
@@ -74,13 +69,13 @@ export function judged_categories():JudgedInterpretation{
         ({quotation: [], parallel: [], allusion: [], mention: [], relevant: []})
     const sizes = {full: empty(), small: empty()}
     const scores = new Map<string, number>()
-    if (!existsSync(results_path())){
+    if (!existsSync(RESULTS_SRC)){
         console.warn('crossref: no judge results recorded yet (judge/results.json missing)')
         return {sizes, scores}
     }
 
     // Collect every judgment strong enough for the full size, publishing 'theme' as relevant
-    const judged = read_json<Judged>(results_path())
+    const judged = read_json<Judged>(RESULTS_SRC)
     const links:JudgedLink[] = []
     for (const [key, judgment] of Object.entries(judged)){
         scores.set(key, judgment.category === 'none' ? 0 : judgment.salience)

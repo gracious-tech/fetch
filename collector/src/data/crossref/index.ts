@@ -16,9 +16,9 @@ const PARALLEL_MIN_VERSES = 3
 
 // Generate cross-reference data (categories: quotation, parallel, allusion, mention, relevant)
 // NOTE Stage A detectors build canonical master lists; Stage B distributes them to per-book files
-// NOTE Two sources feed the categories: our own text analysis + BSB footnotes (trusted, computed
-// first), plus the recorded LLM judgments of the OpenBible pairs (see judge/README.md — the
-// judging itself was a one-time campaign; only its recorded results are interpreted here)
+// NOTE Two sources feed the categories: our own text analysis + BSB footnotes, plus the OpenBible
+// pairs; the recorded LLM judgments (see judge/README.md) score both and decide the OpenBible
+// pairs' categories — only those recorded results are interpreted here, no LLM is run
 export function crossref_process():void{
 
     // The algorithmic links plus the recorded LLM judgments, interpreted into categories

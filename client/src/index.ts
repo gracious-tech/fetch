@@ -16,6 +16,7 @@ export {FetchClient} from './client.js'
 export {wrap_verse_parts, add_passage_class, rm_passage_class} from './book/html.js'
 export {substantial_poetry} from './assets/data.js'
 export {FetchNetworkError} from './assets/request.js'
+export {crossref_categories, crossref_strengths} from './other/crossrefs.js'
 
 
 // TYPES
@@ -27,6 +28,8 @@ export type {RequestHandler} from './assets/request.js'
 
 
 export type {BookCrossref} from './book/crossref.js'
+export type {Crossrefs, CrossrefLink} from './other/crossrefs.js'
+export type {CrossrefCategory, CrossrefStrength} from './assets/shared_types.js'
 export type {GlossesBook, GlossesWord} from './book/glosses.js'
 export type {NotesBook, RelevantNotes} from './book/notes.js'
 export type {

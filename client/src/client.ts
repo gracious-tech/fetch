@@ -1,6 +1,7 @@
 
 import {FetchCollection} from './collection/collection.js'
 import {BookCrossref} from './book/crossref.js'
+import {Crossrefs} from './other/crossrefs.js'
 import {GlossesBook} from './book/glosses.js'
 import {NotesBook} from './book/notes.js'
 import {TranslationExtra} from './collection/bibles_extra.js'
@@ -11,7 +12,8 @@ import {RequestHandler} from './assets/request.js'
 import {sanitize_manifest} from './assets/sanitize.js'
 
 import type {UsageOptions, UsageConfig} from './assets/types'
-import type {CrossrefData, DistManifest, DistTranslationExtra, DistSectionData, OneOrMore}
+import type {CrossrefData, CrossrefsData, CrossrefStrength, DistManifest, DistTranslationExtra,
+    DistSectionData, OneOrMore}
     from './assets/shared_types'
 
 
@@ -155,7 +157,22 @@ export class FetchClient {
         return new NotesBook(json)
     }
 
-    // Fetch cross-reference data for a book
+    // Fetch categorised cross-references for the whole Bible (one download, then synchronous
+    // lookups for any verse)
+    // NOTE `min_strength` 'very_high' = essential links only (mostly quotations and parallel
+    //      accounts), 'high' = strong links, 'medium' = every worthwhile link;
+    //      `relevant: false` leaves out the "relevant" category
+    async fetch_crossrefs(options:{min_strength?:CrossrefStrength, relevant?:boolean}={})
+            :Promise<Crossrefs>{
+        // NOTE Files other than the strongest are named "_plus" as they include stronger links too
+        const min_strength = options.min_strength ?? 'high'
+        const plus = min_strength === 'very_high' ? '' : '_plus'
+        const name = min_strength + plus + (options.relevant === false ? '_no_relevant' : '')
+        const url = this._data_endpoint + `crossref/categorised/${name}.json`
+        return new Crossrefs(JSON.parse(await this.requester.request(url)) as CrossrefsData)
+    }
+
+    /** @deprecated Uncategorised cross-references — use `fetch_crossrefs()` instead */
     async fetch_crossref(book:string, size:'small'|'medium'|'large'='medium'):Promise<BookCrossref>{
         const url = this._data_endpoint + `crossref/${size}/${book}.json`
         return this.requester.request(url).then(data => {

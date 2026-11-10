@@ -170,6 +170,23 @@ describe('FetchClient direct fetches', () => {
         expect((await client.fetch_search('nt', 'strongs')).id).toBe('nt')
     })
 
+    it("Fetches the categorised crossrefs file matching the options", async ({expect}) => {
+        const data = JSON.stringify({quotation: {very_high: [[['deu', 8, 3], ['mat', 4, 4]]]}})
+        const urls = serve({
+            'https://data/crossref/categorised/high_plus.json': data,
+            'https://data/crossref/categorised/very_high.json': data,
+            'https://data/crossref/categorised/medium_plus_no_relevant.json': data,
+        })
+        expect((await client.fetch_crossrefs()).get_refs('mat', 4, 4)).toHaveLength(1)
+        await client.fetch_crossrefs({min_strength: 'very_high'})
+        await client.fetch_crossrefs({min_strength: 'medium', relevant: false})
+        expect(urls).toEqual([
+            'https://data/crossref/categorised/high_plus.json',
+            'https://data/crossref/categorised/very_high.json',
+            'https://data/crossref/categorised/medium_plus_no_relevant.json',
+        ])
+    })
+
     it("Uses the first endpoint for data by default", async ({expect}) => {
         const urls = serve({'https://a/sections/sections.json': JSON.stringify({model: 'm',
             generated: 'g', sections: {}})})
@@ -187,5 +204,7 @@ describe('index exports', () => {
         expect(typeof index.PassageReference).toBe('function')
         expect(index.substantial_poetry).toContain('psa')
         expect(new index.FetchNetworkError('x').name).toBe('FetchNetworkError')
+        expect(index.crossref_categories).toContain('quotation')
+        expect(index.crossref_strengths).toContain('very_high')
     })
 })

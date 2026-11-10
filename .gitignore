@@ -11,8 +11,12 @@ dist/
 /collection_official/
 
 /collector/usfmtc-venv/
+/collector/src/data/crossref/judge/state/
 
 /site/src/access/client/api/
 /site/.deployments/
 /site/.vitepress/cache/
 coverage/
+
+# Local Claude Code settings
+/.claude/settings.local.json

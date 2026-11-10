@@ -9,7 +9,7 @@ import {state} from '@/services/state'
 import {content} from '@/services/content'
 import StudyInfo from './StudyInfo.vue'
 
-import type {BookCrossref, GlossesBook, NotesBook, SearchWords}
+import type {Crossrefs, GlossesBook, NotesBook, SearchWords}
     from '@gracious.tech/fetch-client'
 
 
@@ -48,8 +48,10 @@ describe('StudyInfo', () => {
         state.hebrew_ltr = false
         state.read_history = []
         state.passage = null
-        state.crossref = {get_refs: () => [...Array(10).keys()].map(i =>
-            new PassageReference('jhn', 1, i + 1))} as unknown as BookCrossref
+        state.crossref = {get_refs: () => [...Array(10).keys()].map(i => ({
+            category: 'relevant', strength: 'high', source: new PassageReference('gen', 1, 1),
+            target: new PassageReference('jhn', 1, i + 1), target_is_earlier: false,
+        }))} as unknown as Crossrefs
         state.glosses = {get_words: () => [{word: 'In', original: 'בְּ', gloss: 'in'},
             {word: 'beginning', original: 'רֵאשִׁית', gloss: 'beginning'}]} as
             unknown as GlossesBook
@@ -68,7 +70,7 @@ describe('StudyInfo', () => {
     it("Shows up to 8 related passages", ({expect}) => {
         const chips = mount_app(StudyInfo).findAll('.crossrefs .v-chip')
         expect(chips).toHaveLength(8)
-        expect(chips[0]!.text()).toBe('John 1:1')
+        expect(chips[0]!.find('.reference').text()).toBe('John 1:1')
     })
 
     it("Shows original words with their strongs codes", async ({expect}) => {

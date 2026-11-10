@@ -220,9 +220,32 @@ export interface BibleJsonTypst {
     contents:string[][][]
 }
 
+// Legacy uncategorised cross-references (crossref/{small,medium,large}/{book}.json)
 export type CrossrefSingle = [string, number, number]
 export type CrossrefRange = [...CrossrefSingle, number, number]
 export type CrossrefData = Record<string, Record<string, (CrossrefSingle|CrossrefRange)[]>>
+
+// Categorised cross-references for the whole Bible: crossref/categorised/very_high.json,
+// high_plus.json and medium_plus.json (each including every stronger link), plus the same names
+// with "_no_relevant" leaving out the relevant category
+// NOTE Links are grouped by category then strength, so neither is repeated per link. Each link
+//      is stored once (the earlier passage first), so clients index both directions themselves.
+
+// The cross-reference categories
+export type CrossrefCategory = 'quotation'|'parallel'|'allusion'|'mention'|'relevant'
+
+// A passage: single verse [book, ch, v] or range [book, ch, v, end_ch, end_v]
+export type CrossrefSpan = [string, number, number] | [string, number, number, number, number]
+
+// One cross-reference: the earlier passage, then the later one
+export type CrossrefPair = [CrossrefSpan, CrossrefSpan]
+
+// How worthwhile a link is: very_high = essential counterpart, high = strong, medium = worthwhile
+export type CrossrefStrength = 'very_high'|'high'|'medium'
+
+// A whole file: category → strength → links
+export type CrossrefsData =
+    Partial<Record<CrossrefCategory, Partial<Record<CrossrefStrength, CrossrefPair[]>>>>
 
 export interface GlossesData {
     trans_id:string

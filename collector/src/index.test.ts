@@ -16,7 +16,7 @@ import {init_config} from './parts/config.js'
 import {update_manifest} from './parts/manifest.js'
 import {update_notes} from './resources/notes.js'
 import {update_glosses} from './resources/gloss.js'
-import {crossref_process} from './data/crossref.js'
+import {crossref_process} from './data/crossref/index.js'
 import {sections_process} from './data/sections.js'
 
 
@@ -37,7 +37,7 @@ vi.mock('./parts/config.js', () => ({init_config: vi.fn()}))
 vi.mock('./parts/manifest.js', () => ({update_manifest: vi.fn()}))
 vi.mock('./resources/notes.js', () => ({update_notes: vi.fn()}))
 vi.mock('./resources/gloss.js', () => ({update_glosses: vi.fn()}))
-vi.mock('./data/crossref.js', () => ({crossref_process: vi.fn()}))
+vi.mock('./data/crossref/index.js', () => ({crossref_process: vi.fn()}))
 vi.mock('./data/sections.js', () => ({sections_process: vi.fn()}))
 vi.mock('./parts/console_colors.js', () => ({}))
 

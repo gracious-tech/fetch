@@ -42,7 +42,7 @@ async function load(trans:[string, ...string[]], books:Record<string, string[]>,
     content.translations = Object.fromEntries(
         Object.keys(books).map(id => [id, {} as GetResourcesItem]))
     const client = {
-        fetch_crossref: vi.fn(() => Promise.resolve('crossref')),
+        fetch_crossrefs: vi.fn(() => Promise.resolve('crossref')),
         fetch_notes: vi.fn(() => Promise.resolve('notes')),
         fetch_glosses: vi.fn(() => Promise.resolve('glosses')),
     }
@@ -145,7 +145,7 @@ describe('watches', () => {
                 {eng_a: ['gen'], fail_b: ['gen']})
             expect(state.offline).toBe(true)
             expect(state.content_verses).toEqual([])
-            expect(client.fetch_crossref).not.toHaveBeenCalled()
+            expect(client.fetch_crossrefs).not.toHaveBeenCalled()
         })
     })
 

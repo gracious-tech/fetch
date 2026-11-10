@@ -8,8 +8,9 @@ v-btn.close(icon variant='flat' color='' @click='state.study = null')
 template(v-if='crossrefs.length')
     h5(class='mt-2') Related passages
     div.crossrefs
-        StudyCrossref(v-for='crossref of crossrefs' :key='crossref.to_serialized()'
-            :reference='crossref')
+        StudyCrossref(v-for='link of crossrefs'
+            :key='link.category + link.source.to_serialized() + link.target.to_serialized()'
+            :link='link')
 template(v-if='glosses.length')
     h5
         | Original language
@@ -45,7 +46,7 @@ import StudyCrossref from './StudyCrossref.vue'
 import {change_to_ref, state, add_to_read_history} from '@/services/state'
 import {content} from '@/services/content'
 
-import type {GlossesWord, RelevantNotes} from '@gracious.tech/fetch-client'
+import type {CrossrefLink, GlossesWord, RelevantNotes} from '@gracious.tech/fetch-client'
 
 
 const study_verse_label = computed(() => {
@@ -62,16 +63,11 @@ const has_english_translation = computed(() => {
 })
 
 
-// WARN Using watch instead of compute so that only updated when `study` changes
-// Otherwise `state.crossref` will refer to the wrong book since study is disconnected from main
-const crossrefs = ref<PassageReference[]>([])
-watch(() => state.study, () => {
-    if (!state.study || !state.crossref){
-        crossrefs.value = []
-        return
-    }
+// Update when the study verse changes, or when crossrefs finish loading after it was chosen
+const crossrefs = ref<CrossrefLink[]>([])
+watch([() => state.study, () => state.crossref], ([study, crossref]) => {
     // NOTE Don't show more than 8 to not overwhelm users
-    crossrefs.value = state.crossref.get_refs(state.study).slice(0, 8)
+    crossrefs.value = study && crossref ? crossref.get_refs(study).slice(0, 8) : []
 }, {immediate: true})
 
 

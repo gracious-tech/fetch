@@ -8,6 +8,26 @@ import {content, search_translation, search_orig, update_trans} from './content'
 import {post_message} from './post'
 
 
+// Whether crossrefs are currently being downloaded (so concurrent book changes don't repeat it)
+let crossrefs_loading = false
+
+
+// Load cross-references for the whole Bible into state (failures are left to retry later)
+async function load_crossrefs(){
+    if (crossrefs_loading){
+        return
+    }
+    crossrefs_loading = true
+    try {
+        state.crossref = await content.client.fetch_crossrefs({min_strength: 'high'})
+    } catch {
+        // Leave as null so the next book change retries
+    } finally {
+        crossrefs_loading = false
+    }
+}
+
+
 // Apply search URL/message param
 export function apply_search_param(value:string){
     // If a single ref, go to it, otherwise display search results
@@ -80,7 +100,6 @@ export function enable_watches(){
         state.offline = false
         state.content = ''
         state.content_verses = []
-        state.crossref = null
         state.glosses = null
         state.glosses_id = content.collection.glosses.get_preferred_resource(langs.value).id
         state.notes = null
@@ -111,9 +130,11 @@ export function enable_watches(){
         }
 
         // Start fetching study data now, so haven't delayed display of actual Scripture
-        void content.client.fetch_crossref(state.book, 'small').then(crossref => {
-            state.crossref = crossref
-        })
+        // NOTE Crossrefs cover the whole Bible so only load once (retrying on a later book change
+        //      if a previous attempt failed)
+        if (!state.crossref){
+            void load_crossrefs()
+        }
         void content.client.fetch_notes('eng_tyndale', state.book).then(notes => {
             state.notes = notes
         })

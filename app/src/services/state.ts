@@ -1,6 +1,6 @@
 
 import {reactive, computed, watch} from 'vue'
-import {IndividualVerse, BookCrossref, PassageReference,
+import {IndividualVerse, Crossrefs, PassageReference,
     book_names_english, book_abbrev_english, GlossesBook, NotesBook}
     from '@gracious.tech/fetch-client'
 
@@ -110,7 +110,7 @@ export const state = reactive({
     show_about_dialog: false,
     wide: wide_query.matches,
     study: null as null|PassageReference,
-    crossref: null as BookCrossref|null,
+    crossref: null as Crossrefs|null,  // Whole Bible, loaded once
     glosses: null as GlossesBook|null,
     glosses_id: 'eng_gbt',  // Auto-set on first load
     notes: null as NotesBook|null,

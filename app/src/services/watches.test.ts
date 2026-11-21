@@ -147,6 +147,29 @@ describe('watches', () => {
             expect(state.content_verses).toEqual([])
             expect(client.fetch_crossrefs).not.toHaveBeenCalled()
         })
+
+        it("Downloads crossrefs once at a time, retrying after a failure", async ({expect}) => {
+            const {state, client} = await load(['eng_a'], {eng_a: ['gen', 'exo', 'lev', 'num']})
+
+            // A failed download leaves crossrefs unset, so the next book change retries
+            state.crossref = null
+            client.fetch_crossrefs.mockReturnValueOnce(Promise.reject(new Error()))
+            state.book = 'exo'
+            await flush()
+            expect(state.crossref).toBe(null)
+
+            // A download still in progress isn't repeated by another book change
+            let resolve:(value:string)=>void = () => undefined
+            client.fetch_crossrefs.mockReturnValueOnce(new Promise(r => {resolve = r}))
+            state.book = 'lev'
+            await flush()
+            state.book = 'num'
+            await flush()
+            expect(client.fetch_crossrefs).toHaveBeenCalledTimes(3)
+            resolve('crossref')
+            await flush()
+            expect(state.crossref).toBe('crossref')
+        })
     })
 
     describe('parent messages', () => {

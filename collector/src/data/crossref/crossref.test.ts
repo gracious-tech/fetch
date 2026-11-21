@@ -55,6 +55,11 @@ describe('canonical_pair', () => {
         expect(canonical_pair(['psa', 108, 7, 108, 9], ['psa', 60, 6, 60, 8]))
             .toEqual([['psa', 60, 6, 60, 8], ['psa', 108, 7, 108, 9]])
     })
+
+    it("Orders same-chapter spans by verse", ({expect}) => {
+        expect(canonical_pair(['psa', 60, 8, 60, 8], ['psa', 60, 6, 60, 6]))
+            .toEqual([['psa', 60, 6, 60, 6], ['psa', 60, 8, 60, 8]])
+    })
 })
 
 
@@ -88,6 +93,23 @@ describe('merge_ranges', () => {
             [['isa', 1, 3, 1, 3], ['rom', 3, 9, 3, 9]],
         ] as const
         expect(merge_ranges(structuredClone(links) as never).length).toBe(2)
+    })
+
+    it("Only absorbs links inside a run's box on both sides", ({expect}) => {
+        // A run 2-3 → 2-3, beside links sharing its source verses but not its target verses
+        const links = [
+            [['isa', 1, 1, 1, 1], ['rom', 3, 5, 3, 5]],
+            [['isa', 1, 2, 1, 2], ['rom', 3, 2, 3, 2]],
+            [['isa', 1, 2, 1, 2], ['rom', 3, 9, 3, 9]],
+            [['isa', 1, 3, 1, 3], ['rom', 3, 1, 3, 1]],
+            [['isa', 1, 3, 1, 3], ['rom', 3, 3, 3, 3]],
+        ] as const
+        expect(merge_ranges(structuredClone(links) as never)).toEqual([
+            [['isa', 1, 1, 1, 1], ['rom', 3, 5, 3, 5]],
+            [['isa', 1, 2, 1, 3], ['rom', 3, 2, 3, 3]],
+            [['isa', 1, 2, 1, 2], ['rom', 3, 9, 3, 9]],
+            [['isa', 1, 3, 1, 3], ['rom', 3, 1, 3, 1]],
+        ])
     })
 })
 

@@ -50,8 +50,8 @@ export function detect_quotations():MasterList{
     const index = build_bigram_index(ot)
 
     // For each NT verse, find OT verses sharing a long contiguous run of words
+    // NOTE Candidates are unique per NT verse, so each pair is found only once
     const links:MasterList = []
-    const seen = new Set<string>()
     for (const bt of Object.values(nt)){
         for (let ch = 1; ch < bt.verses.length; ch++){
             const chapter = bt.verses[ch]!
@@ -66,12 +66,7 @@ export function detect_quotations():MasterList{
                     if (run.length < QUOTE_MIN_RUN || count_content(run) < QUOTE_MIN_CONTENT){
                         continue
                     }
-                    // Store in canonical order (OT origin first, NT citation second), once per pair
-                    const key = `${cand.book}${cand.ch}:${cand.v}>${bt.book}${ch}:${v}`
-                    if (seen.has(key)){
-                        continue
-                    }
-                    seen.add(key)
+                    // Store in canonical order (OT origin first, NT citation second)
                     links.push([
                         [cand.book, cand.ch, cand.v, cand.ch, cand.v],
                         [bt.book, ch, v, ch, v],

@@ -191,7 +191,7 @@ function contains(outer:Span, inner:Span):boolean{
 
 
 // Whether variant `a` should be kept over `b`: higher salience, then stronger category, then the
-// narrower (more specific) pair, then key order so the choice is always deterministic
+// narrower (more specific) pair
 function beats(a:ScoredLink, b:ScoredLink):boolean{
     if (a.salience !== b.salience){
         return a.salience > b.salience
@@ -201,12 +201,8 @@ function beats(a:ScoredLink, b:ScoredLink):boolean{
     if (a_priority !== b_priority){
         return a_priority < b_priority
     }
-    const a_width = pair_width(a.pair)
-    const b_width = pair_width(b.pair)
-    if (a_width !== b_width){
-        return a_width < b_width
-    }
-    return a.key < b.key
+    // NOTE Variants differ by one side containing the other, so their widths never tie
+    return pair_width(a.pair) < pair_width(b.pair)
 }
 
 

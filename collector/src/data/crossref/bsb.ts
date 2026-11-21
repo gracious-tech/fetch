@@ -83,13 +83,9 @@ export function classify_note(raw:string, host:Span):NoteRefs{
     for (const segment of segments){
         const target = (segment.cue === 'primary' || segment.cue === 'cited in')
             ? quotation : allusion
-        for (const match of detect_references(segment.text)){
-            const r = match.ref
-            if (!r.book || !r.start_chapter || !r.start_verse){
-                continue
-            }
-            const ref:Span = [r.book, r.start_chapter, r.start_verse,
-                r.end_chapter ?? r.start_chapter, r.end_verse ?? r.start_verse]
+        // NOTE Detected refs are always complete (a chapter-only ref spans the whole chapter)
+        for (const {ref: r} of detect_references(segment.text)){
+            const ref:Span = [r.book, r.start_chapter, r.start_verse, r.end_chapter, r.end_verse]
             target.push(canonical_pair(host, ref))
         }
     }

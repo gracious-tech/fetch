@@ -152,8 +152,9 @@ fetch_platform/
 ├── converters/
 │   ├── usx-to-json/         # USX XML → JSON (HTML or plain text per verse)
 │   │   └── src/html.ts, txt.ts, common.ts, elements.ts
-│   ├── reverse-usx/         # Normalize versification to standard 66-book structure
-│   └── adaptations/         # Custom transformation utilities
+│   └── reverse-usx/         # Normalize versification to standard 66-book structure
+├── adaptations/             # Per-translation scripts that download + adapt a source (see README)
+│   └── eng_oett/generate.py # OET Readers' Version with traditional names
 ├── enhancer/                # Embeds Bible references in third-party pages
 │   └── src/
 │       ├── enhance.ts       # BibleEnhancer class

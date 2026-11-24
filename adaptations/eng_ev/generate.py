@@ -7,9 +7,8 @@ less familiar names keep OET's spelling, except where OET itself explains them i
 
 Steps: run the adapter headlessly (traditional names, otherwise defaults) → resolve names the
 adapter left ambiguous by checking which candidate the BSB uses in the same verse → strip \\nd
-(OET marks nomina sacra with it, which would render as small caps) → move or remove subheadings
-listed in HEADING_CHANGES to match the BSB's sections → write source.zip and update
-the date in meta.json (which is otherwise maintained by hand).
+(OET marks nomina sacra with it, which would render as small caps) → write source.zip
+and update the date in meta.json (which is otherwise maintained by hand).
 
 Usage: python3 -I adaptations/eng_ev/generate.py [--oet-ref <commit>]
 Then: .bin/collector_official download --recheck eng_ev && .bin/collector_official process eng_ev
@@ -58,18 +57,6 @@ ADAPTER_ANSWERS = {
 STALE_FOOTNOTES = [
     r'More familiar to most English readers as ‘Moses’',  # Exod 2:10
 ]
-
-# Subheadings to move to the verse where the BSB starts the section (or remove, if None), as some
-#     apps show subheadings prominently; keyed by (book, chapter, verse the OET puts it before)
-HEADING_CHANGES:dict[tuple[str, int, int], int|None] = {
-    ('mrk', 1, 2): 1,
-    ('mrk', 1, 9): None,
-    ('mrk', 1, 14): 16,
-    ('mrk', 9, 2): 1,
-    ('mrk', 9, 38): None,
-    ('mrk', 11, 26): 27,
-    ('mrk', 13, 3): None,
-}
 
 # Wrong OET explanations of obscure names, replaced with the given text so OET's spelling stays
 #     (wrong explanations of well-known names are corrected from the BSB automatically)
@@ -547,49 +534,6 @@ def remove_stale_footnotes(usfm:str, stats:collections.Counter[str]) -> str:
     return re.sub(r'\\f .*?\\f\*', check, usfm)
 
 
-def change_headings(usfm:str, book:str, stats:collections.Counter[str]) -> str:
-    """Move or remove the subheadings listed in HEADING_CHANGES."""
-    changes = {(ch, v): to for (b, ch, v), to in HEADING_CHANGES.items() if b == book}
-    if not changes:
-        return usfm
-    lines = usfm.split('\n')
-
-    def verse_line(ch:int, v:int) -> int|None:
-        """Index of the line starting verse v (possibly after a paragraph marker) in chapter ch."""
-        current = 0
-        for i, line in enumerate(lines):
-            if match := re.match(r'\\c (\d+)', line):
-                current = int(match.group(1))
-            elif current == ch and re.match(rf'(\\\w+ )?\\v {v} ', line):
-                return i
-        return None
-
-    for (ch, v), to in changes.items():
-        start = verse_line(ch, v)
-        if start is None:
-            continue
-        # A subheading is `\s1 title` and optional `\r (parallels)`, then a paragraph marker
-        # NOTE The paragraph marker is left so the paragraph break stays
-        para = start - 1 if re.fullmatch(r'\\\w+', lines[start - 1]) else start
-        heading_start = para - 2 if lines[para - 1].startswith('\\r ') else para - 1
-        if not lines[heading_start].startswith('\\s1 '):
-            continue
-        heading = lines[heading_start:para]
-        del lines[heading_start:para]
-        if to is not None:
-            target = verse_line(ch, to)
-            if target is None:
-                raise ValueError(f'No verse {book} {ch}:{to} to move a heading to')
-            if re.fullmatch(r'\\\w+', lines[target - 1]):
-                lines[target - 1:target - 1] = heading
-            elif re.match(r'\\\w+ \\v ', lines[target]):
-                lines[target:target] = heading
-            else:
-                lines[target:target] = heading + ['\\p']  # Mid-paragraph, so start a new one
-        stats[f'heading:{book} {ch}:{v}'] += 1
-    return '\n'.join(lines)
-
-
 def fix_book_titles(usfm:str, name:str) -> str:
     """Use the standard book name, and the OET's own title (from \\mt lines) as the long name."""
 
@@ -703,7 +647,6 @@ def main() -> None:
                         explained.get(book, ExplainedNames(set(), {})), stats)
                     usfm = fix_book_titles(usfm, bsb.name)
                     usfm = remove_stale_footnotes(usfm, stats)
-                    usfm = change_headings(usfm, book, stats)
                 usfm = ND_REGEX.sub('', usfm)
                 zip_file.writestr(f'{book}.usfm', usfm)
 
@@ -713,8 +656,6 @@ def main() -> None:
     # Flag manual entries that no longer match, as the OET text may have changed
     unused = [n for n in FALLBACK_NAMES if not stats[f'fallback:{n}']]
     unused += [p for p in STALE_FOOTNOTES if not stats[f'footnote:{p}']]
-    unused += [f'heading {b} {c}:{v}' for b, c, v in HEADING_CHANGES
-        if not stats[f'heading:{b} {c}:{v}']]
     unused += [f'explanation {k}' for k in EXPLANATION_FIXES if not stats[f'explanation:{k}']]
     if unused:
         print('WARNING unused manual entries:', ', '.join(unused))

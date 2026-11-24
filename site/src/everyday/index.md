@@ -56,7 +56,7 @@ In a world with many religions and many ideas about "god", using his name also m
 
 
 ## Other changes
-Apart from the names, the EV makes only a few small changes, such as minor adjustments to some subheadings and a few technical changes. None of them change any translation decisions. The text itself is otherwise the same as the Open English Translation.
+Apart from the names, the EV makes only a few small technical changes. None of them change any translation decisions. The text itself is otherwise the same as the Open English Translation.
 
 
 ## Free to use and share

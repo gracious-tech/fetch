@@ -17,4 +17,4 @@ After running a script, extract and process the result with the collector:
 
 | Folder | Translation |
 | --- | --- |
-| `eng_oett/` | Open English Translation (Readers' Version) with traditional names |
+| `eng_ev/` | Everyday Version (OET Readers’ Version with traditional names) |

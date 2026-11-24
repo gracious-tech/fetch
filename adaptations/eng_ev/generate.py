@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Generate the eng_oett source (OET Readers' Version with traditional names) for the official
-collection, using the OET adapter (https://github.com/Freely-Given-org/OpenEnglishTranslation_adapter).
+"""Generate the eng_ev source (Everyday Version: OET Readers' Version with traditional names) for
+the official collection, using the OET adapter (https://github.com/Freely-Given-org/OpenEnglishTranslation_adapter).
 
 Only well-known names are changed (those in the New Testament, Bible book names, and FAMOUS_OT);
 less familiar names keep OET's spelling, except where OET itself explains them inline.
@@ -10,8 +10,8 @@ adapter left ambiguous by checking which candidate the BSB uses in the same vers
 (OET marks nomina sacra with it, which would render as small caps) → write source.zip and update
 the date in meta.json (which is otherwise maintained by hand).
 
-Usage: python3 -I adaptations/eng_oett/generate.py [--oet-ref <commit>]
-Then: .bin/collector_official download --recheck eng_oett && .bin/collector_official process eng_oett
+Usage: python3 -I adaptations/eng_ev/generate.py [--oet-ref <commit>]
+Then: .bin/collector_official download --recheck eng_ev && .bin/collector_official process eng_ev
 (Without --recheck, download skips the already-extracted source and process uses stale files.)
 """
 
@@ -38,7 +38,7 @@ OET_REPO_API = 'https://api.github.com/repos/Freely-Given-org/OpenEnglishTransla
 USER_AGENT = 'fetch-bible-collector'
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT_DIR = ROOT / 'collection_official' / 'sources' / 'bibles' / 'eng_oett'
+OUT_DIR = ROOT / 'collection_official' / 'sources' / 'bibles' / 'eng_ev'
 BSB_DIR = ROOT / 'collection_official' / 'dist' / 'bibles' / 'eng_bsb' / 'txt'
 
 # Adapter answers (anything omitted uses the adapter's default, e.g. Yahweh, British spelling)
@@ -390,7 +390,7 @@ def famous_names() -> set[str]:
 
 
 def main() -> None:
-    """Generate the eng_oett source zip and meta."""
+    """Generate the eng_ev source zip and meta."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--oet-ref', help='OET repo commit (default: current main)')
     args = parser.parse_args()

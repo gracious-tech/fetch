@@ -7,7 +7,8 @@ less familiar names keep OET's spelling, except where OET itself explains them i
 
 Steps: run the adapter headlessly (traditional names, otherwise defaults) → resolve names the
 adapter left ambiguous by checking which candidate the BSB uses in the same verse → strip \\nd
-(OET marks nomina sacra with it, which would render as small caps) → write source.zip
+(OET marks nomina sacra with it, which would render as small caps) → remove the '◘' placeholders
+OET keeps for verses missing from the oldest manuscripts → write source.zip
 and update the date in meta.json (which is otherwise maintained by hand).
 
 Usage: python3 -I adaptations/eng_ev/generate.py [--oet-ref <commit>]
@@ -534,6 +535,43 @@ def remove_stale_footnotes(usfm:str, stats:collections.Counter[str]) -> str:
     return re.sub(r'\\f .*?\\f\*', check, usfm)
 
 
+def remove_omitted_verses(usfm:str, stats:collections.Counter[str]) -> str:
+    """Remove verses the OET leaves as just '◘' (not in the oldest manuscripts), as the BSB does."""
+    lines:list[str|None] = list(usfm.split('\n'))  # None marks a removed line
+
+    def attach(i:int, notes:list[str]) -> None:
+        """Append footnotes to the verse text before line i (where the BSB puts such notes)."""
+        target = next(j for j in range(i - 1, -1, -1) if (lines[j] or '').startswith('\\v '))
+        lines[target] = (lines[target] or '') + ''.join(notes)
+
+    for i, line in enumerate(lines):
+        if line and (match := re.fullmatch(r'\\v \d+ ◘((?:\\f .*?\\f\*)*)', line)):
+            lines[i] = None
+            attach(i, [match.group(1)])
+            stats['omitted_verse'] += 1
+        elif line and '◘' in line:
+            raise ValueError(f'Unexpected omitted verse form: {line}')
+
+    # Paragraph markers and headings that only preceded removed verses now precede nothing
+    #     (e.g. all of John 7:53–8:11 goes, so its heading does too, and its footnote goes to 7:52)
+    def is_structure(line:str) -> bool:
+        """Whether a line is a bare paragraph marker, heading, or parallels line (no verse text)."""
+        return bool(re.fullmatch(r'\\\w+|\\(s1|r) .*', line))
+
+    for i in range(len(lines) - 2, -1, -1):
+        line = lines[i]
+        if line is None or lines[i + 1] is not None or not is_structure(line):
+            continue  # Only lines directly before a removed one are affected
+        following = next((l for l in lines[i + 1:] if l is not None and not l.startswith('\\c ')),
+            '')
+        empty_paragraph = re.fullmatch(r'\\\w+', line) and (not following or is_structure(following))
+        empty_heading = not re.fullmatch(r'\\\w+', line) and re.match(r'\\s1 |$', following)
+        if empty_paragraph or empty_heading:
+            lines[i] = None
+            attach(i, re.findall(r'\\f .*?\\f\*', line))
+    return '\n'.join(l for l in lines if l is not None)
+
+
 def fix_book_titles(usfm:str, name:str) -> str:
     """Use the standard book name, and the OET's own title (from \\mt lines) as the long name."""
 
@@ -647,6 +685,7 @@ def main() -> None:
                         explained.get(book, ExplainedNames(set(), {})), stats)
                     usfm = fix_book_titles(usfm, bsb.name)
                     usfm = remove_stale_footnotes(usfm, stats)
+                    usfm = remove_omitted_verses(usfm, stats)
                 usfm = ND_REGEX.sub('', usfm)
                 zip_file.writestr(f'{book}.usfm', usfm)
 
